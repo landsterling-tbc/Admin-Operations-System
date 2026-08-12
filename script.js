@@ -98,7 +98,7 @@ function formatDateTime(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ar-EG-u-nu-latn", {
+  return date.toLocaleString("en-GB", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -113,10 +113,22 @@ function formatDateOnly(value) {
   if (!value) return "—";
   const date = new Date(value + "T00:00:00");
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("ar-EG-u-nu-latn", {
+  return date.toLocaleDateString("en-GB", {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+}
+
+// لتاريخ معاملات الوقود بس — بيتسجل بالشهر عمليًا مش بيوم محدد، فبنعرض
+// الشهر والسنة بس (مثلاً "مايو 2026") من غير رقم اليوم
+function formatMonthOnly(value) {
+  if (!value) return "—";
+  const date = new Date(value + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "long",
   });
 }
 
@@ -794,8 +806,7 @@ function renderVehiclesRows(vehicles) {
       "<td>" + escapeHtml(vehicleActualUserDisplay(vehicle)) + "</td>" +
       "<td>" + vehicleAuthorizationBadgeHtml(vehicle) + "</td>" +
       "<td>" + escapeHtml(employeeName || "—") + "</td>" +
-      "<td><span class=\"status-badge status-" + vehicle.status + "\">" + escapeHtml(statusLabel) + "</span></td>" +
-      "<td>" + formatDateTime(vehicle.updated_at) + "</td>";
+      "<td><span class=\"status-badge status-" + vehicle.status + "\">" + escapeHtml(statusLabel) + "</span></td>";
 
     tr.addEventListener("click", () => openVehicleDetails(vehicle));
     vehiclesTableBody.appendChild(tr);
@@ -814,7 +825,7 @@ function updatePaginationControls() {
 }
 
 async function loadVehicles() {
-  renderTableSkeleton(vehiclesTableBody, 6, 8);
+  renderTableSkeleton(vehiclesTableBody, 6, 7);
   setVehiclesState(null);
   vehiclesPrevPageButton.disabled = true;
   vehiclesNextPageButton.disabled = true;
@@ -1366,7 +1377,7 @@ async function ensureFuelVehicleOptions() {
 
   const { data, error } = await supabaseClient
     .from("vehicles")
-    .select("id, license_plate")
+    .select("id, license_plate, actual_user_name")
     .order("license_plate", { ascending: true });
 
   if (error) {
@@ -1379,9 +1390,14 @@ async function ensureFuelVehicleOptions() {
   fuelFormVehicleSelect.innerHTML =
     '<option value="">اختر السيارة</option>' +
     fuelVehiclesCache
-      .map(
-        (v) => '<option value="' + v.id + '">' + escapeHtml(v.license_plate) + "</option>"
-      )
+      .map((v) => {
+        // بيظهر باسم المستخدم الفعلي مع رقم اللوحة عشان يكون سهل تعرف
+        // السيارة بتاعت مين وانت بتختار من القائمة، مش رقم اللوحة بس
+        const label = v.actual_user_name
+          ? v.actual_user_name + " — " + v.license_plate
+          : v.license_plate;
+        return '<option value="' + v.id + '">' + escapeHtml(label) + "</option>";
+      })
       .join("");
 
   return fuelVehiclesCache;
@@ -1439,7 +1455,7 @@ async function fetchFuelSummaryTotals() {
   return fetchAllRowsPaged(buildQuery);
 }
 
-function renderFuelRows(rows, creatorMap) {
+function renderFuelRows(rows) {
   fuelTableBody.innerHTML = "";
   const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
 
@@ -1448,7 +1464,7 @@ function renderFuelRows(rows, creatorMap) {
     if (tx.status === "voided") tr.classList.add("row-voided");
 
     const vehicleNumber = tx.vehicle ? tx.vehicle.license_plate : "—";
-    const creatorName = creatorMap[tx.created_by] || "—";
+    const actualUserName = tx.vehicle && tx.vehicle.actual_user_name ? tx.vehicle.actual_user_name : "—";
     const isVoided = tx.status === "voided";
     const statusLabel = isVoided ? "ملغاة" : "نشطة";
     const statusClass = isVoided ? "status-voided" : "status-active";
@@ -1461,12 +1477,11 @@ function renderFuelRows(rows, creatorMap) {
     }
 
     tr.innerHTML =
-      "<td>" + formatDateOnly(tx.transaction_date) + "</td>" +
+      "<td>" + formatMonthOnly(tx.transaction_date) + "</td>" +
       "<td>" + escapeHtml(vehicleNumber) + "</td>" +
+      "<td>" + escapeHtml(actualUserName) + "</td>" +
       "<td>" + formatNumber(tx.liters, 2) + "</td>" +
       "<td>" + formatNumber(tx.amount, 2) + " ر.س</td>" +
-      "<td>" + escapeHtml(creatorName) + "</td>" +
-      "<td>" + formatDateTime(tx.created_at) + "</td>" +
       '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
       '<td class="actions-cell">' + actionsHtml + "</td>";
 
@@ -1571,27 +1586,9 @@ async function loadFuelTransactions() {
 
   setFuelState(null);
 
-  // جلب أسماء من "أدخل" كل معاملة عبر profile_public (متاحة لكل الأدوار،
-  // على عكس جدول profiles اللي مقيّد بـ RLS لصف المستخدم نفسه فقط)
-  const creatorIds = [...new Set(data.map((tx) => tx.created_by).filter(Boolean))];
-  let creatorMap = {};
-
-  if (creatorIds.length) {
-    const { data: creators, error: creatorsError } = await supabaseClient
-      .from("profile_public")
-      .select("id, full_name")
-      .in("id", creatorIds);
-
-    if (creatorsError) {
-      console.error("Error loading creator names:", creatorsError);
-    } else {
-      (creators || []).forEach((c) => {
-        creatorMap[c.id] = c.full_name;
-      });
-    }
-  }
-
-  renderFuelRows(data, creatorMap);
+  // اسم "المُدخل" اتشال من الجدول ده — موجود بالتفصيل في سجل العمليات
+  // (Audit Log) أصلًا، فمفيش داعي نكرره هنا
+  renderFuelRows(data);
   updateFuelPaginationControls();
 }
 
@@ -1605,14 +1602,28 @@ fuelVehicleSearchInput.addEventListener("input", () => {
   }, 300);
 });
 
+// حقول الفلتر بقت من نوع "شهر" (نفس طبيعة عرض التاريخ في الجدول)، فبنحول
+// قيمة "YYYY-MM" لأول/آخر يوم في الشهر عشان نستخدمها في فلترة عمود
+// transaction_date اللي لسه من نوع date في القاعدة
+function monthValueToStartDate(monthValue) {
+  return monthValue ? monthValue + "-01" : "";
+}
+
+function monthValueToEndDate(monthValue) {
+  if (!monthValue) return "";
+  const [year, month] = monthValue.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return monthValue + "-" + String(lastDay).padStart(2, "0");
+}
+
 fuelDateFromInput.addEventListener("change", () => {
-  fuelState.dateFrom = fuelDateFromInput.value;
+  fuelState.dateFrom = monthValueToStartDate(fuelDateFromInput.value);
   fuelState.page = 1;
   loadFuelTransactions();
 });
 
 fuelDateToInput.addEventListener("change", () => {
-  fuelState.dateTo = fuelDateToInput.value;
+  fuelState.dateTo = monthValueToEndDate(fuelDateToInput.value);
   fuelState.page = 1;
   loadFuelTransactions();
 });
@@ -4248,7 +4259,9 @@ async function loadFuelReport() {
 
   const { data: summaryRows, error: summaryError } = await supabaseClient
     .from("vehicle_fuel_summary")
-    .select("vehicle_id, license_plate, total_liters, total_cost, transaction_count, average_cost_per_transaction")
+    .select(
+      "vehicle_id, license_plate, actual_user_name, total_liters, total_cost, transaction_count, average_cost_per_transaction"
+    )
     .order("total_cost", { ascending: false });
 
   if (summaryError) {
@@ -4280,6 +4293,7 @@ async function loadFuelReport() {
     .map(
       (r) =>
         "<tr><td>" + escapeHtml(r.license_plate) + "</td>" +
+        "<td>" + escapeHtml(r.actual_user_name || "—") + "</td>" +
         "<td>" + formatNumber(r.total_liters, 2) + "</td>" +
         "<td>" + formatNumber(r.total_cost, 2) + " ر.س</td>" +
         "<td>" + (r.transaction_count || 0) + "</td>" +
@@ -4294,9 +4308,10 @@ reportFuelDateTo.addEventListener("change", loadFuelReport);
 reportFuelExportButton.addEventListener("click", () => {
   exportRowsToCSV(
     "fuel-report.csv",
-    ["رقم اللوحة", "إجمالي اللترات", "إجمالي التكلفة", "عدد المعاملات", "متوسط التكلفة"],
+    ["رقم اللوحة", "المستخدم الفعلي", "إجمالي اللترات", "إجمالي التكلفة", "عدد المعاملات", "متوسط التكلفة"],
     reportFuelRows.map((r) => [
       r.license_plate,
+      r.actual_user_name || "—",
       formatNumber(r.total_liters, 2),
       formatNumber(r.total_cost, 2),
       r.transaction_count || 0,

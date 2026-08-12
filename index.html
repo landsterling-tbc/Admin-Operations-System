@@ -242,7 +242,6 @@
                     <th>التفويض</th>
                     <th>التخصيص الرسمي</th>
                     <th class="sortable-th" data-sort="status">الحالة<span class="sort-arrow" aria-hidden="true"></span></th>
-                    <th class="sortable-th" data-sort="updated_at">آخر تحديث<span class="sort-arrow" aria-hidden="true"></span></th>
                   </tr>
                 </thead>
                 <tbody id="vehicles-table-body">
@@ -304,8 +303,8 @@
                 class="input-search"
                 placeholder="ابحث برقم اللوحة أو اسم المستخدم الفعلي..."
               />
-              <input type="date" id="fuel-date-from" class="input-select" aria-label="من تاريخ" />
-              <input type="date" id="fuel-date-to" class="input-select" aria-label="إلى تاريخ" />
+              <input type="month" id="fuel-date-from" class="input-select" aria-label="من شهر" />
+              <input type="month" id="fuel-date-to" class="input-select" aria-label="إلى شهر" />
               <label class="checkbox-field">
                 <input type="checkbox" id="fuel-show-voided" />
                 <span>إظهار المعاملات الملغاة</span>
@@ -332,10 +331,9 @@
                   <tr>
                     <th>التاريخ</th>
                     <th>رقم اللوحة</th>
+                    <th>المستخدم الفعلي</th>
                     <th>اللترات</th>
                     <th>التكلفة</th>
-                    <th>المُدخل</th>
-                    <th>تاريخ الإدخال</th>
                     <th>الحالة</th>
                     <th>الإجراءات</th>
                   </tr>
@@ -553,6 +551,7 @@
                   <thead>
                     <tr>
                       <th>رقم اللوحة</th>
+                      <th>المستخدم الفعلي</th>
                       <th>إجمالي اللترات</th>
                       <th>إجمالي التكلفة</th>
                       <th>عدد المعاملات</th>
