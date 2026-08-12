@@ -1,0 +1,1628 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام العمليات الإدارية</title>
+
+  <!-- خطوط عربية احترافية: Tajawal للعناوين، IBM Plex Sans Arabic للنصوص -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==========================================================
+       صفحة تسجيل الدخول (Login) — Split Layout
+       تبدأ hidden افتراضيًا؛ script.js هو اللي بيقرر يظهرها أو
+       يظهر #app-shell بعد التحقق من الجلسة (Session persistence).
+       ========================================================== -->
+  <main id="login-page" hidden>
+    <div class="login-screen">
+
+      <!-- الجزء البصري — يختفي تلقائيًا على الموبايل -->
+      <aside class="login-visual" aria-hidden="true">
+        <div class="login-visual-shape login-visual-shape--1"></div>
+        <div class="login-visual-shape login-visual-shape--2"></div>
+        <div class="login-visual-content">
+          <span class="login-visual-badge">منصّة العمليات الداخلية</span>
+          <h1 class="login-visual-title">نظام العمليات الإدارية</h1>
+          <p class="login-visual-text">
+            إدارة موحّدة للسيارات، الوقود، العهدة النقدية، والمصروفات — مع
+            تتبّع تاريخي كامل لكل عملية وصلاحيات آمنة لكل مستخدم.
+          </p>
+        </div>
+      </aside>
+
+      <!-- كارت تسجيل الدخول -->
+      <section class="login-form-side">
+        <div class="login-card">
+          <h2 class="app-title">تسجيل الدخول</h2>
+          <p class="app-subtitle">من فضلك أدخل بيانات حسابك للمتابعة</p>
+
+          <form id="login-form" novalidate>
+            <div class="form-field">
+              <label for="email">البريد الإلكتروني</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="username"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="password">كلمة المرور</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+
+            <div id="login-error" class="error-message" role="alert" hidden></div>
+
+            <button type="submit" id="login-button" class="btn-primary">
+              دخول
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ==========================================================
+       هيكل التطبيق الرئيسي (#app-shell) — بعد تسجيل الدخول بنجاح
+       Sidebar + محتوى رئيسي. التنقل بين الصفحات بالكامل عبر JavaScript
+       (إظهار/إخفاء أقسام .app-page)، من غير أي تغيير فعلي في الـ URL.
+       ========================================================== -->
+  <div id="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo" aria-hidden="true">◆</span>
+        <span class="sidebar-title">نظام العمليات الإدارية</span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="التنقل الرئيسي">
+        <a href="#" class="sidebar-nav-item active" data-page="dashboard">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" /></svg>
+          <span>الرئيسية</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="vehicles">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" /></svg>
+          <span>السيارات</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="fuel">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" /></svg>
+          <span>الوقود</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="petty-cash">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
+          <span>العهدة النقدية</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="expenses">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
+          <span>المصروفات</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="reports">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-6" /></svg>
+          <span>التقارير</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="audit-log" id="audit-log-nav-item" hidden>
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+          <span>سجل العمليات</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="accounts" id="accounts-nav-item" hidden>
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" /></svg>
+          <span>حسابات النظام</span>
+        </a>
+        <a href="#" class="sidebar-nav-item" data-page="employees" id="employees-nav-item" hidden>
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+          <span>الموظفون</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" id="change-password-button" class="btn-sidebar-action">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="1.5" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+          <span>تغيير كلمة المرور</span>
+        </button>
+        <button type="button" id="logout-button" class="btn-logout">
+          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+          <span>تسجيل الخروج</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-topbar">
+        <h1 id="page-title" class="app-topbar-title">الرئيسية</h1>
+
+        <div class="global-search">
+          <input
+            type="search"
+            id="global-search-input"
+            class="global-search-input"
+            placeholder="بحث شامل: رقم سيارة، لوحة، موظف، موقع..."
+            autocomplete="off"
+          />
+          <div id="global-search-results" class="global-search-results" hidden></div>
+        </div>
+
+        <div class="topbar-user">
+          <span id="topbar-user-name" class="topbar-user-name"></span>
+          <span id="topbar-user-role" class="status-badge topbar-user-role"></span>
+        </div>
+      </header>
+
+      <div class="app-content">
+
+        <!-- ==================== الرئيسية (Dashboard) — Phase 5 ==================== -->
+        <section id="dashboard-page" class="app-page">
+          <div class="welcome-card">
+            <h2 id="welcome-message">مرحبًا</h2>
+          </div>
+
+          <div id="dashboard-stats" class="stat-cards-grid">
+            <!-- بطاقات إحصائية حقيقية بتتحقن هنا ديناميكيًا من script.js -->
+          </div>
+
+          <div id="dashboard-attention" class="dashboard-attention" hidden>
+            <!-- عناصر تحتاج الانتباه — تُحقن ديناميكيًا من بيانات حقيقية فقط -->
+          </div>
+
+          <div class="table-card dashboard-summary-card">
+            <div class="dashboard-section-header">
+              <h2 class="section-heading">ملخص ذكي</h2>
+            </div>
+            <ul id="dashboard-smart-summary" class="smart-summary-list"></ul>
+          </div>
+
+          <div class="table-card dashboard-activity-card">
+            <div class="dashboard-section-header">
+              <h2 class="section-heading">آخر العمليات</h2>
+            </div>
+            <div id="dashboard-activity-list" class="activity-list"></div>
+            <div id="dashboard-activity-state" class="table-state" hidden></div>
+          </div>
+        </section>
+
+        <!-- ==================== السيارات (Vehicles) — Phase 2 ==================== -->
+        <section id="vehicles-page" class="app-page" hidden>
+
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <input
+                type="search"
+                id="vehicles-search"
+                class="input-search"
+                placeholder="ابحث برقم اللوحة أو اسم المستخدم الفعلي..."
+              />
+              <select id="vehicles-status-filter" class="input-select">
+                <option value="">كل الحالات</option>
+                <option value="active">نشطة</option>
+                <option value="available">متاحة</option>
+                <option value="assigned">مخصصة</option>
+                <option value="under_maintenance">تحت الصيانة</option>
+                <option value="out_of_service">خارج الخدمة</option>
+                <option value="archived">مؤرشفة</option>
+              </select>
+            </div>
+
+            <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
+                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+            <div class="toolbar-actions">
+              <button type="button" id="import-vehicles-button" class="btn-secondary btn-inline" hidden>
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                استيراد من Excel
+              </button>
+              <button type="button" id="add-vehicle-button" class="btn-primary btn-inline" hidden>
+                + إضافة سيارة
+              </button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="sortable-th" data-sort="license_plate">رقم اللوحة<span class="sort-arrow" aria-hidden="true"></span></th>
+                    <th>الماركة</th>
+                    <th>السنة</th>
+                    <th>المستخدم الفعلي</th>
+                    <th>التفويض</th>
+                    <th>التخصيص الرسمي</th>
+                    <th class="sortable-th" data-sort="status">الحالة<span class="sort-arrow" aria-hidden="true"></span></th>
+                    <th class="sortable-th" data-sort="updated_at">آخر تحديث<span class="sort-arrow" aria-hidden="true"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="vehicles-table-body">
+                  <!-- الصفوف بتتحقن هنا ديناميكيًا من script.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="vehicles-state" class="table-state" hidden></div>
+
+            <div class="table-pagination">
+              <span id="vehicles-pagination-info" class="pagination-info"></span>
+              <div class="pagination-controls">
+                <button type="button" id="vehicles-prev-page" class="btn-secondary btn-sm" disabled>
+                  السابق
+                </button>
+                <button type="button" id="vehicles-next-page" class="btn-secondary btn-sm" disabled>
+                  التالي
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== الوقود (Fuel) — Phase 3 ==================== -->
+        <section id="fuel-page" class="app-page" hidden>
+
+          <div class="summary-cards">
+            <div class="summary-card">
+              <span class="card-icon" aria-hidden="true">⛽</span>
+              <span class="summary-card-label">إجمالي اللترات</span>
+              <span id="fuel-summary-liters" class="summary-card-value">0</span>
+            </div>
+            <div class="summary-card">
+              <span class="card-icon" aria-hidden="true">💰</span>
+              <span class="summary-card-label">إجمالي التكلفة (ر.س)</span>
+              <span id="fuel-summary-amount" class="summary-card-value">0</span>
+            </div>
+            <div class="summary-card">
+              <span class="card-icon" aria-hidden="true">🔢</span>
+              <span class="summary-card-label">عدد المعاملات</span>
+              <span id="fuel-summary-count" class="summary-card-value">0</span>
+            </div>
+            <div class="summary-card">
+              <span class="card-icon" aria-hidden="true">📊</span>
+              <span class="summary-card-label">متوسط تكلفة المعاملة</span>
+              <span id="fuel-summary-average" class="summary-card-value">0</span>
+            </div>
+          </div>
+          <p class="summary-note">
+            الأرقام أعلاه بتعكس إجمالي كل المعاملات المطابقة للفلاتر المطبّقة (مش صفحة الجدول المعروضة بس).
+          </p>
+
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <input
+                type="search"
+                id="fuel-vehicle-search"
+                class="input-search"
+                placeholder="ابحث برقم اللوحة أو اسم المستخدم الفعلي..."
+              />
+              <input type="date" id="fuel-date-from" class="input-select" aria-label="من تاريخ" />
+              <input type="date" id="fuel-date-to" class="input-select" aria-label="إلى تاريخ" />
+              <label class="checkbox-field">
+                <input type="checkbox" id="fuel-show-voided" />
+                <span>إظهار المعاملات الملغاة</span>
+              </label>
+            </div>
+
+            <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
+                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+            <div class="toolbar-actions">
+              <button type="button" id="import-fuel-button" class="btn-secondary btn-inline" hidden>
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                استيراد من Excel
+              </button>
+              <button type="button" id="add-fuel-button" class="btn-primary btn-inline" hidden>
+                + إضافة معاملة وقود
+              </button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>التاريخ</th>
+                    <th>رقم اللوحة</th>
+                    <th>اللترات</th>
+                    <th>التكلفة</th>
+                    <th>المُدخل</th>
+                    <th>تاريخ الإدخال</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="fuel-table-body">
+                  <!-- الصفوف بتتحقن هنا ديناميكيًا من script.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="fuel-state" class="table-state" hidden></div>
+
+            <div class="table-pagination">
+              <span id="fuel-pagination-info" class="pagination-info"></span>
+              <div class="pagination-controls">
+                <button type="button" id="fuel-prev-page" class="btn-secondary btn-sm" disabled>
+                  السابق
+                </button>
+                <button type="button" id="fuel-next-page" class="btn-secondary btn-sm" disabled>
+                  التالي
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== البيتي كاش (Petty Cash) — Phase 4 ==================== -->
+        <section id="petty-cash-page" class="app-page" hidden>
+
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <h2 class="section-heading">العهدة الحالية</h2>
+            </div>
+            <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
+                 الضامن الفعلي، مش إخفاء الزرار ده -->
+            <button type="button" id="add-fund-button" class="btn-primary btn-inline" hidden>
+              + إنشاء عهدة جديدة
+            </button>
+          </div>
+
+          <div id="current-fund-container" class="fund-card-wrapper">
+            <!-- بيتم حقن كارت العهدة الحالية (أو حالة "لا توجد عهدة نشطة") هنا -->
+          </div>
+
+          <h2 class="section-heading section-heading-spaced">سجل العهد السابقة</h2>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>كود العهدة</th>
+                    <th>المبلغ الافتتاحي</th>
+                    <th>الحالة</th>
+                    <th>تاريخ التمويل</th>
+                    <th>تاريخ الإغلاق</th>
+                  </tr>
+                </thead>
+                <tbody id="funds-table-body">
+                  <!-- الصفوف بتتحقن هنا ديناميكيًا من script.js -->
+                </tbody>
+              </table>
+            </div>
+            <div id="funds-state" class="table-state" hidden></div>
+          </div>
+        </section>
+
+        <!-- ==================== المصروفات (Expenses) — Phase 4 ==================== -->
+        <section id="expenses-page" class="app-page" hidden>
+
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <select id="expenses-category-filter" class="input-select">
+                <option value="">كل الفئات</option>
+                <!-- بيتحقن ديناميكيًا من expense_categories -->
+              </select>
+              <input type="date" id="expenses-date-from" class="input-select" aria-label="من تاريخ" />
+              <input type="date" id="expenses-date-to" class="input-select" aria-label="إلى تاريخ" />
+              <select id="expenses-status-filter" class="input-select">
+                <option value="">الكل</option>
+                <option value="active" selected>نشطة</option>
+                <option value="voided">ملغاة</option>
+              </select>
+            </div>
+
+            <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
+                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+            <div class="toolbar-actions">
+              <button type="button" id="import-expenses-button" class="btn-secondary btn-inline" hidden>
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                استيراد من Excel
+              </button>
+              <button type="button" id="add-expense-button" class="btn-primary btn-inline" hidden>
+                + إضافة مصروف
+              </button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>التاريخ</th>
+                    <th>المبلغ</th>
+                    <th>الفئة</th>
+                    <th>الوصف</th>
+                    <th>العهدة المرتبطة</th>
+                    <th>المُدخل</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="expenses-table-body">
+                  <!-- الصفوف بتتحقن هنا ديناميكيًا من script.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="expenses-state" class="table-state" hidden></div>
+
+            <div class="table-pagination">
+              <span id="expenses-pagination-info" class="pagination-info"></span>
+              <div class="pagination-controls">
+                <button type="button" id="expenses-prev-page" class="btn-secondary btn-sm" disabled>
+                  السابق
+                </button>
+                <button type="button" id="expenses-next-page" class="btn-secondary btn-sm" disabled>
+                  التالي
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== التقارير (Reports Center) — Phase 5 ==================== -->
+        <section id="reports-page" class="app-page" hidden>
+
+          <div class="modal-tabs page-tabs" id="reports-tabs">
+            <button type="button" class="modal-tab active" data-report-tab="vehicles">السيارات</button>
+            <button type="button" class="modal-tab" data-report-tab="fuel">الوقود</button>
+            <button type="button" class="modal-tab" data-report-tab="petty-cash">العهدة النقدية</button>
+            <button type="button" class="modal-tab" data-report-tab="expenses">المصروفات</button>
+          </div>
+
+          <!-- ---- تقرير السيارات ---- -->
+          <div id="report-panel-vehicles" class="report-panel">
+            <div class="page-toolbar">
+              <div class="page-toolbar-filters">
+                <input type="date" id="report-vehicles-date-from" class="input-select" aria-label="من تاريخ الإضافة" />
+                <input type="date" id="report-vehicles-date-to" class="input-select" aria-label="إلى تاريخ الإضافة" />
+              </div>
+              <button type="button" id="report-vehicles-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+            </div>
+            <div id="report-vehicles-summary" class="summary-cards"></div>
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>رقم اللوحة</th>
+                      <th>الحالة</th>
+                      <th>تاريخ الإضافة</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-vehicles-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-vehicles-state" class="table-state" hidden></div>
+            </div>
+          </div>
+
+          <!-- ---- تقرير الوقود ---- -->
+          <div id="report-panel-fuel" class="report-panel" hidden>
+            <div class="page-toolbar">
+              <div class="page-toolbar-filters">
+                <input type="date" id="report-fuel-date-from" class="input-select" aria-label="من تاريخ" />
+                <input type="date" id="report-fuel-date-to" class="input-select" aria-label="إلى تاريخ" />
+              </div>
+              <button type="button" id="report-fuel-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+            </div>
+            <div id="report-fuel-summary" class="summary-cards"></div>
+            <p class="summary-note">
+              كروت الملخص أعلاه بتعكس نطاق التاريخ المحدد. الجدول تحت بيعرض
+              إجمالي كل سيارة عبر كل الفترات (من vehicle_fuel_summary).
+            </p>
+
+            <div class="chart-grid">
+              <div class="chart-card">
+                <h3 class="chart-card-title">اتجاه استهلاك الوقود الشهري (كل الفترات)</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-fuel-trend-chart"></canvas>
+                </div>
+                <div id="report-fuel-trend-state" class="table-state" hidden></div>
+              </div>
+              <div class="chart-card">
+                <h3 class="chart-card-title">أعلى السيارات استهلاكًا (اللترات)</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-fuel-top-vehicles-chart"></canvas>
+                </div>
+                <div id="report-fuel-top-vehicles-state" class="table-state" hidden></div>
+              </div>
+              <div class="chart-card">
+                <h3 class="chart-card-title">أعلى المستخدمين الفعليين استهلاكًا (اللترات، للفترة المحددة)</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-fuel-top-users-chart"></canvas>
+                </div>
+                <div id="report-fuel-top-users-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>رقم اللوحة</th>
+                      <th>إجمالي اللترات</th>
+                      <th>إجمالي التكلفة</th>
+                      <th>عدد المعاملات</th>
+                      <th>متوسط التكلفة</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-fuel-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-fuel-state" class="table-state" hidden></div>
+            </div>
+
+            <h3 class="modal-section-title">الاستهلاك حسب المستخدم الفعلي (للفترة المحددة)</h3>
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>المستخدم الفعلي</th>
+                      <th>إجمالي اللترات</th>
+                      <th>إجمالي التكلفة</th>
+                      <th>عدد المعاملات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-fuel-by-user-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-fuel-by-user-state" class="table-state" hidden></div>
+            </div>
+          </div>
+
+          <!-- ---- تقرير البيتي كاش ---- -->
+          <div id="report-panel-petty-cash" class="report-panel" hidden>
+            <div class="page-toolbar">
+              <div class="page-toolbar-filters">
+                <input type="date" id="report-petty-cash-date-from" class="input-select" aria-label="من تاريخ التمويل" />
+                <input type="date" id="report-petty-cash-date-to" class="input-select" aria-label="إلى تاريخ التمويل" />
+              </div>
+              <button type="button" id="report-petty-cash-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+            </div>
+            <div id="report-petty-cash-summary" class="summary-cards"></div>
+
+            <h3 class="modal-section-title">نسبة الصرف من الرصيد الافتتاحي لكل عهدة</h3>
+            <div id="report-petty-cash-charts" class="chart-grid chart-grid-compact"></div>
+            <div id="report-petty-cash-charts-state" class="table-state" hidden></div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>كود العهدة</th>
+                      <th>المبلغ الافتتاحي</th>
+                      <th>إجمالي المصروف</th>
+                      <th>الرصيد الحالي</th>
+                      <th>الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-petty-cash-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-petty-cash-state" class="table-state" hidden></div>
+            </div>
+          </div>
+
+          <!-- ---- تقرير المصروفات (توزيع حسب الفئة) ---- -->
+          <div id="report-panel-expenses" class="report-panel" hidden>
+            <div class="page-toolbar">
+              <div class="page-toolbar-filters">
+                <input type="date" id="report-expenses-date-from" class="input-select" aria-label="من تاريخ" />
+                <input type="date" id="report-expenses-date-to" class="input-select" aria-label="إلى تاريخ" />
+              </div>
+              <button type="button" id="report-expenses-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+            </div>
+            <div id="report-expenses-summary" class="summary-cards"></div>
+
+            <div class="chart-grid">
+              <div class="chart-card">
+                <h3 class="chart-card-title">توزيع المصروفات حسب الفئة</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-expenses-category-chart"></canvas>
+                </div>
+                <div id="report-expenses-category-legend" class="chart-legend"></div>
+                <div id="report-expenses-category-state" class="table-state" hidden></div>
+              </div>
+              <div class="chart-card">
+                <h3 class="chart-card-title">اتجاه الإنفاق الشهري (كل الفترات)</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-expenses-trend-chart"></canvas>
+                </div>
+                <div id="report-expenses-trend-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الفئة</th>
+                      <th>إجمالي المبلغ</th>
+                      <th>عدد المصروفات</th>
+                      <th>النسبة</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-expenses-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-expenses-state" class="table-state" hidden></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== سجل العمليات (Audit Log) — Phase 5 — Super Admin فقط ==================== -->
+        <section id="audit-log-page" class="app-page" hidden>
+
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <select id="audit-action-filter" class="input-select">
+                <option value="">كل العمليات</option>
+              </select>
+              <select id="audit-user-filter" class="input-select">
+                <option value="">كل المستخدمين</option>
+              </select>
+              <input type="date" id="audit-date-from" class="input-select" aria-label="من تاريخ" />
+              <input type="date" id="audit-date-to" class="input-select" aria-label="إلى تاريخ" />
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الوقت</th>
+                    <th>المستخدم</th>
+                    <th>العملية</th>
+                    <th>الكيان</th>
+                    <th>التفاصيل</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-table-body"></tbody>
+              </table>
+            </div>
+            <div id="audit-state" class="table-state" hidden></div>
+            <div class="table-pagination">
+              <span id="audit-pagination-info" class="pagination-info"></span>
+              <div class="pagination-controls">
+                <button type="button" id="audit-prev-page" class="btn-secondary btn-sm" disabled>السابق</button>
+                <button type="button" id="audit-next-page" class="btn-secondary btn-sm" disabled>التالي</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== حسابات النظام (Accounts) — Phase 6 — Super Admin فقط ==================== -->
+        <section id="accounts-page" class="app-page" hidden>
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <p class="form-info-note users-add-note">
+                إنشاء الحسابات وحذفها وتوليد كلمات المرور بيتم مباشرة من هنا.
+              </p>
+            </div>
+            <button type="button" id="add-account-button" class="btn-primary btn-inline">
+              + إضافة حساب
+            </button>
+          </div>
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الدور</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="accounts-table-body"></tbody>
+              </table>
+            </div>
+            <div id="accounts-state" class="table-state" hidden></div>
+          </div>
+        </section>
+
+        <!-- ==================== الموظفون (Employees) — Phase 6 — Super Admin فقط ==================== -->
+        <section id="employees-page" class="app-page" hidden>
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <input
+                type="search"
+                id="employees-search"
+                class="input-search"
+                placeholder="ابحث بالاسم..."
+              />
+            </div>
+            <button type="button" id="add-employee-button" class="btn-primary btn-inline">
+              + إضافة موظف
+            </button>
+          </div>
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الكود الوظيفي</th>
+                    <th>الهاتف</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="employees-table-body"></tbody>
+              </table>
+            </div>
+            <div id="employees-state" class="table-state" hidden></div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تفاصيل السيارة
+       ========================================================== -->
+  <div id="vehicle-details-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-details-title">
+      <div class="modal-header">
+        <h2 id="vehicle-details-title" class="modal-title">تفاصيل السيارة</h2>
+        <button type="button" class="modal-close" data-close-modal="vehicle-details-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-tabs" id="vehicle-details-tabs">
+        <button type="button" class="modal-tab active" data-tab="basic">البيانات الأساسية</button>
+        <button type="button" class="modal-tab" data-tab="fuel">ملخص الوقود</button>
+        <button type="button" class="modal-tab" data-tab="assignments">تاريخ التنقلات</button>
+        <button type="button" class="modal-tab" data-tab="audit" id="vehicle-audit-tab-button" hidden>سجل العمليات</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="vehicle-tab-basic" class="vehicle-tab-panel">
+          <dl id="vehicle-details-content" class="details-grid">
+            <!-- بتتحقن ديناميكيًا من script.js -->
+          </dl>
+        </div>
+
+        <div id="vehicle-tab-fuel" class="vehicle-tab-panel" hidden>
+          <div id="vehicle-fuel-summary-content"></div>
+        </div>
+
+        <div id="vehicle-tab-assignments" class="vehicle-tab-panel" hidden>
+          <div id="vehicle-assignments-content"></div>
+        </div>
+
+        <div id="vehicle-tab-audit" class="vehicle-tab-panel" hidden>
+          <div id="vehicle-audit-content"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="vehicle-details-edit-button" class="btn-primary" hidden>
+          تعديل السيارة
+        </button>
+        <button type="button" class="btn-secondary" data-close-modal="vehicle-details-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إضافة / تعديل سيارة — يظهر لـ Super Admin فقط
+       ========================================================== -->
+  <div id="vehicle-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-form-title">
+      <div class="modal-header">
+        <h2 id="vehicle-form-title" class="modal-title">إضافة سيارة جديدة</h2>
+        <button type="button" class="modal-close" data-close-modal="vehicle-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="vehicle-form" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="vehicle-form-id" value="" />
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="vehicle-form-plate">رقم اللوحة *</label>
+              <input type="text" id="vehicle-form-plate" required />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-make">الماركة</label>
+              <input type="text" id="vehicle-form-make" />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-year">سنة الصنع</label>
+              <input type="number" id="vehicle-form-year" min="1950" step="1" />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-status">الحالة</label>
+              <select id="vehicle-form-status">
+                <option value="active">نشطة</option>
+                <option value="available">متاحة</option>
+                <option value="assigned">مخصصة</option>
+                <option value="under_maintenance">تحت الصيانة</option>
+                <option value="out_of_service">خارج الخدمة</option>
+                <option value="archived">مؤرشفة</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-actual-user-name">اسم المستخدم الفعلي</label>
+              <input type="text" id="vehicle-form-actual-user-name" />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-actual-user-national-id">رقم هوية المستخدم الفعلي</label>
+              <input type="text" id="vehicle-form-actual-user-national-id" />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-authorization-expiry">تفويض حتى (اتركه فاضي لو مستخدم فعلي بدون تاريخ محدد)</label>
+              <input type="date" id="vehicle-form-authorization-expiry" />
+            </div>
+            <div class="form-field">
+              <label for="vehicle-form-employee">التخصيص الرسمي (موظف)</label>
+              <div class="input-with-action">
+                <select id="vehicle-form-employee">
+                  <option value="">بدون موظف</option>
+                </select>
+                <button type="button" id="vehicle-form-add-employee-button" class="btn-secondary btn-sm">+ موظف جديد</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="vehicle-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="vehicle-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="vehicle-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إضافة / تعديل معاملة وقود — يظهر لـ Super Admin فقط
+       ========================================================== -->
+  <div id="fuel-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fuel-form-title">
+      <div class="modal-header">
+        <h2 id="fuel-form-title" class="modal-title">إضافة معاملة وقود</h2>
+        <button type="button" class="modal-close" data-close-modal="fuel-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="fuel-form" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="fuel-form-id" value="" />
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="fuel-form-vehicle">السيارة *</label>
+              <select id="fuel-form-vehicle" required>
+                <option value="">اختر السيارة</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="fuel-form-date">التاريخ *</label>
+              <input type="date" id="fuel-form-date" required />
+            </div>
+            <div class="form-field">
+              <label for="fuel-form-liters">اللترات *</label>
+              <input type="number" id="fuel-form-liters" min="0.01" step="0.01" required />
+            </div>
+            <div class="form-field">
+              <label for="fuel-form-amount">التكلفة (ر.س) *</label>
+              <input type="number" id="fuel-form-amount" min="0" step="0.01" required />
+            </div>
+          </div>
+
+          <div id="fuel-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="fuel-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="fuel-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد إلغاء معاملة وقود (Void) — يظهر لـ Super Admin فقط
+       لا يوجد حذف فعلي أبدًا؛ العملية بتغيّر status إلى 'voided' فقط.
+       ========================================================== -->
+  <div id="fuel-void-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fuel-void-title">
+      <div class="modal-header">
+        <h2 id="fuel-void-title" class="modal-title">تأكيد إلغاء المعاملة</h2>
+        <button type="button" class="modal-close" data-close-modal="fuel-void-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من إلغاء معاملة الوقود دي؟ المعاملة هتفضل موجودة في
+          السجل بحالة "ملغاة" ومش هتتحسب ضمن الإجماليات — دي عملية لا يمكن
+          التراجع عنها من الواجهة.
+        </p>
+
+        <input type="hidden" id="fuel-void-id" value="" />
+
+        <div class="form-field">
+          <label for="fuel-void-reason">سبب الإلغاء (اختياري)</label>
+          <textarea id="fuel-void-reason" rows="3"></textarea>
+        </div>
+
+        <div id="fuel-void-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="fuel-void-confirm" class="btn-danger">تأكيد الإلغاء</button>
+        <button type="button" class="btn-secondary" data-close-modal="fuel-void-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إنشاء صندوق بيتي كاش جديد — يظهر لـ Super Admin فقط
+       ========================================================== -->
+  <div id="fund-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fund-form-title">
+      <div class="modal-header">
+        <h2 id="fund-form-title" class="modal-title">إنشاء عهدة جديدة</h2>
+        <button type="button" class="modal-close" data-close-modal="fund-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="fund-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="fund-form-amount">المبلغ الافتتاحي (ر.س) *</label>
+              <input type="number" id="fund-form-amount" min="0.01" step="0.01" required />
+            </div>
+            <div class="form-field">
+              <label for="fund-form-date">تاريخ التمويل *</label>
+              <input type="date" id="fund-form-date" required />
+            </div>
+          </div>
+
+          <div id="fund-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="fund-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="fund-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تعزيز رصيد العهدة الحالية — يظهر لـ Admin/Super Admin فقط
+       ========================================================== -->
+  <div id="topup-fund-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="topup-fund-title">
+      <div class="modal-header">
+        <h2 id="topup-fund-title" class="modal-title">تعزيز رصيد العهدة</h2>
+        <button type="button" class="modal-close" data-close-modal="topup-fund-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="topup-fund-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="topup-fund-amount">المبلغ المضاف (ر.س) *</label>
+              <input type="number" id="topup-fund-amount" min="0.01" step="0.01" required />
+            </div>
+          </div>
+          <div id="topup-fund-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="topup-fund-submit" class="btn-primary">تأكيد الإضافة</button>
+          <button type="button" class="btn-secondary" data-close-modal="topup-fund-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد إلغاء عهدة اتعملت بالغلط — يظهر لـ Admin/Super Admin فقط
+       ========================================================== -->
+  <div id="cancel-fund-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-fund-title">
+      <div class="modal-header">
+        <h2 id="cancel-fund-title" class="modal-title">تأكيد إلغاء العهدة</h2>
+        <button type="button" class="modal-close" data-close-modal="cancel-fund-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من إلغاء هذه العهدة؟ استخدم الخيار ده بس لو العهدة
+          اتعملت بالغلط ومفيهاش أي مصروفات مسجّلة عليها. هتفضل موجودة في
+          السجل بحالة «ملغاة».
+        </p>
+        <div id="cancel-fund-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="cancel-fund-confirm" class="btn-danger">تأكيد الإلغاء</button>
+        <button type="button" class="btn-secondary" data-close-modal="cancel-fund-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد إغلاق الصندوق كمستنفد — يظهر لـ Super Admin فقط
+       ========================================================== -->
+  <div id="close-fund-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="close-fund-title">
+      <div class="modal-header">
+        <h2 id="close-fund-title" class="modal-title">تأكيد إغلاق العهدة</h2>
+        <button type="button" class="modal-close" data-close-modal="close-fund-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من إغلاق العهدة الحالية كمستنفدة؟ ستبقى العهدة
+          موجودة في السجل بحالة «مستنفدة»، ويمكنك إنشاء عهدة جديدة بعد ذلك
+          مباشرة.
+        </p>
+        <div id="close-fund-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="close-fund-confirm" class="btn-danger">تأكيد الإغلاق</button>
+        <button type="button" class="btn-secondary" data-close-modal="close-fund-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تفاصيل الصندوق (من سجل الصناديق السابقة)
+       ========================================================== -->
+  <div id="fund-details-modal" class="modal-overlay" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="fund-details-title">
+      <div class="modal-header">
+        <h2 id="fund-details-title" class="modal-title">تفاصيل العهدة</h2>
+        <button type="button" class="modal-close" data-close-modal="fund-details-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <dl id="fund-details-summary" class="details-grid">
+          <!-- بتتحقن ديناميكيًا -->
+        </dl>
+
+        <h3 class="modal-section-title">توزيع المصروفات حسب الفئة</h3>
+        <div id="fund-details-category-breakdown" class="category-breakdown">
+          <!-- بتتحقن ديناميكيًا -->
+        </div>
+
+        <h3 class="modal-section-title">المصروفات المرتبطة بالعهدة</h3>
+
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+                <th>الفئة</th>
+                <th>الوصف</th>
+                <th>المُدخل</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="fund-details-expenses-body">
+              <!-- بتتحقن ديناميكيًا -->
+            </tbody>
+          </table>
+        </div>
+        <div id="fund-details-expenses-state" class="table-state" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="fund-details-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إضافة مصروف — يظهر لـ Super Admin فقط
+       بيتسجل تلقائيًا على الصندوق النشط الحالي (بدون اختيار يدوي)
+       ========================================================== -->
+  <div id="expense-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="expense-form-title">
+      <div class="modal-header">
+        <h2 id="expense-form-title" class="modal-title">إضافة مصروف</h2>
+        <button type="button" class="modal-close" data-close-modal="expense-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="expense-form" novalidate>
+        <div class="modal-body">
+          <p id="expense-form-fund-info" class="form-info-note"></p>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="expense-form-category">الفئة *</label>
+              <select id="expense-form-category" required>
+                <option value="">اختر الفئة</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="expense-form-amount">المبلغ (ر.س) *</label>
+              <input type="number" id="expense-form-amount" min="0.01" step="0.01" required />
+            </div>
+            <div class="form-field">
+              <label for="expense-form-date">التاريخ *</label>
+              <input type="date" id="expense-form-date" required />
+            </div>
+            <div class="form-field">
+              <label for="expense-form-description">الوصف</label>
+              <textarea id="expense-form-description" rows="2"></textarea>
+            </div>
+          </div>
+
+          <div id="expense-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="expense-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="expense-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد إلغاء مصروف (Void) — يظهر لـ Super Admin فقط
+       لا يوجد حذف فعلي أبدًا؛ العملية بتغيّر status إلى 'voided' فقط.
+       ========================================================== -->
+  <div id="expense-void-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="expense-void-title">
+      <div class="modal-header">
+        <h2 id="expense-void-title" class="modal-title">تأكيد إلغاء المصروف</h2>
+        <button type="button" class="modal-close" data-close-modal="expense-void-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من إلغاء هذا المصروف؟ سيبقى المصروف موجودًا في
+          السجل بحالة «ملغى»، وسيُرد مبلغه إلى رصيد العهدة — هذه عملية لا
+          يمكن التراجع عنها من الواجهة.
+        </p>
+
+        <div class="form-field">
+          <label for="expense-void-reason">سبب الإلغاء (اختياري)</label>
+          <textarea id="expense-void-reason" rows="3"></textarea>
+        </div>
+
+        <div id="expense-void-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="expense-void-confirm" class="btn-danger">تأكيد الإلغاء</button>
+        <button type="button" class="btn-secondary" data-close-modal="expense-void-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تفاصيل عملية من سجل العمليات
+       ========================================================== -->
+  <div id="audit-details-modal" class="modal-overlay" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="audit-details-title">
+      <div class="modal-header">
+        <h2 id="audit-details-title" class="modal-title">تفاصيل العملية</h2>
+        <button type="button" class="modal-close" data-close-modal="audit-details-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <dl id="audit-details-summary" class="details-grid"></dl>
+
+        <h3 class="modal-section-title">القيمة السابقة (Old)</h3>
+        <pre id="audit-details-old" class="audit-json-block"></pre>
+
+        <h3 class="modal-section-title">القيمة الجديدة (New)</h3>
+        <pre id="audit-details-new" class="audit-json-block"></pre>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="audit-details-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تعديل بيانات حساب (الاسم / الإيميل / الدور / الحالة) — Super Admin فقط
+       كل الحقول بتتحدّث مع بعض عبر RPC واحد (admin_update_account)
+       ========================================================== -->
+  <div id="account-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-form-title">
+      <div class="modal-header">
+        <h2 id="account-form-title" class="modal-title">تعديل بيانات الحساب</h2>
+        <button type="button" class="modal-close" data-close-modal="account-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="account-form" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="account-form-id" value="" />
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="account-form-name">الاسم الكامل *</label>
+              <input type="text" id="account-form-name" required />
+            </div>
+            <div class="form-field">
+              <label for="account-form-email">البريد الإلكتروني *</label>
+              <input type="email" id="account-form-email" required />
+              <p class="field-hint">
+                تغيير الإيميل هنا بيغيّر بيانات تسجيل الدخول الفعلية للحساب.
+              </p>
+            </div>
+            <div class="form-field">
+              <label for="account-form-role">الدور *</label>
+              <select id="account-form-role" required>
+                <option value="manager">مدير</option>
+                <option value="admin">أدمن</option>
+                <option value="super_admin">مدير النظام</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="account-form-active">الحالة *</label>
+              <select id="account-form-active" required>
+                <option value="true">مفعّل</option>
+                <option value="false">معطّل</option>
+              </select>
+            </div>
+          </div>
+
+          <p id="account-form-self-hint" class="field-hint" hidden>
+            الدور والحالة مقفولان عند تعديل حسابك الشخصي، لمنع تعطيل نفسك أو
+            تنزيل صلاحيتك بالخطأ. لتغييرهما، اطلب من مدير نظام آخر تعديل
+            حسابك.
+          </p>
+
+          <div id="account-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="account-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="account-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إضافة حساب جديد — Super Admin فقط
+       بيتم عبر RPC (admin_create_account)
+       ========================================================== -->
+  <div id="account-create-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-create-title">
+      <div class="modal-header">
+        <h2 id="account-create-title" class="modal-title">إضافة حساب جديد</h2>
+        <button type="button" class="modal-close" data-close-modal="account-create-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="account-create-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="account-create-name">الاسم الكامل *</label>
+              <input type="text" id="account-create-name" required />
+            </div>
+            <div class="form-field">
+              <label for="account-create-email">البريد الإلكتروني *</label>
+              <input type="email" id="account-create-email" required />
+            </div>
+            <div class="form-field">
+              <label for="account-create-password">كلمة المرور *</label>
+              <div class="input-with-action">
+                <input type="text" id="account-create-password" required minlength="6" />
+                <button type="button" id="account-create-generate-password" class="btn-secondary btn-sm">
+                  توليد عشوائي
+                </button>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="account-create-role">الدور *</label>
+              <select id="account-create-role" required>
+                <option value="manager">مدير</option>
+                <option value="admin">أدمن</option>
+                <option value="super_admin">مدير النظام</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="field-hint">
+            كلمة المرور دي هتتفعّل فورًا للحساب الجديد — لازم تبلّغ بيها صاحب
+            الحساب بنفسك، مش هيوصله أي إيميل تلقائي.
+          </p>
+
+          <div id="account-create-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="account-create-submit" class="btn-primary">إنشاء الحساب</button>
+          <button type="button" class="btn-secondary" data-close-modal="account-create-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد حذف حساب نهائيًا — Super Admin فقط
+       بيتم عبر RPC (admin_delete_account)
+       ========================================================== -->
+  <div id="account-delete-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-delete-title">
+      <div class="modal-header">
+        <h2 id="account-delete-title" class="modal-title">تأكيد حذف الحساب</h2>
+        <button type="button" class="modal-close" data-close-modal="account-delete-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من حذف حساب «<span id="account-delete-name"></span>» نهائيًا؟
+          هذه العملية <strong>لا يمكن التراجع عنها</strong> — الحساب هيفقد القدرة
+          على تسجيل الدخول فورًا وهيتشال نهائيًا من قائمة الحسابات.
+        </p>
+        <input type="hidden" id="account-delete-id" value="" />
+        <div id="account-delete-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="account-delete-confirm" class="btn-danger">تأكيد الحذف</button>
+        <button type="button" class="btn-secondary" data-close-modal="account-delete-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد توليد كلمة مرور جديدة — Super Admin فقط
+       بيتم عبر RPC (admin_reset_password)
+       ========================================================== -->
+  <div id="account-reset-password-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-reset-password-title">
+      <div class="modal-header">
+        <h2 id="account-reset-password-title" class="modal-title">تأكيد توليد كلمة مرور جديدة</h2>
+        <button type="button" class="modal-close" data-close-modal="account-reset-password-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل تريد توليد كلمة مرور جديدة لحساب «<span id="account-reset-password-name"></span>»؟
+          كلمة المرور الحالية للحساب هتتوقف عن العمل فورًا.
+        </p>
+        <input type="hidden" id="account-reset-password-id" value="" />
+        <div id="account-reset-password-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="account-reset-password-confirm" class="btn-primary">توليد كلمة مرور جديدة</button>
+        <button type="button" class="btn-secondary" data-close-modal="account-reset-password-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: عرض كلمة مرور جديدة (بعد إنشاء حساب أو توليد باسورد) —
+       بتتعرض مرة واحدة بس، ولازم تتبلّغ لصاحب الحساب يدويًا
+       ========================================================== -->
+  <div id="account-credentials-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-credentials-title">
+      <div class="modal-header">
+        <h2 id="account-credentials-title" class="modal-title">كلمة المرور</h2>
+        <button type="button" class="modal-close" data-close-modal="account-credentials-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="account-credentials-message" class="void-message"></p>
+        <div class="form-field">
+          <label for="account-credentials-value">كلمة المرور</label>
+          <div class="input-with-action">
+            <input type="text" id="account-credentials-value" readonly />
+            <button type="button" id="account-credentials-copy" class="btn-secondary btn-sm">نسخ</button>
+          </div>
+        </div>
+        <p class="field-hint">
+          دي المرة الوحيدة اللي هتتعرض فيها كلمة المرور دي — لو قفلت النافذة
+          دي من غير ما تنسخها، هتحتاج تولّد وحدة جديدة.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="account-credentials-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: إضافة / تعديل موظف — Super Admin فقط
+       ========================================================== -->
+  <div id="employee-form-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="employee-form-title">
+      <div class="modal-header">
+        <h2 id="employee-form-title" class="modal-title">إضافة موظف</h2>
+        <button type="button" class="modal-close" data-close-modal="employee-form-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="employee-form" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="employee-form-id" value="" />
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="employee-form-name">الاسم *</label>
+              <input type="text" id="employee-form-name" required />
+            </div>
+            <div class="form-field">
+              <label for="employee-form-code">الكود الوظيفي</label>
+              <input type="text" id="employee-form-code" />
+            </div>
+            <div class="form-field">
+              <label for="employee-form-phone">الهاتف</label>
+              <input type="text" id="employee-form-phone" />
+            </div>
+            <div class="form-field">
+              <label for="employee-form-active">الحالة</label>
+              <select id="employee-form-active">
+                <option value="true">مفعّل</option>
+                <option value="false">معطّل</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="employee-form-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="employee-form-submit" class="btn-primary">حفظ</button>
+          <button type="button" class="btn-secondary" data-close-modal="employee-form-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: معالج استيراد بيانات من Excel (مشترك بين السيارات/الوقود/
+       المصروفات) — 3 خطوات: تحميل قالب → رفع ومعاينة → تأكيد
+       ========================================================== -->
+  <div id="import-wizard-modal" class="modal-overlay" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="import-wizard-title">
+      <div class="modal-header">
+        <h2 id="import-wizard-title" class="modal-title">استيراد من Excel</h2>
+        <button type="button" class="modal-close" data-close-modal="import-wizard-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="wizard-steps">
+        <div class="wizard-step" data-wizard-step="1">
+          <span class="wizard-step-circle">1</span>
+          <span class="wizard-step-label">تحميل القالب</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step" data-wizard-step="2">
+          <span class="wizard-step-circle">2</span>
+          <span class="wizard-step-label">رفع ومعاينة</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step" data-wizard-step="3">
+          <span class="wizard-step-circle">3</span>
+          <span class="wizard-step-label">تأكيد الاستيراد</span>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <!-- ---- الخطوة 1: تحميل القالب ---- -->
+        <div id="import-step-1" class="import-step-panel">
+          <p id="import-step1-desc" class="void-message"></p>
+          <button type="button" id="import-download-template" class="btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            تحميل قالب Excel
+          </button>
+        </div>
+
+        <!-- ---- الخطوة 2: رفع ومعاينة ---- -->
+        <div id="import-step-2" class="import-step-panel" hidden>
+          <div class="form-field">
+            <label for="import-file-input">اختر ملف Excel المعبّأ بالبيانات *</label>
+            <input type="file" id="import-file-input" accept=".xlsx,.xls" />
+          </div>
+
+          <div id="import-preview-summary" class="import-preview-summary" hidden></div>
+
+          <div id="import-preview-table-wrapper" class="table-scroll" hidden>
+            <table class="data-table">
+              <thead id="import-preview-thead"></thead>
+              <tbody id="import-preview-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="import-preview-state" class="table-state" hidden></div>
+        </div>
+
+        <!-- ---- الخطوة 3: تأكيد الاستيراد ---- -->
+        <div id="import-step-3" class="import-step-panel" hidden>
+          <div id="import-confirm-summary" class="void-message"></div>
+          <div id="import-confirm-error" class="error-message" role="alert" hidden></div>
+          <div id="import-result-summary" hidden></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="import-download-rejected" class="btn-secondary" hidden>
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          تحميل تقرير الصفوف المرفوضة
+        </button>
+        <button type="button" id="import-back-button" class="btn-secondary" hidden>رجوع</button>
+        <button type="button" id="import-next-button" class="btn-primary">التالي</button>
+        <button type="button" id="import-confirm-button" class="btn-primary" hidden>تأكيد الاستيراد</button>
+        <button type="button" id="import-done-button" class="btn-primary" hidden>تم</button>
+        <button type="button" class="btn-secondary" data-close-modal="import-wizard-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تغيير كلمة المرور — متاح لأي مستخدم مسجّل دخول لحسابه
+       الشخصي فقط، عبر جلسته الحالية (لا يحتاج مفتاح Supabase سري)
+       ========================================================== -->
+  <div id="change-password-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+      <div class="modal-header">
+        <h2 id="change-password-title" class="modal-title">تغيير كلمة المرور</h2>
+        <button type="button" class="modal-close" data-close-modal="change-password-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="change-password-form" novalidate>
+        <div class="modal-body">
+          <div class="form-field">
+            <label for="change-password-current">كلمة المرور الحالية *</label>
+            <input type="password" id="change-password-current" autocomplete="current-password" required />
+          </div>
+          <div class="form-field">
+            <label for="change-password-new">كلمة المرور الجديدة *</label>
+            <input type="password" id="change-password-new" autocomplete="new-password" required minlength="6" />
+          </div>
+          <div class="form-field">
+            <label for="change-password-confirm">تأكيد كلمة المرور الجديدة *</label>
+            <input type="password" id="change-password-confirm" autocomplete="new-password" required minlength="6" />
+          </div>
+
+          <div id="change-password-error" class="error-message" role="alert" hidden></div>
+          <div id="change-password-success" class="alert-success" role="status" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="change-password-submit" class="btn-primary">حفظ كلمة المرور</button>
+          <button type="button" class="btn-secondary" data-close-modal="change-password-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supabase JS SDK — عبر CDN، من غير npm أو build tools -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS — لقراءة ملفات Excel المرفوعة في معالجات الاستيراد -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- ExcelJS — لإنشاء قوالب الاستيراد بـ Data Validation (دروب داون ليست حقيقية)،
+       ميزة مش متاحة في SheetJS المجاني -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

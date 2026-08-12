@@ -1,0 +1,2258 @@
+/* ============================================================================
+   Admin Operations Management System — Design System
+   RTL-first, Arabic-friendly. CSS variables for colors/spacing/type/shadows.
+
+   مراجعة شاملة (Full Audit) — إعادة بناء نظام التصميم من الصفر:
+   - هوية لونية واحدة: درجة غامقة أساسية (Charcoal Slate) + لون تمييز واحد
+     قوي (Indigo) يُستخدم بحكمة في العناصر التفاعلية فقط (أزرار أساسية،
+     الحالة النشطة، التركيز) — مش كديكور في كل مكان.
+   - ألوان دلالية واضحة وموحّدة لكل الحالات (نجاح/تحذير/خطر/معطّل).
+   - مقياس طباعة موحّد من 7 أحجام فقط (بدل أكثر من 15 قيمة متفرقة).
+   - مقياس مسافات موحّد (4/8/12/16/24/32px + امتدادين للمساحات الكبيرة
+     جدًا زي الشاشة الرئيسية لتسجيل الدخول، وهما مضاعفات لنفس الوحدة).
+   - مدة انتقال واحدة موحّدة لكل تفاعل في النظام.
+   ============================================================================ */
+
+:root {
+  /* Fonts */
+  --font-heading: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+
+  /* ---- مقياس الطباعة (Typography Scale) — 7 أحجام فقط ---- */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* ---- مقياس المسافات (Spacing Scale) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px; /* امتداد للمساحات الكبيرة جدًا (هيرو تسجيل الدخول) */
+  --space-8: 64px;
+
+  /* Surfaces */
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-border: #e2e4e9;
+
+  /* ---- العلامة: درجة غامقة أساسية واحدة + لون تمييز واحد قوي ---- */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-light: #e5e3fb;
+  --color-primary-dark: #312e81;
+  --color-accent: #f59e0b; /* لمسة ثانوية محدودة الاستخدام (شعار السايدبار فقط) */
+
+  /* Text */
+  --color-text: #16181d;
+  --color-text-muted: #6b7280;
+  --color-text-inverse: #f7f8fa;
+
+  /* ---- ألوان دلالية موحّدة لكل حالات النظام ---- */
+  --color-danger-bg: #fef2f2;
+  --color-danger-text: #b91c1c;
+  --color-danger-border: #fca5a5;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #b45309;
+  --color-warning-border: #fde68a;
+  --color-neutral-bg: #e5e7eb;
+  --color-neutral-text: #6b7280;
+
+  /* Dark surfaces (Sidebar / شاشة تسجيل الدخول) — درجة غامقة واحدة فقط */
+  --color-dark-from: #12141a;
+  --color-dark-via: #1a1d26;
+  --color-dark-to: #22242e;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* ظلال خفيفة ومتّزنة — مؤسسية وليست صاخبة */
+  --shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.05), 0 1px 1px rgba(15, 17, 21, 0.04);
+  --shadow-md: 0 1px 3px rgba(15, 17, 21, 0.04), 0 6px 12px rgba(15, 17, 21, 0.06);
+  --shadow-lg: 0 2px 6px rgba(15, 17, 21, 0.06), 0 12px 24px rgba(15, 17, 21, 0.1);
+  --shadow-focus: 0 0 0 3px var(--color-primary-light);
+
+  /* ---- حركة موحّدة — نفس المدة الزمنية لكل تفاعل في النظام ---- */
+  --transition-base: all 0.18s ease;
+
+  /* Layout */
+  --sidebar-width: 264px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  min-height: 100vh;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---- تركيز موحّد لكل العناصر التفاعلية (وصولية) ---- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   1. صفحة تسجيل الدخول — Split Layout
+   ============================================================================ */
+
+#login-page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.login-screen {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ---- الجزء البصري (يمين/يسار حسب RTL) ---- */
+
+.login-visual {
+  position: relative;
+  flex: 1.15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: var(--space-8);
+  background: linear-gradient(135deg, var(--color-dark-from) 0%, var(--color-dark-via) 55%, var(--color-dark-to) 100%);
+  color: var(--color-text-inverse);
+}
+
+.login-visual-shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+  opacity: 0.5;
+}
+
+.login-visual-shape--1 {
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle at 30% 30%, rgba(79, 70, 229, 0.35), transparent 70%);
+  top: -80px;
+  inset-inline-end: -100px;
+}
+
+.login-visual-shape--2 {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle at 30% 30%, rgba(79, 70, 229, 0.18), transparent 70%);
+  bottom: -60px;
+  inset-inline-start: -80px;
+}
+
+.login-visual-content {
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+}
+
+.login-visual-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: rgba(247, 248, 250, 0.12);
+  border: 1px solid rgba(247, 248, 250, 0.18);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-5);
+}
+
+.login-visual-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0 0 var(--space-4);
+}
+
+.login-visual-text {
+  font-size: var(--text-md);
+  line-height: 1.9;
+  color: rgba(247, 248, 250, 0.78);
+  margin: 0;
+}
+
+/* ---- كارت تسجيل الدخول ---- */
+
+.login-form-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--color-bg);
+}
+
+.login-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-7) var(--space-6);
+  width: 100%;
+  max-width: 400px;
+  animation: cardRiseIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  margin: 0 0 var(--space-1);
+  color: var(--color-text);
+}
+
+.app-subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-6);
+}
+
+.form-field {
+  text-align: right;
+  margin-bottom: var(--space-4);
+}
+
+.form-field label {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: #fff;
+  color: var(--color-text);
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.form-field select {
+  cursor: pointer;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 76px;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.form-field input[readonly] {
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.form-field input[readonly]:focus {
+  box-shadow: none;
+  border-color: var(--color-border);
+}
+
+/* ---- حالة التعطيل الموحّدة لكل عناصر الإدخال ---- */
+.form-field input:disabled,
+.form-field select:disabled,
+.form-field textarea:disabled,
+.input-search:disabled,
+.input-select:disabled {
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder,
+.input-search::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.field-hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  margin-bottom: var(--space-4);
+  text-align: right;
+}
+
+/* إخفاء الجزء البصري على الشاشات المتوسطة والصغيرة */
+@media (max-width: 900px) {
+  .login-visual {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: var(--space-6) var(--space-4);
+    box-shadow: none;
+  }
+  .login-form-side {
+    padding: var(--space-4);
+  }
+}
+
+/* ============================================================================
+   2. هيكل التطبيق (#app-shell) — Sidebar + محتوى رئيسي
+   ============================================================================ */
+
+#app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-dark-from);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-md);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid rgba(247, 248, 250, 0.08);
+}
+
+.sidebar-logo {
+  font-size: var(--text-lg);
+  color: var(--color-accent);
+}
+
+.sidebar-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: rgba(247, 248, 250, 0.78);
+  text-decoration: none;
+  font-size: var(--text-md);
+  font-weight: 500;
+  transition: var(--transition-base);
+}
+
+.sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(247, 248, 250, 0.1);
+  color: #fff;
+}
+
+.sidebar-nav-item.active {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-footer {
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px solid rgba(247, 248, 250, 0.08);
+}
+
+.btn-logout,
+.btn-sidebar-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid rgba(247, 248, 250, 0.16);
+  color: rgba(247, 248, 250, 0.85);
+  font-family: inherit;
+  font-size: var(--text-md);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.btn-sidebar-action {
+  margin-bottom: var(--space-2);
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.btn-sidebar-action:hover {
+  background: rgba(247, 248, 250, 0.1);
+  color: #fff;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-topbar {
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-topbar-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0;
+}
+
+.app-content {
+  padding: var(--space-6);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.welcome-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+  transition: var(--transition-base);
+}
+
+.welcome-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+#welcome-message {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  margin: 0 0 var(--space-2);
+  color: var(--color-text);
+}
+
+.welcome-hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.9;
+  margin: 0;
+}
+
+/* ---- Responsive: Sidebar تتحول لشريط علوي أفقي على الموبايل ---- */
+@media (max-width: 768px) {
+  #app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .sidebar-header {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    border-bottom: none;
+  }
+
+  .sidebar-nav {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: var(--space-2);
+  }
+
+  .sidebar-footer {
+    padding: 0;
+    margin: 0;
+    border-top: none;
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .btn-logout,
+  .btn-sidebar-action {
+    width: auto;
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: 0;
+  }
+
+  .btn-logout span:last-child,
+  .btn-sidebar-action span:last-child {
+    display: none;
+  }
+
+  .app-topbar {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .app-content {
+    padding: var(--space-5);
+  }
+
+  .welcome-card {
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-content {
+    padding: var(--space-4);
+  }
+
+  .app-topbar {
+    padding: var(--space-4);
+  }
+
+  .app-topbar-title {
+    font-size: var(--text-md);
+  }
+
+  .welcome-card {
+    padding: var(--space-4);
+  }
+
+  .sidebar-title {
+    font-size: var(--text-xs);
+  }
+}
+
+/* ============================================================================
+   3. موديول السيارات (Vehicles) — Phase 2
+   ============================================================================ */
+
+/* ---- شريط الأدوات (بحث + فلتر + زرار إضافة) ---- */
+
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.page-toolbar-filters {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.input-search,
+.input-select {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.input-search {
+  min-width: 220px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.input-search:focus,
+.input-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.btn-inline {
+  width: auto;
+  padding: var(--space-2) var(--space-5);
+  white-space: nowrap;
+}
+
+.btn-secondary {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* ---- كارت الجدول ---- */
+
+.table-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+  min-width: 780px;
+}
+
+.data-table th {
+  text-align: right;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+/* ---- ترويسات قابلة للفرز ---- */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-base);
+}
+
+.sortable-th:hover {
+  color: var(--color-text);
+}
+
+.sort-arrow {
+  display: inline-block;
+  width: 10px;
+  margin-inline-start: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+}
+
+.data-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.clickable-row:hover {
+  background: var(--color-primary-light);
+  box-shadow: 0 1px 4px rgba(15, 17, 21, 0.08);
+}
+
+.table-state {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  animation: stateFadeIn 0.25s ease;
+}
+
+.table-state::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto var(--space-4);
+  border-radius: 50%;
+  border: 2px dashed var(--color-border);
+}
+
+/* ---- حالة "فارغ تمامًا" مصمّمة (أيقونة + عنوان + وصف + زرار فعل) ---- */
+.table-state.is-rich {
+  padding: 0;
+}
+
+.table-state.is-rich::before {
+  content: none;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  animation: stateFadeIn 0.25s ease;
+}
+
+.empty-state-icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.55;
+  margin-bottom: var(--space-1);
+}
+
+.empty-state-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.empty-state-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 340px;
+  line-height: 1.7;
+}
+
+.empty-state .btn-primary,
+.empty-state .btn-secondary {
+  width: auto;
+  margin-top: var(--space-2);
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ---- شارات الحالة (Status Badges) — نظام ألوان موحّد لكل النظام ---- */
+
+.status-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-active,
+.status-available {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.status-assigned {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+}
+
+.status-under_maintenance {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.status-out_of_service {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.status-archived {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+/* ---- Modals (تفاصيل / إضافة-تعديل) ---- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 21, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  z-index: 100;
+  animation: overlayFadeIn 0.15s ease;
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: var(--text-xl);
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-base);
+}
+
+.modal-close:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.modal-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.modal-tab {
+  padding: var(--space-3) var(--space-1);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: default;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: var(--transition-base);
+}
+
+.modal-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  cursor: default;
+}
+
+.modal-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tab-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---- فورم الإضافة/التعديل ---- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--space-4);
+}
+
+.form-grid .form-field {
+  margin-bottom: var(--space-4);
+}
+
+/* ---- حقل اختيار مع زرار إجراء ملاصق (زي "+ موظف جديد") ---- */
+.input-with-action {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input-with-action select {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-with-action .btn-sm {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---- شبكة تفاصيل السيارة ---- */
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detail-row dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.detail-row dd {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--color-text);
+}
+
+@media (max-width: 560px) {
+  .form-grid,
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-tabs,
+  .modal-footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+/* ============================================================================
+   4. موديول الوقود (Fuel) — Phase 3
+   ============================================================================ */
+
+/* ---- كروت الملخص السريع ---- */
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.summary-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: var(--transition-base);
+}
+
+.summary-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.summary-card-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.summary-card-value {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.summary-note {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin: 0 0 var(--space-5);
+}
+
+@media (max-width: 700px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- فلتر Checkbox داخل شريط الأدوات ---- */
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  padding: 0 var(--space-1);
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* ---- حالة المعاملة الملغاة (Void) ---- */
+
+.status-voided {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.row-voided td {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.row-voided .status-badge {
+  text-decoration: none;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.actions-cell .btn-sm + .btn-sm {
+  margin-inline-start: var(--space-2);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+/* ---- زرار خطر (إلغاء/Void) ---- */
+
+.btn-danger {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: #fff;
+  background-color: var(--color-danger-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #991b1b;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-danger.btn-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.void-message {
+  font-size: var(--text-base);
+  line-height: 1.8;
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
+}
+
+/* ============================================================================
+   5. موديول البيتي كاش والمصروفات (Petty Cash & Expenses) — Phase 4
+   ============================================================================ */
+
+/* ---- عناوين الأقسام الفرعية ---- */
+
+.section-heading {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.section-heading-spaced {
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+/* ---- كارت الصندوق الحالي ---- */
+
+.fund-card-wrapper {
+  margin-bottom: var(--space-2);
+}
+
+.fund-card-body {
+  padding: var(--space-5);
+}
+
+.fund-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.fund-card-code {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.fund-card-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+/* قيمة الرصيد/الإجمالي داخل كروت الملخص (إعادة استخدام .summary-card) */
+.summary-card-value.is-balance {
+  color: var(--color-primary);
+}
+
+.summary-card-value.is-negative {
+  color: var(--color-danger-text);
+}
+
+.fund-card-meta {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---- تنبيه استنفاد الرصيد ---- */
+
+.alert-warning,
+.alert-success {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  margin-top: var(--space-5);
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  color: #92400e;
+  border: 1px solid var(--color-warning-border);
+}
+
+.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-text);
+}
+
+.fund-card-actions {
+  margin-top: var(--space-5);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- شارات حالة الصندوق ---- */
+
+.status-exhausted {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.status-closed {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+/* ---- Modal أوسع لتفاصيل الصندوق (يحتوي جدول فرعي) ---- */
+
+.modal-lg {
+  max-width: 720px;
+}
+
+.modal-section-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+  font-weight: 700;
+  margin: var(--space-5) 0 var(--space-3);
+  color: var(--color-text);
+}
+
+/* ---- ملاحظة معلوماتية داخل الفورم (زي: الصندوق الحالي والرصيد المتاح) ---- */
+
+.form-info-note {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-4);
+  line-height: 1.7;
+}
+
+@media (max-width: 560px) {
+  .fund-card-body {
+    padding: var(--space-4);
+  }
+}
+
+/* ---- توزيع المصروفات حسب الفئة (Category Breakdown) ---- */
+
+.category-breakdown {
+  margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.category-breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.category-breakdown-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+}
+
+.category-breakdown-name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.category-breakdown-value {
+  color: var(--color-text-muted);
+}
+
+.category-breakdown-bar {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.category-breakdown-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+
+.fund-usage-row {
+  margin: var(--space-2) 0 var(--space-5);
+}
+
+/* ============================================================================
+   6. البحث الشامل، لوحة الرئيسية، التقارير، سجل العمليات — Phase 5
+   ============================================================================ */
+
+/* ---- البحث الشامل (Topbar) ---- */
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.global-search {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.global-search-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.global-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-focus);
+}
+
+.global-search-results {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + var(--space-2));
+  width: 100%;
+  min-width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 200;
+  padding: var(--space-2);
+  animation: cardRiseIn 0.15s ease;
+}
+
+.search-results-group {
+  margin-bottom: var(--space-2);
+}
+
+.search-results-group-title {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding: var(--space-2) var(--space-3) 2px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: right;
+  transition: var(--transition-base);
+}
+
+.search-result-item:hover {
+  background: var(--color-bg);
+}
+
+.search-result-sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.search-results-state {
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---- معلومات المستخدم الحالي داخل الـ Topbar ---- */
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline-start: var(--space-4);
+  border-inline-start: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.topbar-user-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.topbar-user-role {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+}
+
+@media (max-width: 700px) {
+  .topbar-user {
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+}
+
+/* ---- بطاقات إحصائية Dashboard ---- */
+
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ---- أيقونة موحّدة لكل أنواع الكروت (Dashboard / Summary / Fund) ---- */
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+  font-size: var(--text-md);
+  margin-bottom: var(--space-1);
+}
+
+/* ---- مؤشر اتجاه بسيط (▲/▼) مقارنة بالشهر السابق ---- */
+.trend-badge {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  width: fit-content;
+}
+
+.trend-up {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.trend-down {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.trend-flat {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.stat-card-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.stat-card-value {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stat-card-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dashboard-activity-card {
+  padding: 0;
+}
+
+.dashboard-section-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+  transition: var(--transition-base);
+}
+
+.activity-item:hover {
+  background: var(--color-bg);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item-title {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.activity-item-meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ---- تبويبات الصفحات (Reports / Users) — إعادة استخدام .modal-tabs ---- */
+
+.page-tabs {
+  padding: 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.page-tabs .modal-tab {
+  padding: var(--space-4);
+  cursor: pointer;
+}
+
+.users-add-note {
+  margin: 0;
+}
+
+/* ---- سجل العمليات: عرض JSON للقيم القديمة/الجديدة ---- */
+
+.audit-json-block {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  font-family: "Courier New", monospace;
+  font-size: var(--text-xs);
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
+  direction: ltr;
+  text-align: left;
+}
+
+@media (max-width: 700px) {
+  .app-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .global-search {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .data-table th,
+  .data-table td {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .modal-body,
+  .modal-header,
+  .modal-footer {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .stat-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fund-card-header {
+    flex-direction: column;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+}
+
+/* ============================================================================
+   7. معالج استيراد Excel (Import Wizard) — مشترك بين السيارات/الوقود/المصروفات
+   ============================================================================ */
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ---- أيقونة داخل الأزرار (SVG بنفس لون النص) ---- */
+.btn-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  margin-inline-end: var(--space-1);
+}
+
+/* ---- مؤشر الخطوات أعلى الـ Modal ---- */
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.wizard-step-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-neutral-bg);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  transition: var(--transition-base);
+}
+
+.wizard-step-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wizard-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 var(--space-2);
+}
+
+.wizard-step.active .wizard-step-circle {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.wizard-step.active .wizard-step-label {
+  color: var(--color-text);
+}
+
+.wizard-step.completed .wizard-step-circle {
+  background: var(--color-success-text);
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .wizard-step-label {
+    display: none;
+  }
+}
+
+/* ---- خطوات المحتوى داخل المعالج ---- */
+.import-step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.import-preview-summary {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.import-preview-summary-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.import-preview-summary-item.is-valid {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.import-preview-summary-item.is-duplicate {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.import-preview-summary-item.is-error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+/* ---- تلوين صفوف جدول المعاينة حسب الحالة ---- */
+.import-row-valid td {
+  background: var(--color-success-bg);
+}
+
+.import-row-duplicate td {
+  background: var(--color-warning-bg);
+}
+
+.import-row-error td {
+  background: var(--color-danger-bg);
+}
+
+.import-row-reason {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.import-result-summary {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+/* ============================================================================
+   8. الرسوم البيانية (Charts) — Canvas API بدون أي مكتبة خارجية
+   ============================================================================ */
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.chart-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.chart-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4) var(--space-5);
+  transition: var(--transition-base);
+}
+
+.chart-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.chart-card-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+  color: var(--color-text);
+}
+
+.chart-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+.chart-canvas-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.chart-grid-compact .chart-canvas-wrapper {
+  height: 150px;
+}
+
+.chart-donut-center-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  pointer-events: none;
+  text-align: center;
+}
+
+.chart-donut-center-value {
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.chart-donut-center-caption {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-tooltip {
+  position: fixed;
+  z-index: 300;
+  background: var(--color-dark-from);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.chart-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.sparkline-wrapper {
+  width: 100%;
+  height: 32px;
+  margin-top: var(--space-2);
+}
+
+.sparkline-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 700px) {
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   9. Skeleton Loading — مستطيلات رمادية نابضة بدل نص "جارٍ التحميل" العادي
+   ============================================================================ */
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.skeleton-bar {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-row td {
+  padding: var(--space-3) var(--space-4);
+}
+
+.skeleton-row:hover {
+  background: none;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-bar-label {
+  width: 55%;
+  height: 10px;
+}
+
+.skeleton-bar-value {
+  width: 40%;
+  height: 20px;
+}
+
+.skeleton-bar-meta {
+  width: 30%;
+  height: 10px;
+}
+
+.skeleton-bar-lg {
+  width: 50%;
+  height: 22px;
+}
+
+/* ============================================================================
+   10. الحركة (Animations) — دخول العناصر والـ Modals بسلاسة
+   ============================================================================ */
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes cardRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stateFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   11. تحسينات لوحة الرئيسية (Dashboard) — الترقية التدريجية، المرحلة 2
+   ============================================================================ */
+
+/* ---- الأشياء التي تحتاج الانتباه ---- */
+
+.dashboard-attention {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-border);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+
+.attention-item-text {
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+.attention-item.is-warning {
+  background: var(--color-warning-bg);
+  border-inline-start-color: var(--color-warning-text);
+}
+
+.attention-item.is-warning .attention-item-text {
+  color: #92400e;
+}
+
+.attention-item.is-info {
+  background: var(--color-primary-light);
+  border-inline-start-color: var(--color-primary);
+}
+
+.attention-item.is-info .attention-item-text {
+  color: var(--color-primary-dark);
+}
+
+.attention-item.is-ok {
+  background: var(--color-success-bg);
+  border-inline-start-color: var(--color-success-text);
+}
+
+.attention-item.is-ok .attention-item-text {
+  color: var(--color-success-text);
+}
+
+.attention-item-action {
+  flex-shrink: 0;
+}
+
+/* ---- الملخص الذكي ---- */
+
+.dashboard-summary-card {
+  padding: 0;
+}
+
+.smart-summary-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) var(--space-5) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.smart-summary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--color-text);
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--color-primary-light);
+}
+
+.smart-summary-item.is-empty {
+  color: var(--color-text-muted);
+  border-inline-start-color: var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
