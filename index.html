@@ -472,6 +472,15 @@
         <!-- ==================== التقارير (Reports Center) — Phase 5 ==================== -->
         <section id="reports-page" class="app-page" hidden>
 
+          <!-- نسخة احتياطية كاملة — بيانات كل الجداول الأساسية في ملف Excel واحد،
+               مستقلة عن فلاتر أي تبويب. متاحة للأدمن فقط، زي باقي أزرار الإدارة -->
+          <div class="page-toolbar">
+            <div class="page-toolbar-filters">
+              <span class="text-muted">تصدير نسخة كاملة من كل البيانات (السيارات، الوقود، العهدة، المصروفات، الموظفين) في ملف Excel واحد.</span>
+            </div>
+            <button type="button" id="full-backup-export-button" class="btn-secondary btn-inline" hidden>⬇ نسخة احتياطية كاملة (Excel)</button>
+          </div>
+
           <div class="modal-tabs page-tabs" id="reports-tabs">
             <button type="button" class="modal-tab active" data-report-tab="vehicles">السيارات</button>
             <button type="button" class="modal-tab" data-report-tab="fuel">الوقود</button>
@@ -863,7 +872,8 @@
             </div>
             <div class="form-field">
               <label for="vehicle-form-actual-user-name">اسم المستخدم الفعلي</label>
-              <input type="text" id="vehicle-form-actual-user-name" />
+              <input type="text" id="vehicle-form-actual-user-name" list="actual-user-name-options" autocomplete="off" />
+              <datalist id="actual-user-name-options"></datalist>
             </div>
             <div class="form-field">
               <label for="vehicle-form-actual-user-national-id">رقم هوية المستخدم الفعلي</label>

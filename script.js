@@ -279,6 +279,7 @@ function showAppShell(profile) {
   importFuelButton.hidden = !isAdminOrAbove;
   importExpensesButton.hidden = !isAdminOrAbove;
   addEmployeeButton.hidden = !isAdminOrAbove;
+  fullBackupExportButton.hidden = !isAdminOrAbove;
 
   // صفحات/عناصر مقصورة على Super Admin بالكامل (مش بس زرار داخل الصفحة)
   const auditLogNavItem = document.getElementById("audit-log-nav-item");
@@ -734,6 +735,39 @@ let vehicleBeingViewed = null;
 let vehicleFormOriginalEmployeeId = null; // لمقارنة الموظف قبل/بعد الحفظ (لتسجيل تغيير التعيين)
 let vehicleFormEmployeesCache = null;
 
+// قائمة أسماء المستخدمين الفعليين الموجودة فعلًا على سيارات تانية — بتتعرض
+// كاقتراحات (datalist) وقت كتابة اسم المستخدم الفعلي في فورم السيارة، عشان
+// نقلل اختلاف كتابة نفس الاسم (زي "محمد حسام" و"محمد حسام عثمان") اللي بيبوّظ
+// تقارير الاستهلاك حسب الشخص. السيارة تفضل هي الأساس والاسم مجرد حقل عليها
+// — مفيش جدول "مستخدمين" منفصل ولا ربط رسمي، الاقتراح شكلي بس
+const actualUserNameOptionsList = document.getElementById("actual-user-name-options");
+let actualUserNamesCache = null;
+
+async function ensureActualUserNameOptions(forceRefresh) {
+  if (actualUserNamesCache && !forceRefresh) return actualUserNamesCache;
+
+  const { data, error } = await supabaseClient
+    .from("vehicles")
+    .select("actual_user_name")
+    .not("actual_user_name", "is", null);
+
+  if (error) {
+    console.error("Error loading actual user name suggestions:", error);
+    return actualUserNamesCache || [];
+  }
+
+  const names = [...new Set((data || []).map((v) => v.actual_user_name).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "ar")
+  );
+
+  actualUserNamesCache = names;
+  actualUserNameOptionsList.innerHTML = names
+    .map((name) => '<option value="' + escapeHtml(name) + '"></option>')
+    .join("");
+
+  return actualUserNamesCache;
+}
+
 // قائمة الموظفين النشطين لاستخدامها في select "الموظف الحالي" داخل فورم
 // السيارة — كاش بسيط زي باقي الكاشات المشابهة في النظام
 async function ensureVehicleFormEmployeeOptions(forceRefresh) {
@@ -1177,6 +1211,7 @@ async function openVehicleForm(vehicle) {
     vehicle && vehicle.authorization_expiry_date ? vehicle.authorization_expiry_date : "";
 
   await ensureVehicleFormEmployeeOptions();
+  await ensureActualUserNameOptions();
   vehicleFormOriginalEmployeeId = vehicle && vehicle.current_employee_id ? vehicle.current_employee_id : null;
 
   // لو الموظف الحالي للسيارة معطّل (مش موجود في قائمة النشطين)، لازم يفضل
@@ -1240,6 +1275,16 @@ vehicleForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  // رقم الهوية الوطنية (للسعوديين) بيبدأ بـ 1، ورقم الإقامة (للمقيمين) بيبدأ
+  // بـ 2 — في الحالتين 10 أرقام بالظبط. الحقل اختياري، فالفحص بس لو اتكتب حاجة
+  const actualUserNationalId = vehicleFormActualUserNationalIdInput.value.trim();
+  if (actualUserNationalId && !/^[12]\d{9}$/.test(actualUserNationalId)) {
+    vehicleFormError.textContent =
+      "رقم الهوية/الإقامة لازم يكون 10 أرقام بالظبط، ويبدأ بـ 1 (هوية وطنية) أو 2 (إقامة).";
+    vehicleFormError.hidden = false;
+    return;
+  }
+
   const newEmployeeId = vehicleFormEmployeeSelect.value || null;
 
   const payload = {
@@ -1248,7 +1293,7 @@ vehicleForm.addEventListener("submit", async (event) => {
     manufacturing_year: vehicleFormYearInput.value ? Number(vehicleFormYearInput.value) : null,
     status: vehicleFormStatusSelect.value,
     actual_user_name: vehicleFormActualUserNameInput.value.trim() || null,
-    actual_user_national_id: vehicleFormActualUserNationalIdInput.value.trim() || null,
+    actual_user_national_id: actualUserNationalId || null,
     authorization_expiry_date: vehicleFormAuthorizationExpiryInput.value || null,
     current_employee_id: newEmployeeId,
   };
@@ -1301,6 +1346,7 @@ vehicleForm.addEventListener("submit", async (event) => {
       }
     }
 
+    actualUserNamesCache = null; // عشان الاسم الجديد يظهر كاقتراح من أول مرة
     vehicleFormModal.hidden = true;
     loadVehicles();
   } catch (unexpectedError) {
@@ -1671,6 +1717,66 @@ async function openFuelForm(tx) {
 
 addFuelButton.addEventListener("click", () => openFuelForm(null));
 
+// ---------------------------------------------------------------------------
+// تنبيه لو الكمية/التكلفة المدخلة أعلى بكتير من متوسط السيارة دي — بيمسك
+// أخطاء الكتابة بدري (زي زيادة صفر بالغلط). تحذير بس، مش منع، والمستخدم
+// يقدر يأكّد ويكمل عادي لو الرقم صح فعلًا
+// ---------------------------------------------------------------------------
+
+const FUEL_ANOMALY_MULTIPLIER = 2.5;
+const FUEL_ANOMALY_MIN_HISTORY = 3;
+
+async function confirmFuelAmountIfAnomalous(vehicleId, liters, amount, excludeTransactionId) {
+  const { data, error } = await supabaseClient
+    .from("vehicle_fuel_summary")
+    .select("total_liters, total_cost, transaction_count")
+    .eq("vehicle_id", vehicleId)
+    .maybeSingle();
+
+  if (error || !data) return true;
+
+  let count = data.transaction_count || 0;
+  let totalLiters = Number(data.total_liters || 0);
+  let totalCost = Number(data.total_cost || 0);
+
+  // لو بنعدّل معاملة موجودة، نشيلها من المتوسط عشان القيمة ميتقارنش بنفسها
+  if (excludeTransactionId) {
+    const { data: existingTx } = await supabaseClient
+      .from("fuel_transactions")
+      .select("liters, amount, status")
+      .eq("id", excludeTransactionId)
+      .maybeSingle();
+
+    if (existingTx && existingTx.status === "active") {
+      count -= 1;
+      totalLiters -= Number(existingTx.liters || 0);
+      totalCost -= Number(existingTx.amount || 0);
+    }
+  }
+
+  // مفيش تاريخ كفاية للسيارة دي عشان نقارن بثقة
+  if (count < FUEL_ANOMALY_MIN_HISTORY) return true;
+
+  const avgLiters = totalLiters / count;
+  const avgAmount = totalCost / count;
+
+  const litersIsHigh = avgLiters > 0 && liters > avgLiters * FUEL_ANOMALY_MULTIPLIER;
+  const amountIsHigh = avgAmount > 0 && amount > avgAmount * FUEL_ANOMALY_MULTIPLIER;
+
+  if (!litersIsHigh && !amountIsHigh) return true;
+
+  const lines = ["الرقم اللي دخلته أعلى بكتير من المعتاد لنفس السيارة:"];
+  if (litersIsHigh) {
+    lines.push("• اللترات: " + formatNumber(liters, 2) + " مقابل متوسط " + formatNumber(avgLiters, 2) + " لتر.");
+  }
+  if (amountIsHigh) {
+    lines.push("• التكلفة: " + formatNumber(amount, 2) + " ر.س مقابل متوسط " + formatNumber(avgAmount, 2) + " ر.س.");
+  }
+  lines.push("متأكد إن الرقم صح وعاوز تكمل الحفظ؟");
+
+  return window.confirm(lines.join("\n"));
+}
+
 fuelForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   fuelFormError.hidden = true;
@@ -1704,6 +1810,15 @@ fuelForm.addEventListener("submit", async (event) => {
     fuelFormError.hidden = false;
     return;
   }
+
+  const editingIdForAnomalyCheck = fuelFormIdInput.value;
+  const proceedDespiteAnomaly = await confirmFuelAmountIfAnomalous(
+    vehicleId,
+    liters,
+    amount,
+    editingIdForAnomalyCheck
+  );
+  if (!proceedDespiteAnomaly) return;
 
   const payload = {
     vehicle_id: vehicleId,
@@ -4590,6 +4705,176 @@ reportExpensesExportButton.addEventListener("click", () => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// 10.5 نسخة احتياطية كاملة (Excel) — كل الجداول الأساسية في ملف واحد بعدة
+// شيتات، مستقلة عن أي فلتر تاريخ في التبويبات فوق. بتستخدم fetchAllRowsPaged
+// عشان محدش جدول يتقطع عند أول 1000 صف زي ما حصل قبل كده في التقارير
+// ---------------------------------------------------------------------------
+
+const fullBackupExportButton = document.getElementById("full-backup-export-button");
+
+function addBackupSheet(workbook, sheetName, headers, rows) {
+  const worksheet = workbook.addWorksheet(sheetName, { views: [{ rightToLeft: true }] });
+  worksheet.addRow(headers);
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.columns = headers.map((h) => ({ width: Math.max(16, h.length + 4) }));
+  rows.forEach((r) => worksheet.addRow(r));
+}
+
+async function exportFullBackupToExcel() {
+  fullBackupExportButton.disabled = true;
+  const originalLabel = fullBackupExportButton.textContent;
+  fullBackupExportButton.textContent = "جارٍ التجهيز...";
+
+  try {
+    const [vehiclesRes, fuelRes, fundsRes, expensesRes, employeesRes] = await Promise.all([
+      fetchAllRowsPaged(() =>
+        supabaseClient
+          .from("vehicles")
+          .select(
+            "license_plate, make, manufacturing_year, status, actual_user_name, actual_user_national_id, authorization_expiry_date, created_at"
+          )
+          .order("license_plate", { ascending: true })
+      ),
+      fetchAllRowsPaged(() =>
+        supabaseClient
+          .from("fuel_transactions")
+          .select("transaction_date, liters, amount, status, vehicle:vehicles ( license_plate, actual_user_name )")
+          .order("transaction_date", { ascending: false })
+      ),
+      fetchAllRowsPaged(() =>
+        supabaseClient
+          .from("petty_cash_funds")
+          .select("fund_code, opening_amount, status, funded_at, closed_at")
+          .order("funded_at", { ascending: false })
+      ),
+      fetchAllRowsPaged(() =>
+        supabaseClient
+          .from("expenses")
+          .select(
+            "amount, expense_date, description, status, fund:petty_cash_funds ( fund_code ), category:expense_categories ( name, name_ar )"
+          )
+          .order("expense_date", { ascending: false })
+      ),
+      fetchAllRowsPaged(() =>
+        supabaseClient
+          .from("employees")
+          .select("full_name, employee_code, phone, is_active")
+          .order("full_name", { ascending: true })
+      ),
+    ]);
+
+    if (
+      vehiclesRes.error ||
+      fuelRes.error ||
+      fundsRes.error ||
+      expensesRes.error ||
+      employeesRes.error
+    ) {
+      console.error("Error exporting full backup:", {
+        vehicles: vehiclesRes.error,
+        fuel: fuelRes.error,
+        funds: fundsRes.error,
+        expenses: expensesRes.error,
+        employees: employeesRes.error,
+      });
+      alert("حصل خطأ أثناء تجهيز النسخة الاحتياطية. حاول تاني.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+
+    addBackupSheet(
+      workbook,
+      "السيارات",
+      ["رقم اللوحة", "الماركة", "سنة الصنع", "الحالة", "المستخدم الفعلي", "رقم الهوية/الإقامة", "تفويض حتى", "تاريخ الإضافة"],
+      (vehiclesRes.data || []).map((v) => [
+        v.license_plate,
+        v.make || "",
+        v.manufacturing_year || "",
+        VEHICLE_STATUS_LABELS[v.status] || v.status,
+        v.actual_user_name || "",
+        v.actual_user_national_id || "",
+        v.authorization_expiry_date || "",
+        v.created_at ? v.created_at.slice(0, 10) : "",
+      ])
+    );
+
+    addBackupSheet(
+      workbook,
+      "الوقود",
+      ["رقم اللوحة", "المستخدم الفعلي", "التاريخ", "اللترات", "التكلفة", "الحالة"],
+      (fuelRes.data || []).map((f) => [
+        f.vehicle ? f.vehicle.license_plate : "",
+        f.vehicle && f.vehicle.actual_user_name ? f.vehicle.actual_user_name : "",
+        f.transaction_date,
+        Number(f.liters || 0),
+        Number(f.amount || 0),
+        f.status === "voided" ? "ملغاة" : "نشطة",
+      ])
+    );
+
+    addBackupSheet(
+      workbook,
+      "العهدة النقدية",
+      ["كود العهدة", "المبلغ الافتتاحي", "الحالة", "تاريخ التمويل", "تاريخ الإغلاق"],
+      (fundsRes.data || []).map((f) => [
+        f.fund_code,
+        Number(f.opening_amount || 0),
+        FUND_STATUS_LABELS[f.status] || f.status,
+        f.funded_at,
+        f.closed_at || "",
+      ])
+    );
+
+    addBackupSheet(
+      workbook,
+      "المصروفات",
+      ["كود العهدة", "الفئة", "المبلغ", "التاريخ", "الوصف", "الحالة"],
+      (expensesRes.data || []).map((e) => [
+        e.fund ? e.fund.fund_code : "",
+        e.category ? e.category.name_ar || e.category.name : "",
+        Number(e.amount || 0),
+        e.expense_date,
+        e.description || "",
+        e.status === "voided" ? "ملغاة" : "نشطة",
+      ])
+    );
+
+    addBackupSheet(
+      workbook,
+      "الموظفون",
+      ["الاسم", "الرقم الوظيفي", "الهاتف", "نشط؟"],
+      (employeesRes.data || []).map((emp) => [
+        emp.full_name,
+        emp.employee_code || "",
+        emp.phone || "",
+        emp.is_active ? "نعم" : "لا",
+      ])
+    );
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = "نسخة-احتياطية-" + today + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (unexpectedError) {
+    console.error("Unexpected error exporting full backup:", unexpectedError);
+    alert("حصل خطأ أثناء تجهيز النسخة الاحتياطية. حاول تاني.");
+  } finally {
+    fullBackupExportButton.disabled = false;
+    fullBackupExportButton.textContent = originalLabel;
+  }
+}
+
+fullBackupExportButton.addEventListener("click", exportFullBackupToExcel);
+
 // ============================================================================
 // 11. سجل العمليات (Audit Log) — Super Admin فقط — Phase 5
 // ============================================================================
@@ -6074,6 +6359,16 @@ async function validateVehiclesImportRows(rawRows) {
       if (Number.isNaN(manufacturingYear) || manufacturingYear < 1950 || manufacturingYear > maxYear) {
         return { rowNumber, raw, status: "error", reason: "سنة الصنع غير صالحة (لازم تكون بين 1950 و" + maxYear + ")." };
       }
+    }
+
+    // رقم الهوية الوطنية (يبدأ بـ 1) أو الإقامة (يبدأ بـ 2) — 10 أرقام بالظبط
+    if (actualUserNationalId && !/^[12]\d{9}$/.test(actualUserNationalId)) {
+      return {
+        rowNumber,
+        raw,
+        status: "error",
+        reason: "رقم هوية المستخدم الفعلي لازم يكون 10 أرقام بالظبط ويبدأ بـ 1 أو 2.",
+      };
     }
 
     // لو مفيش "الحالة" متحددة صراحةً: لو فيه اسم مستخدم فعلي، السيارة واضح
