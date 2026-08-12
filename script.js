@@ -6377,3 +6377,55 @@ importExpensesButton.addEventListener("click", () => openImportWizard("expenses"
     showLoginPage();
   }
 })();
+
+// ============================================================================
+// 16. شريط تنقّل يمين/يسار فوق كل الجداول (لما الجدول يبقى أعرض من الشاشة)
+// ============================================================================
+// بيتحط تلقائيًا فوق كل .table-scroll في الصفحة، وبيظهر بس لما الجدول فعلًا
+// قابل للتمرير أفقيًا (بيتابع الحجم بـ ResizeObserver عشان يتحدّث الظهور
+// والتعطيل تلقائيًا حتى لو الصفوف اتغيرت بعدين — فلترة، صفحات، إلخ)
+
+function initTableScrollControls() {
+  document.querySelectorAll(".table-scroll").forEach((scrollEl) => {
+    const card = scrollEl.closest(".table-card");
+    if (!card || card.querySelector(".table-scroll-controls")) return;
+
+    const controls = document.createElement("div");
+    controls.className = "table-scroll-controls";
+    controls.innerHTML =
+      '<button type="button" class="table-scroll-btn table-scroll-btn-right">يمين ›</button>' +
+      '<button type="button" class="table-scroll-btn table-scroll-btn-left">‹ يسار</button>';
+
+    card.insertBefore(controls, card.firstChild);
+
+    const rightBtn = controls.querySelector(".table-scroll-btn-right");
+    const leftBtn = controls.querySelector(".table-scroll-btn-left");
+    const SCROLL_STEP = 220;
+
+    rightBtn.addEventListener("click", () => {
+      scrollEl.scrollBy({ left: SCROLL_STEP, behavior: "smooth" });
+    });
+
+    leftBtn.addEventListener("click", () => {
+      scrollEl.scrollBy({ left: -SCROLL_STEP, behavior: "smooth" });
+    });
+
+    const updateControls = () => {
+      const isScrollable = scrollEl.scrollWidth > scrollEl.clientWidth + 1;
+      card.classList.toggle("is-h-scrollable", isScrollable);
+      if (!isScrollable) return;
+
+      // في المتصفحات الحديثة، scrollLeft في RTL بيبدأ من 0 (بداية المحتوى
+      // على اليمين) ويوصل لأقصى قيمة سالبة عند آخر المحتوى (على الشمال)
+      const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+      rightBtn.disabled = scrollEl.scrollLeft >= -1;
+      leftBtn.disabled = Math.abs(scrollEl.scrollLeft) >= maxScroll - 1;
+    };
+
+    scrollEl.addEventListener("scroll", updateControls);
+    new ResizeObserver(updateControls).observe(scrollEl);
+    updateControls();
+  });
+}
+
+initTableScrollControls();
