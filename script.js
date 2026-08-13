@@ -325,6 +325,16 @@ function showAppShell(profile) {
   importExpensesButton.hidden = !isAdminOrAbove;
   addEmployeeButton.hidden = !isAdminOrAbove;
   fullBackupExportButton.hidden = !isAdminOrAbove;
+  addLaptopButton.hidden = !isAdminOrAbove;
+  importLaptopsButton.hidden = !isAdminOrAbove;
+  addEmailButton.hidden = !isAdminOrAbove;
+  importEmailButton.hidden = !isAdminOrAbove;
+  addSimButton.hidden = !isAdminOrAbove;
+  importSimButton.hidden = !isAdminOrAbove;
+  addTabletButton.hidden = !isAdminOrAbove;
+  importTabletsButton.hidden = !isAdminOrAbove;
+  addLaptopCatalogButton.hidden = !isAdminOrAbove;
+  importLaptopCatalogButton.hidden = !isAdminOrAbove;
 
   // صفحات/عناصر مقصورة على Super Admin بالكامل (مش بس زرار داخل الصفحة)
   const auditLogNavItem = document.getElementById("audit-log-nav-item");
@@ -598,6 +608,7 @@ const PAGE_TITLES = {
   fuel: "الوقود",
   "petty-cash": "العهدة النقدية",
   expenses: "المصروفات",
+  "it-assets": "أصول تقنية المعلومات",
   reports: "التقارير",
   "audit-log": "سجل العمليات",
   accounts: "حسابات النظام",
@@ -650,6 +661,10 @@ function navigateTo(pageName) {
 
   if (pageName === "expenses") {
     loadExpenses();
+  }
+
+  if (pageName === "it-assets") {
+    loadAssetTab(currentAssetTab);
   }
 
   if (pageName === "reports") {
@@ -2009,6 +2024,1732 @@ fuelVoidConfirmButton.addEventListener("click", async () => {
   } finally {
     fuelVoidConfirmButton.disabled = false;
     fuelVoidConfirmButton.textContent = "تأكيد الإلغاء";
+  }
+});
+
+// ============================================================================
+// 5b. عهدة اللابتوبات (IT Assets — Laptops) — Phase 3
+// ============================================================================
+
+const LAPTOP_PAGE_SIZE = 20;
+
+let laptopState = {
+  page: 1,
+  search: "",
+  showVoided: false,
+  totalCount: 0,
+};
+
+// عناصر قائمة اللابتوبات
+const laptopTableBody = document.getElementById("laptop-table-body");
+const laptopStateBox = document.getElementById("laptop-state");
+const laptopSearchInput = document.getElementById("laptop-search");
+const laptopShowVoidedCheckbox = document.getElementById("laptop-show-voided");
+const laptopPrevPageButton = document.getElementById("laptop-prev-page");
+const laptopNextPageButton = document.getElementById("laptop-next-page");
+const laptopPaginationInfo = document.getElementById("laptop-pagination-info");
+const addLaptopButton = document.getElementById("add-laptop-button");
+const importLaptopsButton = document.getElementById("import-laptops-button");
+
+// عناصر Modal الإضافة/التعديل
+const laptopFormModal = document.getElementById("laptop-form-modal");
+const laptopForm = document.getElementById("laptop-form");
+const laptopFormTitle = document.getElementById("laptop-form-title");
+const laptopFormIdInput = document.getElementById("laptop-form-id");
+const laptopFormStaffIdInput = document.getElementById("laptop-form-staff-id");
+const laptopFormStaffNameInput = document.getElementById("laptop-form-staff-name");
+const laptopFormSerialInput = document.getElementById("laptop-form-serial");
+const laptopFormAssetTagInput = document.getElementById("laptop-form-asset-tag");
+const laptopFormJobPositionInput = document.getElementById("laptop-form-job-position");
+const laptopFormLocationInput = document.getElementById("laptop-form-location");
+const laptopFormAntivirusInput = document.getElementById("laptop-form-antivirus");
+const laptopFormError = document.getElementById("laptop-form-error");
+const laptopFormSubmitButton = document.getElementById("laptop-form-submit");
+
+// عناصر Modal تأكيد الاسترداد (Void)
+const laptopVoidModal = document.getElementById("laptop-void-modal");
+const laptopVoidReasonInput = document.getElementById("laptop-void-reason");
+const laptopVoidError = document.getElementById("laptop-void-error");
+const laptopVoidConfirmButton = document.getElementById("laptop-void-confirm");
+
+let laptopAssignmentBeingVoided = null;
+
+function setLaptopState(message) {
+  laptopStateBox.classList.remove("is-rich");
+  if (!message) {
+    laptopStateBox.hidden = true;
+    laptopStateBox.textContent = "";
+    return;
+  }
+  laptopStateBox.hidden = false;
+  laptopStateBox.textContent = message;
+}
+
+function renderLaptopRows(rows) {
+  laptopTableBody.innerHTML = "";
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+
+  rows.forEach((asset) => {
+    const tr = document.createElement("tr");
+    if (asset.status === "voided") tr.classList.add("row-voided");
+
+    const isVoided = asset.status === "voided";
+    const statusLabel = isVoided ? "مستردة" : "نشطة";
+    const statusClass = isVoided ? "status-voided" : "status-active";
+    const antivirusLabel = asset.antivirus_licensed ? "مفعّل" : "غير مفعّل";
+    const antivirusClass = asset.antivirus_licensed ? "status-active" : "status-voided";
+
+    let actionsHtml = '<span class="text-muted">—</span>';
+    if (isAdminOrAbove && !isVoided) {
+      actionsHtml =
+        '<button type="button" class="btn-secondary btn-sm laptop-edit-btn">تعديل</button>' +
+        '<button type="button" class="btn-danger btn-sm laptop-void-btn">استرداد</button>';
+    }
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(asset.staff_id || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_name) + "</td>" +
+      "<td>" + escapeHtml(asset.serial_number) + "</td>" +
+      "<td>" + escapeHtml(asset.asset_tag || "—") + "</td>" +
+      '<td><span class="status-badge ' + antivirusClass + '">' + antivirusLabel + "</span></td>" +
+      "<td>" + escapeHtml(asset.job_position || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_location || "—") + "</td>" +
+      '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
+      '<td class="actions-cell">' + actionsHtml + "</td>";
+
+    if (isAdminOrAbove && !isVoided) {
+      tr.querySelector(".laptop-edit-btn").addEventListener("click", () => openLaptopForm(asset));
+      tr.querySelector(".laptop-void-btn").addEventListener("click", () => openLaptopVoidConfirm(asset));
+    }
+
+    laptopTableBody.appendChild(tr);
+  });
+}
+
+function updateLaptopPaginationControls() {
+  const totalPages = Math.max(1, Math.ceil(laptopState.totalCount / LAPTOP_PAGE_SIZE));
+
+  laptopPaginationInfo.textContent = laptopState.totalCount
+    ? "صفحة " + laptopState.page + " من " + totalPages + " — إجمالي " + laptopState.totalCount + " لابتوب"
+    : "";
+
+  laptopPrevPageButton.disabled = laptopState.page <= 1;
+  laptopNextPageButton.disabled = laptopState.page >= totalPages;
+}
+
+async function loadLaptopAssignments() {
+  renderTableSkeleton(laptopTableBody, 6, 9);
+  setLaptopState(null);
+  laptopPrevPageButton.disabled = true;
+  laptopNextPageButton.disabled = true;
+
+  const from = (laptopState.page - 1) * LAPTOP_PAGE_SIZE;
+  const to = from + LAPTOP_PAGE_SIZE - 1;
+
+  let query = supabaseClient
+    .from("it_laptop_assignments")
+    .select(
+      "id, staff_id, staff_name, serial_number, asset_tag, antivirus_licensed, job_position, staff_location, status",
+      { count: "exact" }
+    )
+    .order("staff_name", { ascending: true })
+    .range(from, to);
+
+  if (!laptopState.showVoided) {
+    query = query.eq("status", "active");
+  }
+
+  if (laptopState.search) {
+    const term = "%" + laptopState.search + "%";
+    query = query.or(
+      "staff_name.ilike." + term + ",staff_id.ilike." + term + ",serial_number.ilike." + term + ",asset_tag.ilike." + term
+    );
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error loading laptop assignments:", error);
+    setLaptopState("تعذر تحميل قائمة اللابتوبات. يُرجى المحاولة مرة أخرى.");
+    laptopPaginationInfo.textContent = "";
+    return;
+  }
+
+  laptopState.totalCount = count || 0;
+
+  if (!data || data.length === 0) {
+    if (laptopState.search) {
+      setLaptopState("لا توجد نتائج مطابقة للبحث.");
+    } else {
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      showRichEmptyState(
+        laptopStateBox,
+        icon("chartBar"),
+        "لا توجد لابتوبات مسجّلة بعد",
+        "لا توجد أي عهدة لابتوب مسجّلة بعد. سجّل أول عهدة يدويًا أو استورد دفعة كاملة من Excel.",
+        isAdminOrAbove
+          ? '<button type="button" class="btn-primary" id="empty-add-laptop-button">+ إضافة أول لابتوب</button>'
+          : ""
+      );
+      if (isAdminOrAbove) {
+        document.getElementById("empty-add-laptop-button").addEventListener("click", () => openLaptopForm(null));
+      }
+    }
+    updateLaptopPaginationControls();
+    return;
+  }
+
+  setLaptopState(null);
+  renderLaptopRows(data);
+  updateLaptopPaginationControls();
+}
+
+let laptopSearchDebounce;
+laptopSearchInput.addEventListener("input", () => {
+  clearTimeout(laptopSearchDebounce);
+  laptopSearchDebounce = setTimeout(() => {
+    laptopState.search = laptopSearchInput.value.trim();
+    laptopState.page = 1;
+    loadLaptopAssignments();
+  }, 300);
+});
+
+laptopShowVoidedCheckbox.addEventListener("change", () => {
+  laptopState.showVoided = laptopShowVoidedCheckbox.checked;
+  laptopState.page = 1;
+  loadLaptopAssignments();
+});
+
+laptopPrevPageButton.addEventListener("click", () => {
+  if (laptopState.page > 1) {
+    laptopState.page -= 1;
+    loadLaptopAssignments();
+  }
+});
+
+laptopNextPageButton.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(laptopState.totalCount / LAPTOP_PAGE_SIZE));
+  if (laptopState.page < totalPages) {
+    laptopState.page += 1;
+    loadLaptopAssignments();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إضافة / تعديل عهدة لابتوب — Admin أو Super Admin فقط (RLS هو الضامن الحقيقي)
+// ---------------------------------------------------------------------------
+
+function openLaptopForm(asset) {
+  laptopFormError.hidden = true;
+  laptopFormError.textContent = "";
+
+  laptopFormTitle.textContent = asset ? "تعديل لابتوب" : "إضافة لابتوب";
+  laptopFormIdInput.value = asset ? asset.id : "";
+  laptopFormStaffIdInput.value = asset ? asset.staff_id || "" : "";
+  laptopFormStaffNameInput.value = asset ? asset.staff_name || "" : "";
+  laptopFormSerialInput.value = asset ? asset.serial_number || "" : "";
+  laptopFormAssetTagInput.value = asset ? asset.asset_tag || "" : "";
+  laptopFormJobPositionInput.value = asset ? asset.job_position || "" : "";
+  laptopFormLocationInput.value = asset ? asset.staff_location || "" : "";
+  laptopFormAntivirusInput.checked = asset ? !!asset.antivirus_licensed : false;
+
+  laptopFormModal.hidden = false;
+}
+
+addLaptopButton.addEventListener("click", () => openLaptopForm(null));
+
+laptopForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  laptopFormError.hidden = true;
+  laptopFormError.textContent = "";
+
+  const staffName = laptopFormStaffNameInput.value.trim();
+  const serialNumber = laptopFormSerialInput.value.trim();
+
+  if (!staffName) {
+    laptopFormError.textContent = "اسم الموظف مطلوب.";
+    laptopFormError.hidden = false;
+    return;
+  }
+  if (!serialNumber) {
+    laptopFormError.textContent = "الرقم التسلسلي مطلوب.";
+    laptopFormError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    staff_id: laptopFormStaffIdInput.value.trim() || null,
+    staff_name: staffName,
+    serial_number: serialNumber,
+    asset_tag: laptopFormAssetTagInput.value.trim() || null,
+    antivirus_licensed: laptopFormAntivirusInput.checked,
+    job_position: laptopFormJobPositionInput.value.trim() || null,
+    staff_location: laptopFormLocationInput.value.trim() || null,
+  };
+
+  laptopFormSubmitButton.disabled = true;
+  laptopFormSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const editingId = laptopFormIdInput.value;
+    let error;
+
+    if (editingId) {
+      payload.updated_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_laptop_assignments").update(payload).eq("id", editingId));
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_laptop_assignments").insert(payload));
+    }
+
+    if (error) {
+      console.error("Error saving laptop assignment:", error);
+
+      if (
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+      ) {
+        laptopFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
+      } else if (error.code === "23505") {
+        laptopFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لجهاز نشط آخر.";
+      } else {
+        laptopFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+      }
+
+      laptopFormError.hidden = false;
+      return;
+    }
+
+    laptopFormModal.hidden = true;
+    loadLaptopAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error saving laptop assignment:", unexpectedError);
+    laptopFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    laptopFormError.hidden = false;
+  } finally {
+    laptopFormSubmitButton.disabled = false;
+    laptopFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إلغاء/استرداد عهدة (Void) — بدل الحذف النهائي
+// ---------------------------------------------------------------------------
+
+function openLaptopVoidConfirm(asset) {
+  laptopAssignmentBeingVoided = asset;
+  laptopVoidReasonInput.value = "";
+  laptopVoidError.hidden = true;
+  laptopVoidError.textContent = "";
+  laptopVoidModal.hidden = false;
+}
+
+laptopVoidConfirmButton.addEventListener("click", async () => {
+  if (!laptopAssignmentBeingVoided) return;
+
+  laptopVoidError.hidden = true;
+  laptopVoidConfirmButton.disabled = true;
+  laptopVoidConfirmButton.textContent = "جارٍ الاسترداد...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("it_laptop_assignments")
+      .update({
+        status: "voided",
+        void_reason: laptopVoidReasonInput.value.trim() || null,
+        voided_by: currentAuthUser ? currentAuthUser.id : null,
+        voided_at: new Date().toISOString(),
+      })
+      .eq("id", laptopAssignmentBeingVoided.id);
+
+    if (error) {
+      console.error("Error voiding laptop assignment:", error);
+      laptopVoidError.textContent =
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حصل خطأ أثناء الاسترداد: " + error.message;
+      laptopVoidError.hidden = false;
+      return;
+    }
+
+    laptopVoidModal.hidden = true;
+    laptopAssignmentBeingVoided = null;
+    loadLaptopAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error voiding laptop assignment:", unexpectedError);
+    laptopVoidError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    laptopVoidError.hidden = false;
+  } finally {
+    laptopVoidConfirmButton.disabled = false;
+    laptopVoidConfirmButton.textContent = "تأكيد الاسترداد";
+  }
+});
+
+// ============================================================================
+// 5c. عهدة البريد الإلكتروني (IT Assets — Email) — Phase 4
+// ============================================================================
+
+const EMAIL_PAGE_SIZE = 20;
+
+let emailState = {
+  page: 1,
+  search: "",
+  showVoided: false,
+  totalCount: 0,
+};
+
+// عناصر قائمة البريد الإلكتروني
+const emailTableBody = document.getElementById("email-table-body");
+const emailStateBox = document.getElementById("email-state");
+const emailSearchInput = document.getElementById("email-search");
+const emailShowVoidedCheckbox = document.getElementById("email-show-voided");
+const emailPrevPageButton = document.getElementById("email-prev-page");
+const emailNextPageButton = document.getElementById("email-next-page");
+const emailPaginationInfo = document.getElementById("email-pagination-info");
+const addEmailButton = document.getElementById("add-email-button");
+const importEmailButton = document.getElementById("import-email-button");
+
+// عناصر Modal الإضافة/التعديل
+const emailFormModal = document.getElementById("email-form-modal");
+const emailForm = document.getElementById("email-form");
+const emailFormTitle = document.getElementById("email-form-title");
+const emailFormIdInput = document.getElementById("email-form-id");
+const emailFormStaffIdInput = document.getElementById("email-form-staff-id");
+const emailFormStaffNameInput = document.getElementById("email-form-staff-name");
+const emailFormAddressInput = document.getElementById("email-form-address");
+const emailFormJobPositionInput = document.getElementById("email-form-job-position");
+const emailFormLocationInput = document.getElementById("email-form-location");
+const emailFormError = document.getElementById("email-form-error");
+const emailFormSubmitButton = document.getElementById("email-form-submit");
+
+// عناصر Modal تأكيد الاسترداد (Void)
+const emailVoidModal = document.getElementById("email-void-modal");
+const emailVoidReasonInput = document.getElementById("email-void-reason");
+const emailVoidError = document.getElementById("email-void-error");
+const emailVoidConfirmButton = document.getElementById("email-void-confirm");
+
+let emailAssignmentBeingVoided = null;
+
+function setEmailState(message) {
+  emailStateBox.classList.remove("is-rich");
+  if (!message) {
+    emailStateBox.hidden = true;
+    emailStateBox.textContent = "";
+    return;
+  }
+  emailStateBox.hidden = false;
+  emailStateBox.textContent = message;
+}
+
+function renderEmailRows(rows) {
+  emailTableBody.innerHTML = "";
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+
+  rows.forEach((asset) => {
+    const tr = document.createElement("tr");
+    if (asset.status === "voided") tr.classList.add("row-voided");
+
+    const isVoided = asset.status === "voided";
+    const statusLabel = isVoided ? "مستردة" : "نشطة";
+    const statusClass = isVoided ? "status-voided" : "status-active";
+
+    let actionsHtml = '<span class="text-muted">—</span>';
+    if (isAdminOrAbove && !isVoided) {
+      actionsHtml =
+        '<button type="button" class="btn-secondary btn-sm email-edit-btn">تعديل</button>' +
+        '<button type="button" class="btn-danger btn-sm email-void-btn">استرداد</button>';
+    }
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(asset.staff_id || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_name) + "</td>" +
+      "<td>" + escapeHtml(asset.email_address) + "</td>" +
+      "<td>" + escapeHtml(asset.job_position || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_location || "—") + "</td>" +
+      '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
+      '<td class="actions-cell">' + actionsHtml + "</td>";
+
+    if (isAdminOrAbove && !isVoided) {
+      tr.querySelector(".email-edit-btn").addEventListener("click", () => openEmailForm(asset));
+      tr.querySelector(".email-void-btn").addEventListener("click", () => openEmailVoidConfirm(asset));
+    }
+
+    emailTableBody.appendChild(tr);
+  });
+}
+
+function updateEmailPaginationControls() {
+  const totalPages = Math.max(1, Math.ceil(emailState.totalCount / EMAIL_PAGE_SIZE));
+
+  emailPaginationInfo.textContent = emailState.totalCount
+    ? "صفحة " + emailState.page + " من " + totalPages + " — إجمالي " + emailState.totalCount + " بريد إلكتروني"
+    : "";
+
+  emailPrevPageButton.disabled = emailState.page <= 1;
+  emailNextPageButton.disabled = emailState.page >= totalPages;
+}
+
+async function loadEmailAssignments() {
+  renderTableSkeleton(emailTableBody, 6, 7);
+  setEmailState(null);
+  emailPrevPageButton.disabled = true;
+  emailNextPageButton.disabled = true;
+
+  const from = (emailState.page - 1) * EMAIL_PAGE_SIZE;
+  const to = from + EMAIL_PAGE_SIZE - 1;
+
+  let query = supabaseClient
+    .from("it_email_assignments")
+    .select("id, staff_id, staff_name, email_address, job_position, staff_location, status", { count: "exact" })
+    .order("staff_name", { ascending: true })
+    .range(from, to);
+
+  if (!emailState.showVoided) {
+    query = query.eq("status", "active");
+  }
+
+  if (emailState.search) {
+    const term = "%" + emailState.search + "%";
+    query = query.or("staff_name.ilike." + term + ",staff_id.ilike." + term + ",email_address.ilike." + term);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error loading email assignments:", error);
+    setEmailState("تعذر تحميل قائمة البريد الإلكتروني. يُرجى المحاولة مرة أخرى.");
+    emailPaginationInfo.textContent = "";
+    return;
+  }
+
+  emailState.totalCount = count || 0;
+
+  if (!data || data.length === 0) {
+    if (emailState.search) {
+      setEmailState("لا توجد نتائج مطابقة للبحث.");
+    } else {
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      showRichEmptyState(
+        emailStateBox,
+        icon("chartBar"),
+        "لا توجد بريدات إلكترونية مسجّلة بعد",
+        "لا توجد أي عهدة بريد إلكتروني مسجّلة بعد. سجّل أول عهدة يدويًا أو استورد دفعة كاملة من Excel.",
+        isAdminOrAbove
+          ? '<button type="button" class="btn-primary" id="empty-add-email-button">+ إضافة أول بريد إلكتروني</button>'
+          : ""
+      );
+      if (isAdminOrAbove) {
+        document.getElementById("empty-add-email-button").addEventListener("click", () => openEmailForm(null));
+      }
+    }
+    updateEmailPaginationControls();
+    return;
+  }
+
+  setEmailState(null);
+  renderEmailRows(data);
+  updateEmailPaginationControls();
+}
+
+let emailSearchDebounce;
+emailSearchInput.addEventListener("input", () => {
+  clearTimeout(emailSearchDebounce);
+  emailSearchDebounce = setTimeout(() => {
+    emailState.search = emailSearchInput.value.trim();
+    emailState.page = 1;
+    loadEmailAssignments();
+  }, 300);
+});
+
+emailShowVoidedCheckbox.addEventListener("change", () => {
+  emailState.showVoided = emailShowVoidedCheckbox.checked;
+  emailState.page = 1;
+  loadEmailAssignments();
+});
+
+emailPrevPageButton.addEventListener("click", () => {
+  if (emailState.page > 1) {
+    emailState.page -= 1;
+    loadEmailAssignments();
+  }
+});
+
+emailNextPageButton.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(emailState.totalCount / EMAIL_PAGE_SIZE));
+  if (emailState.page < totalPages) {
+    emailState.page += 1;
+    loadEmailAssignments();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إضافة / تعديل عهدة بريد إلكتروني — Admin أو Super Admin فقط (RLS هو الضامن)
+// ---------------------------------------------------------------------------
+
+function openEmailForm(asset) {
+  emailFormError.hidden = true;
+  emailFormError.textContent = "";
+
+  emailFormTitle.textContent = asset ? "تعديل بريد إلكتروني" : "إضافة بريد إلكتروني";
+  emailFormIdInput.value = asset ? asset.id : "";
+  emailFormStaffIdInput.value = asset ? asset.staff_id || "" : "";
+  emailFormStaffNameInput.value = asset ? asset.staff_name || "" : "";
+  emailFormAddressInput.value = asset ? asset.email_address || "" : "";
+  emailFormJobPositionInput.value = asset ? asset.job_position || "" : "";
+  emailFormLocationInput.value = asset ? asset.staff_location || "" : "";
+
+  emailFormModal.hidden = false;
+}
+
+addEmailButton.addEventListener("click", () => openEmailForm(null));
+
+emailForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  emailFormError.hidden = true;
+  emailFormError.textContent = "";
+
+  const staffName = emailFormStaffNameInput.value.trim();
+  const emailAddress = emailFormAddressInput.value.trim();
+
+  if (!staffName) {
+    emailFormError.textContent = "اسم الموظف مطلوب.";
+    emailFormError.hidden = false;
+    return;
+  }
+  if (!emailAddress) {
+    emailFormError.textContent = "البريد الإلكتروني مطلوب.";
+    emailFormError.hidden = false;
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress)) {
+    emailFormError.textContent = "صيغة البريد الإلكتروني غير صحيحة.";
+    emailFormError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    staff_id: emailFormStaffIdInput.value.trim() || null,
+    staff_name: staffName,
+    email_address: emailAddress,
+    job_position: emailFormJobPositionInput.value.trim() || null,
+    staff_location: emailFormLocationInput.value.trim() || null,
+  };
+
+  emailFormSubmitButton.disabled = true;
+  emailFormSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const editingId = emailFormIdInput.value;
+    let error;
+
+    if (editingId) {
+      payload.updated_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_email_assignments").update(payload).eq("id", editingId));
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_email_assignments").insert(payload));
+    }
+
+    if (error) {
+      console.error("Error saving email assignment:", error);
+
+      if (
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+      ) {
+        emailFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
+      } else if (error.code === "23505") {
+        emailFormError.textContent = "البريد الإلكتروني ده مسجّل بالفعل لموظف نشط آخر.";
+      } else {
+        emailFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+      }
+
+      emailFormError.hidden = false;
+      return;
+    }
+
+    emailFormModal.hidden = true;
+    loadEmailAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error saving email assignment:", unexpectedError);
+    emailFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    emailFormError.hidden = false;
+  } finally {
+    emailFormSubmitButton.disabled = false;
+    emailFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إلغاء/استرداد عهدة (Void) — بدل الحذف النهائي
+// ---------------------------------------------------------------------------
+
+function openEmailVoidConfirm(asset) {
+  emailAssignmentBeingVoided = asset;
+  emailVoidReasonInput.value = "";
+  emailVoidError.hidden = true;
+  emailVoidError.textContent = "";
+  emailVoidModal.hidden = false;
+}
+
+emailVoidConfirmButton.addEventListener("click", async () => {
+  if (!emailAssignmentBeingVoided) return;
+
+  emailVoidError.hidden = true;
+  emailVoidConfirmButton.disabled = true;
+  emailVoidConfirmButton.textContent = "جارٍ الاسترداد...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("it_email_assignments")
+      .update({
+        status: "voided",
+        void_reason: emailVoidReasonInput.value.trim() || null,
+        voided_by: currentAuthUser ? currentAuthUser.id : null,
+        voided_at: new Date().toISOString(),
+      })
+      .eq("id", emailAssignmentBeingVoided.id);
+
+    if (error) {
+      console.error("Error voiding email assignment:", error);
+      emailVoidError.textContent =
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حصل خطأ أثناء الاسترداد: " + error.message;
+      emailVoidError.hidden = false;
+      return;
+    }
+
+    emailVoidModal.hidden = true;
+    emailAssignmentBeingVoided = null;
+    loadEmailAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error voiding email assignment:", unexpectedError);
+    emailVoidError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    emailVoidError.hidden = false;
+  } finally {
+    emailVoidConfirmButton.disabled = false;
+    emailVoidConfirmButton.textContent = "تأكيد الاسترداد";
+  }
+});
+
+// ============================================================================
+// 5d. عهدة أرقام الجوال (IT Assets — SIM) — Phase 5
+// ============================================================================
+
+const SIM_PAGE_SIZE = 20;
+
+let simState = {
+  page: 1,
+  search: "",
+  showVoided: false,
+  totalCount: 0,
+};
+
+// عناصر قائمة أرقام الجوال
+const simTableBody = document.getElementById("sim-table-body");
+const simStateBox = document.getElementById("sim-state");
+const simSearchInput = document.getElementById("sim-search");
+const simShowVoidedCheckbox = document.getElementById("sim-show-voided");
+const simPrevPageButton = document.getElementById("sim-prev-page");
+const simNextPageButton = document.getElementById("sim-next-page");
+const simPaginationInfo = document.getElementById("sim-pagination-info");
+const addSimButton = document.getElementById("add-sim-button");
+const importSimButton = document.getElementById("import-sim-button");
+
+// عناصر Modal الإضافة/التعديل
+const simFormModal = document.getElementById("sim-form-modal");
+const simForm = document.getElementById("sim-form");
+const simFormTitle = document.getElementById("sim-form-title");
+const simFormIdInput = document.getElementById("sim-form-id");
+const simFormStaffIdInput = document.getElementById("sim-form-staff-id");
+const simFormStaffNameInput = document.getElementById("sim-form-staff-name");
+const simFormNumberInput = document.getElementById("sim-form-number");
+const simFormJobPositionInput = document.getElementById("sim-form-job-position");
+const simFormLocationInput = document.getElementById("sim-form-location");
+const simFormError = document.getElementById("sim-form-error");
+const simFormSubmitButton = document.getElementById("sim-form-submit");
+
+// عناصر Modal تأكيد الاسترداد (Void)
+const simVoidModal = document.getElementById("sim-void-modal");
+const simVoidReasonInput = document.getElementById("sim-void-reason");
+const simVoidError = document.getElementById("sim-void-error");
+const simVoidConfirmButton = document.getElementById("sim-void-confirm");
+
+let simAssignmentBeingVoided = null;
+
+function setSimState(message) {
+  simStateBox.classList.remove("is-rich");
+  if (!message) {
+    simStateBox.hidden = true;
+    simStateBox.textContent = "";
+    return;
+  }
+  simStateBox.hidden = false;
+  simStateBox.textContent = message;
+}
+
+function renderSimRows(rows) {
+  simTableBody.innerHTML = "";
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+
+  rows.forEach((asset) => {
+    const tr = document.createElement("tr");
+    if (asset.status === "voided") tr.classList.add("row-voided");
+
+    const isVoided = asset.status === "voided";
+    const statusLabel = isVoided ? "مستردة" : "نشطة";
+    const statusClass = isVoided ? "status-voided" : "status-active";
+
+    let actionsHtml = '<span class="text-muted">—</span>';
+    if (isAdminOrAbove && !isVoided) {
+      actionsHtml =
+        '<button type="button" class="btn-secondary btn-sm sim-edit-btn">تعديل</button>' +
+        '<button type="button" class="btn-danger btn-sm sim-void-btn">استرداد</button>';
+    }
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(asset.staff_id || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_name) + "</td>" +
+      "<td>" + escapeHtml(asset.mobile_number) + "</td>" +
+      "<td>" + escapeHtml(asset.job_position || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_location || "—") + "</td>" +
+      '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
+      '<td class="actions-cell">' + actionsHtml + "</td>";
+
+    if (isAdminOrAbove && !isVoided) {
+      tr.querySelector(".sim-edit-btn").addEventListener("click", () => openSimForm(asset));
+      tr.querySelector(".sim-void-btn").addEventListener("click", () => openSimVoidConfirm(asset));
+    }
+
+    simTableBody.appendChild(tr);
+  });
+}
+
+function updateSimPaginationControls() {
+  const totalPages = Math.max(1, Math.ceil(simState.totalCount / SIM_PAGE_SIZE));
+
+  simPaginationInfo.textContent = simState.totalCount
+    ? "صفحة " + simState.page + " من " + totalPages + " — إجمالي " + simState.totalCount + " رقم جوال"
+    : "";
+
+  simPrevPageButton.disabled = simState.page <= 1;
+  simNextPageButton.disabled = simState.page >= totalPages;
+}
+
+async function loadSimAssignments() {
+  renderTableSkeleton(simTableBody, 6, 7);
+  setSimState(null);
+  simPrevPageButton.disabled = true;
+  simNextPageButton.disabled = true;
+
+  const from = (simState.page - 1) * SIM_PAGE_SIZE;
+  const to = from + SIM_PAGE_SIZE - 1;
+
+  let query = supabaseClient
+    .from("it_sim_assignments")
+    .select("id, staff_id, staff_name, mobile_number, job_position, staff_location, status", { count: "exact" })
+    .order("staff_name", { ascending: true })
+    .range(from, to);
+
+  if (!simState.showVoided) {
+    query = query.eq("status", "active");
+  }
+
+  if (simState.search) {
+    const term = "%" + simState.search + "%";
+    query = query.or("staff_name.ilike." + term + ",staff_id.ilike." + term + ",mobile_number.ilike." + term);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error loading SIM assignments:", error);
+    setSimState("تعذر تحميل قائمة أرقام الجوال. يُرجى المحاولة مرة أخرى.");
+    simPaginationInfo.textContent = "";
+    return;
+  }
+
+  simState.totalCount = count || 0;
+
+  if (!data || data.length === 0) {
+    if (simState.search) {
+      setSimState("لا توجد نتائج مطابقة للبحث.");
+    } else {
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      showRichEmptyState(
+        simStateBox,
+        icon("chartBar"),
+        "لا توجد أرقام جوال مسجّلة بعد",
+        "لا توجد أي عهدة رقم جوال مسجّلة بعد. سجّل أول عهدة يدويًا أو استورد دفعة كاملة من Excel.",
+        isAdminOrAbove
+          ? '<button type="button" class="btn-primary" id="empty-add-sim-button">+ إضافة أول رقم جوال</button>'
+          : ""
+      );
+      if (isAdminOrAbove) {
+        document.getElementById("empty-add-sim-button").addEventListener("click", () => openSimForm(null));
+      }
+    }
+    updateSimPaginationControls();
+    return;
+  }
+
+  setSimState(null);
+  renderSimRows(data);
+  updateSimPaginationControls();
+}
+
+let simSearchDebounce;
+simSearchInput.addEventListener("input", () => {
+  clearTimeout(simSearchDebounce);
+  simSearchDebounce = setTimeout(() => {
+    simState.search = simSearchInput.value.trim();
+    simState.page = 1;
+    loadSimAssignments();
+  }, 300);
+});
+
+simShowVoidedCheckbox.addEventListener("change", () => {
+  simState.showVoided = simShowVoidedCheckbox.checked;
+  simState.page = 1;
+  loadSimAssignments();
+});
+
+simPrevPageButton.addEventListener("click", () => {
+  if (simState.page > 1) {
+    simState.page -= 1;
+    loadSimAssignments();
+  }
+});
+
+simNextPageButton.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(simState.totalCount / SIM_PAGE_SIZE));
+  if (simState.page < totalPages) {
+    simState.page += 1;
+    loadSimAssignments();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إضافة / تعديل عهدة رقم جوال — Admin أو Super Admin فقط (RLS هو الضامن)
+// ---------------------------------------------------------------------------
+
+function openSimForm(asset) {
+  simFormError.hidden = true;
+  simFormError.textContent = "";
+
+  simFormTitle.textContent = asset ? "تعديل رقم جوال" : "إضافة رقم جوال";
+  simFormIdInput.value = asset ? asset.id : "";
+  simFormStaffIdInput.value = asset ? asset.staff_id || "" : "";
+  simFormStaffNameInput.value = asset ? asset.staff_name || "" : "";
+  simFormNumberInput.value = asset ? asset.mobile_number || "" : "";
+  simFormJobPositionInput.value = asset ? asset.job_position || "" : "";
+  simFormLocationInput.value = asset ? asset.staff_location || "" : "";
+
+  simFormModal.hidden = false;
+}
+
+addSimButton.addEventListener("click", () => openSimForm(null));
+
+simForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  simFormError.hidden = true;
+  simFormError.textContent = "";
+
+  const staffName = simFormStaffNameInput.value.trim();
+  const mobileNumber = simFormNumberInput.value.trim();
+
+  if (!staffName) {
+    simFormError.textContent = "اسم الموظف مطلوب.";
+    simFormError.hidden = false;
+    return;
+  }
+  if (!mobileNumber) {
+    simFormError.textContent = "رقم الجوال مطلوب.";
+    simFormError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    staff_id: simFormStaffIdInput.value.trim() || null,
+    staff_name: staffName,
+    mobile_number: mobileNumber,
+    job_position: simFormJobPositionInput.value.trim() || null,
+    staff_location: simFormLocationInput.value.trim() || null,
+  };
+
+  simFormSubmitButton.disabled = true;
+  simFormSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const editingId = simFormIdInput.value;
+    let error;
+
+    if (editingId) {
+      payload.updated_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_sim_assignments").update(payload).eq("id", editingId));
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_sim_assignments").insert(payload));
+    }
+
+    if (error) {
+      console.error("Error saving SIM assignment:", error);
+
+      if (
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+      ) {
+        simFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
+      } else if (error.code === "23505") {
+        simFormError.textContent = "رقم الجوال ده مسجّل بالفعل لموظف نشط آخر.";
+      } else {
+        simFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+      }
+
+      simFormError.hidden = false;
+      return;
+    }
+
+    simFormModal.hidden = true;
+    loadSimAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error saving SIM assignment:", unexpectedError);
+    simFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    simFormError.hidden = false;
+  } finally {
+    simFormSubmitButton.disabled = false;
+    simFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إلغاء/استرداد عهدة (Void) — بدل الحذف النهائي
+// ---------------------------------------------------------------------------
+
+function openSimVoidConfirm(asset) {
+  simAssignmentBeingVoided = asset;
+  simVoidReasonInput.value = "";
+  simVoidError.hidden = true;
+  simVoidError.textContent = "";
+  simVoidModal.hidden = false;
+}
+
+simVoidConfirmButton.addEventListener("click", async () => {
+  if (!simAssignmentBeingVoided) return;
+
+  simVoidError.hidden = true;
+  simVoidConfirmButton.disabled = true;
+  simVoidConfirmButton.textContent = "جارٍ الاسترداد...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("it_sim_assignments")
+      .update({
+        status: "voided",
+        void_reason: simVoidReasonInput.value.trim() || null,
+        voided_by: currentAuthUser ? currentAuthUser.id : null,
+        voided_at: new Date().toISOString(),
+      })
+      .eq("id", simAssignmentBeingVoided.id);
+
+    if (error) {
+      console.error("Error voiding SIM assignment:", error);
+      simVoidError.textContent =
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حصل خطأ أثناء الاسترداد: " + error.message;
+      simVoidError.hidden = false;
+      return;
+    }
+
+    simVoidModal.hidden = true;
+    simAssignmentBeingVoided = null;
+    loadSimAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error voiding SIM assignment:", unexpectedError);
+    simVoidError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    simVoidError.hidden = false;
+  } finally {
+    simVoidConfirmButton.disabled = false;
+    simVoidConfirmButton.textContent = "تأكيد الاسترداد";
+  }
+});
+
+// ============================================================================
+// 5e. عهدة الأجهزة اللوحية (IT Assets — Tablets) — Phase 6
+// ============================================================================
+
+const TABLET_PAGE_SIZE = 20;
+
+let tabletState = {
+  page: 1,
+  search: "",
+  showVoided: false,
+  totalCount: 0,
+};
+
+// عناصر قائمة الأجهزة اللوحية
+const tabletTableBody = document.getElementById("tablet-table-body");
+const tabletStateBox = document.getElementById("tablet-state");
+const tabletSearchInput = document.getElementById("tablet-search");
+const tabletShowVoidedCheckbox = document.getElementById("tablet-show-voided");
+const tabletPrevPageButton = document.getElementById("tablet-prev-page");
+const tabletNextPageButton = document.getElementById("tablet-next-page");
+const tabletPaginationInfo = document.getElementById("tablet-pagination-info");
+const addTabletButton = document.getElementById("add-tablet-button");
+const importTabletsButton = document.getElementById("import-tablets-button");
+
+// عناصر Modal الإضافة/التعديل
+const tabletFormModal = document.getElementById("tablet-form-modal");
+const tabletForm = document.getElementById("tablet-form");
+const tabletFormTitle = document.getElementById("tablet-form-title");
+const tabletFormIdInput = document.getElementById("tablet-form-id");
+const tabletFormStaffIdInput = document.getElementById("tablet-form-staff-id");
+const tabletFormStaffNameInput = document.getElementById("tablet-form-staff-name");
+const tabletFormSerialInput = document.getElementById("tablet-form-serial");
+const tabletFormLocationInput = document.getElementById("tablet-form-location");
+const tabletFormError = document.getElementById("tablet-form-error");
+const tabletFormSubmitButton = document.getElementById("tablet-form-submit");
+
+// عناصر Modal تأكيد الاسترداد (Void)
+const tabletVoidModal = document.getElementById("tablet-void-modal");
+const tabletVoidReasonInput = document.getElementById("tablet-void-reason");
+const tabletVoidError = document.getElementById("tablet-void-error");
+const tabletVoidConfirmButton = document.getElementById("tablet-void-confirm");
+
+let tabletAssignmentBeingVoided = null;
+
+function setTabletState(message) {
+  tabletStateBox.classList.remove("is-rich");
+  if (!message) {
+    tabletStateBox.hidden = true;
+    tabletStateBox.textContent = "";
+    return;
+  }
+  tabletStateBox.hidden = false;
+  tabletStateBox.textContent = message;
+}
+
+function renderTabletRows(rows) {
+  tabletTableBody.innerHTML = "";
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+
+  rows.forEach((asset) => {
+    const tr = document.createElement("tr");
+    if (asset.status === "voided") tr.classList.add("row-voided");
+
+    const isVoided = asset.status === "voided";
+    const statusLabel = isVoided ? "مستردة" : "نشطة";
+    const statusClass = isVoided ? "status-voided" : "status-active";
+
+    let actionsHtml = '<span class="text-muted">—</span>';
+    if (isAdminOrAbove && !isVoided) {
+      actionsHtml =
+        '<button type="button" class="btn-secondary btn-sm tablet-edit-btn">تعديل</button>' +
+        '<button type="button" class="btn-danger btn-sm tablet-void-btn">استرداد</button>';
+    }
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(asset.staff_id || "—") + "</td>" +
+      "<td>" + escapeHtml(asset.staff_name) + "</td>" +
+      "<td>" + escapeHtml(asset.serial_number) + "</td>" +
+      "<td>" + escapeHtml(asset.staff_location || "—") + "</td>" +
+      '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
+      '<td class="actions-cell">' + actionsHtml + "</td>";
+
+    if (isAdminOrAbove && !isVoided) {
+      tr.querySelector(".tablet-edit-btn").addEventListener("click", () => openTabletForm(asset));
+      tr.querySelector(".tablet-void-btn").addEventListener("click", () => openTabletVoidConfirm(asset));
+    }
+
+    tabletTableBody.appendChild(tr);
+  });
+}
+
+function updateTabletPaginationControls() {
+  const totalPages = Math.max(1, Math.ceil(tabletState.totalCount / TABLET_PAGE_SIZE));
+
+  tabletPaginationInfo.textContent = tabletState.totalCount
+    ? "صفحة " + tabletState.page + " من " + totalPages + " — إجمالي " + tabletState.totalCount + " جهاز لوحي"
+    : "";
+
+  tabletPrevPageButton.disabled = tabletState.page <= 1;
+  tabletNextPageButton.disabled = tabletState.page >= totalPages;
+}
+
+async function loadTabletAssignments() {
+  renderTableSkeleton(tabletTableBody, 6, 6);
+  setTabletState(null);
+  tabletPrevPageButton.disabled = true;
+  tabletNextPageButton.disabled = true;
+
+  const from = (tabletState.page - 1) * TABLET_PAGE_SIZE;
+  const to = from + TABLET_PAGE_SIZE - 1;
+
+  let query = supabaseClient
+    .from("it_tablet_assignments")
+    .select("id, staff_id, staff_name, serial_number, staff_location, status", { count: "exact" })
+    .order("staff_name", { ascending: true })
+    .range(from, to);
+
+  if (!tabletState.showVoided) {
+    query = query.eq("status", "active");
+  }
+
+  if (tabletState.search) {
+    const term = "%" + tabletState.search + "%";
+    query = query.or("staff_name.ilike." + term + ",staff_id.ilike." + term + ",serial_number.ilike." + term);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error loading tablet assignments:", error);
+    setTabletState("تعذر تحميل قائمة الأجهزة اللوحية. يُرجى المحاولة مرة أخرى.");
+    tabletPaginationInfo.textContent = "";
+    return;
+  }
+
+  tabletState.totalCount = count || 0;
+
+  if (!data || data.length === 0) {
+    if (tabletState.search) {
+      setTabletState("لا توجد نتائج مطابقة للبحث.");
+    } else {
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      showRichEmptyState(
+        tabletStateBox,
+        icon("chartBar"),
+        "لا توجد أجهزة لوحية مسجّلة بعد",
+        "لا توجد أي عهدة جهاز لوحي مسجّلة بعد. سجّل أول عهدة يدويًا أو استورد دفعة كاملة من Excel.",
+        isAdminOrAbove
+          ? '<button type="button" class="btn-primary" id="empty-add-tablet-button">+ إضافة أول جهاز لوحي</button>'
+          : ""
+      );
+      if (isAdminOrAbove) {
+        document.getElementById("empty-add-tablet-button").addEventListener("click", () => openTabletForm(null));
+      }
+    }
+    updateTabletPaginationControls();
+    return;
+  }
+
+  setTabletState(null);
+  renderTabletRows(data);
+  updateTabletPaginationControls();
+}
+
+let tabletSearchDebounce;
+tabletSearchInput.addEventListener("input", () => {
+  clearTimeout(tabletSearchDebounce);
+  tabletSearchDebounce = setTimeout(() => {
+    tabletState.search = tabletSearchInput.value.trim();
+    tabletState.page = 1;
+    loadTabletAssignments();
+  }, 300);
+});
+
+tabletShowVoidedCheckbox.addEventListener("change", () => {
+  tabletState.showVoided = tabletShowVoidedCheckbox.checked;
+  tabletState.page = 1;
+  loadTabletAssignments();
+});
+
+tabletPrevPageButton.addEventListener("click", () => {
+  if (tabletState.page > 1) {
+    tabletState.page -= 1;
+    loadTabletAssignments();
+  }
+});
+
+tabletNextPageButton.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(tabletState.totalCount / TABLET_PAGE_SIZE));
+  if (tabletState.page < totalPages) {
+    tabletState.page += 1;
+    loadTabletAssignments();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إضافة / تعديل عهدة جهاز لوحي — Admin أو Super Admin فقط (RLS هو الضامن)
+// ---------------------------------------------------------------------------
+
+function openTabletForm(asset) {
+  tabletFormError.hidden = true;
+  tabletFormError.textContent = "";
+
+  tabletFormTitle.textContent = asset ? "تعديل جهاز لوحي" : "إضافة جهاز لوحي";
+  tabletFormIdInput.value = asset ? asset.id : "";
+  tabletFormStaffIdInput.value = asset ? asset.staff_id || "" : "";
+  tabletFormStaffNameInput.value = asset ? asset.staff_name || "" : "";
+  tabletFormSerialInput.value = asset ? asset.serial_number || "" : "";
+  tabletFormLocationInput.value = asset ? asset.staff_location || "" : "";
+
+  tabletFormModal.hidden = false;
+}
+
+addTabletButton.addEventListener("click", () => openTabletForm(null));
+
+tabletForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  tabletFormError.hidden = true;
+  tabletFormError.textContent = "";
+
+  const staffName = tabletFormStaffNameInput.value.trim();
+  const serialNumber = tabletFormSerialInput.value.trim();
+
+  if (!staffName) {
+    tabletFormError.textContent = "اسم الموظف مطلوب.";
+    tabletFormError.hidden = false;
+    return;
+  }
+  if (!serialNumber) {
+    tabletFormError.textContent = "الرقم التسلسلي مطلوب.";
+    tabletFormError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    staff_id: tabletFormStaffIdInput.value.trim() || null,
+    staff_name: staffName,
+    serial_number: serialNumber,
+    staff_location: tabletFormLocationInput.value.trim() || null,
+  };
+
+  tabletFormSubmitButton.disabled = true;
+  tabletFormSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const editingId = tabletFormIdInput.value;
+    let error;
+
+    if (editingId) {
+      payload.updated_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_tablet_assignments").update(payload).eq("id", editingId));
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_tablet_assignments").insert(payload));
+    }
+
+    if (error) {
+      console.error("Error saving tablet assignment:", error);
+
+      if (
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+      ) {
+        tabletFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
+      } else if (error.code === "23505") {
+        tabletFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لجهاز نشط آخر.";
+      } else {
+        tabletFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+      }
+
+      tabletFormError.hidden = false;
+      return;
+    }
+
+    tabletFormModal.hidden = true;
+    loadTabletAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error saving tablet assignment:", unexpectedError);
+    tabletFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    tabletFormError.hidden = false;
+  } finally {
+    tabletFormSubmitButton.disabled = false;
+    tabletFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إلغاء/استرداد عهدة (Void) — بدل الحذف النهائي
+// ---------------------------------------------------------------------------
+
+function openTabletVoidConfirm(asset) {
+  tabletAssignmentBeingVoided = asset;
+  tabletVoidReasonInput.value = "";
+  tabletVoidError.hidden = true;
+  tabletVoidError.textContent = "";
+  tabletVoidModal.hidden = false;
+}
+
+tabletVoidConfirmButton.addEventListener("click", async () => {
+  if (!tabletAssignmentBeingVoided) return;
+
+  tabletVoidError.hidden = true;
+  tabletVoidConfirmButton.disabled = true;
+  tabletVoidConfirmButton.textContent = "جارٍ الاسترداد...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("it_tablet_assignments")
+      .update({
+        status: "voided",
+        void_reason: tabletVoidReasonInput.value.trim() || null,
+        voided_by: currentAuthUser ? currentAuthUser.id : null,
+        voided_at: new Date().toISOString(),
+      })
+      .eq("id", tabletAssignmentBeingVoided.id);
+
+    if (error) {
+      console.error("Error voiding tablet assignment:", error);
+      tabletVoidError.textContent =
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حصل خطأ أثناء الاسترداد: " + error.message;
+      tabletVoidError.hidden = false;
+      return;
+    }
+
+    tabletVoidModal.hidden = true;
+    tabletAssignmentBeingVoided = null;
+    loadTabletAssignments();
+  } catch (unexpectedError) {
+    console.error("Unexpected error voiding tablet assignment:", unexpectedError);
+    tabletVoidError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    tabletVoidError.hidden = false;
+  } finally {
+    tabletVoidConfirmButton.disabled = false;
+    tabletVoidConfirmButton.textContent = "تأكيد الاسترداد";
+  }
+});
+
+// ============================================================================
+// 5f. كتالوج اللابتوبات (IT Assets — Laptop Catalog) — Phase 7
+// جدول مستقل تمامًا عن عهدة اللابتوبات (5b) — بدون أي بيانات موظفين،
+// مجرد سجل بأنواع/أرقام تسلسلية اللابتوبات الموجودة فعليًا
+// ============================================================================
+
+const LAPTOP_CATALOG_PAGE_SIZE = 20;
+
+let laptopCatalogState = {
+  page: 1,
+  search: "",
+  showVoided: false,
+  totalCount: 0,
+};
+
+// عناصر قائمة الكتالوج
+const laptopCatalogTableBody = document.getElementById("laptop-catalog-table-body");
+const laptopCatalogStateBox = document.getElementById("laptop-catalog-state");
+const laptopCatalogSearchInput = document.getElementById("laptop-catalog-search");
+const laptopCatalogShowVoidedCheckbox = document.getElementById("laptop-catalog-show-voided");
+const laptopCatalogPrevPageButton = document.getElementById("laptop-catalog-prev-page");
+const laptopCatalogNextPageButton = document.getElementById("laptop-catalog-next-page");
+const laptopCatalogPaginationInfo = document.getElementById("laptop-catalog-pagination-info");
+const addLaptopCatalogButton = document.getElementById("add-laptop-catalog-button");
+const importLaptopCatalogButton = document.getElementById("import-laptop-catalog-button");
+
+// عناصر Modal الإضافة/التعديل
+const laptopCatalogFormModal = document.getElementById("laptop-catalog-form-modal");
+const laptopCatalogForm = document.getElementById("laptop-catalog-form");
+const laptopCatalogFormTitle = document.getElementById("laptop-catalog-form-title");
+const laptopCatalogFormIdInput = document.getElementById("laptop-catalog-form-id");
+const laptopCatalogFormSerialInput = document.getElementById("laptop-catalog-form-serial");
+const laptopCatalogFormTypeInput = document.getElementById("laptop-catalog-form-type");
+const laptopCatalogFormAssetTagInput = document.getElementById("laptop-catalog-form-asset-tag");
+const laptopCatalogFormError = document.getElementById("laptop-catalog-form-error");
+const laptopCatalogFormSubmitButton = document.getElementById("laptop-catalog-form-submit");
+
+// عناصر Modal تأكيد الاستبعاد (Void)
+const laptopCatalogVoidModal = document.getElementById("laptop-catalog-void-modal");
+const laptopCatalogVoidReasonInput = document.getElementById("laptop-catalog-void-reason");
+const laptopCatalogVoidError = document.getElementById("laptop-catalog-void-error");
+const laptopCatalogVoidConfirmButton = document.getElementById("laptop-catalog-void-confirm");
+
+let laptopCatalogEntryBeingVoided = null;
+
+function setLaptopCatalogState(message) {
+  laptopCatalogStateBox.classList.remove("is-rich");
+  if (!message) {
+    laptopCatalogStateBox.hidden = true;
+    laptopCatalogStateBox.textContent = "";
+    return;
+  }
+  laptopCatalogStateBox.hidden = false;
+  laptopCatalogStateBox.textContent = message;
+}
+
+function renderLaptopCatalogRows(rows) {
+  laptopCatalogTableBody.innerHTML = "";
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+
+  rows.forEach((entry) => {
+    const tr = document.createElement("tr");
+    if (entry.status === "voided") tr.classList.add("row-voided");
+
+    const isVoided = entry.status === "voided";
+    const statusLabel = isVoided ? "مستبعد" : "نشط";
+    const statusClass = isVoided ? "status-voided" : "status-active";
+
+    let actionsHtml = '<span class="text-muted">—</span>';
+    if (isAdminOrAbove && !isVoided) {
+      actionsHtml =
+        '<button type="button" class="btn-secondary btn-sm laptop-catalog-edit-btn">تعديل</button>' +
+        '<button type="button" class="btn-danger btn-sm laptop-catalog-void-btn">استبعاد</button>';
+    }
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(entry.serial_number) + "</td>" +
+      "<td>" + escapeHtml(entry.laptop_type || "—") + "</td>" +
+      "<td>" + escapeHtml(entry.asset_tag || "—") + "</td>" +
+      '<td><span class="status-badge ' + statusClass + '">' + statusLabel + "</span></td>" +
+      '<td class="actions-cell">' + actionsHtml + "</td>";
+
+    if (isAdminOrAbove && !isVoided) {
+      tr.querySelector(".laptop-catalog-edit-btn").addEventListener("click", () => openLaptopCatalogForm(entry));
+      tr.querySelector(".laptop-catalog-void-btn").addEventListener("click", () => openLaptopCatalogVoidConfirm(entry));
+    }
+
+    laptopCatalogTableBody.appendChild(tr);
+  });
+}
+
+function updateLaptopCatalogPaginationControls() {
+  const totalPages = Math.max(1, Math.ceil(laptopCatalogState.totalCount / LAPTOP_CATALOG_PAGE_SIZE));
+
+  laptopCatalogPaginationInfo.textContent = laptopCatalogState.totalCount
+    ? "صفحة " + laptopCatalogState.page + " من " + totalPages + " — إجمالي " + laptopCatalogState.totalCount + " سجل"
+    : "";
+
+  laptopCatalogPrevPageButton.disabled = laptopCatalogState.page <= 1;
+  laptopCatalogNextPageButton.disabled = laptopCatalogState.page >= totalPages;
+}
+
+async function loadLaptopCatalog() {
+  renderTableSkeleton(laptopCatalogTableBody, 6, 5);
+  setLaptopCatalogState(null);
+  laptopCatalogPrevPageButton.disabled = true;
+  laptopCatalogNextPageButton.disabled = true;
+
+  const from = (laptopCatalogState.page - 1) * LAPTOP_CATALOG_PAGE_SIZE;
+  const to = from + LAPTOP_CATALOG_PAGE_SIZE - 1;
+
+  let query = supabaseClient
+    .from("it_laptop_catalog")
+    .select("id, serial_number, laptop_type, asset_tag, status", { count: "exact" })
+    .order("serial_number", { ascending: true })
+    .range(from, to);
+
+  if (!laptopCatalogState.showVoided) {
+    query = query.eq("status", "active");
+  }
+
+  if (laptopCatalogState.search) {
+    const term = "%" + laptopCatalogState.search + "%";
+    query = query.or("serial_number.ilike." + term + ",laptop_type.ilike." + term + ",asset_tag.ilike." + term);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error loading laptop catalog:", error);
+    setLaptopCatalogState("تعذر تحميل كتالوج اللابتوبات. يُرجى المحاولة مرة أخرى.");
+    laptopCatalogPaginationInfo.textContent = "";
+    return;
+  }
+
+  laptopCatalogState.totalCount = count || 0;
+
+  if (!data || data.length === 0) {
+    if (laptopCatalogState.search) {
+      setLaptopCatalogState("لا توجد نتائج مطابقة للبحث.");
+    } else {
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      showRichEmptyState(
+        laptopCatalogStateBox,
+        icon("chartBar"),
+        "لا توجد سجلات في الكتالوج بعد",
+        "لا يوجد أي سجل في كتالوج اللابتوبات بعد. سجّل أول سجل يدويًا أو استورد دفعة كاملة من Excel.",
+        isAdminOrAbove
+          ? '<button type="button" class="btn-primary" id="empty-add-laptop-catalog-button">+ إضافة أول سجل</button>'
+          : ""
+      );
+      if (isAdminOrAbove) {
+        document
+          .getElementById("empty-add-laptop-catalog-button")
+          .addEventListener("click", () => openLaptopCatalogForm(null));
+      }
+    }
+    updateLaptopCatalogPaginationControls();
+    return;
+  }
+
+  setLaptopCatalogState(null);
+  renderLaptopCatalogRows(data);
+  updateLaptopCatalogPaginationControls();
+}
+
+let laptopCatalogSearchDebounce;
+laptopCatalogSearchInput.addEventListener("input", () => {
+  clearTimeout(laptopCatalogSearchDebounce);
+  laptopCatalogSearchDebounce = setTimeout(() => {
+    laptopCatalogState.search = laptopCatalogSearchInput.value.trim();
+    laptopCatalogState.page = 1;
+    loadLaptopCatalog();
+  }, 300);
+});
+
+laptopCatalogShowVoidedCheckbox.addEventListener("change", () => {
+  laptopCatalogState.showVoided = laptopCatalogShowVoidedCheckbox.checked;
+  laptopCatalogState.page = 1;
+  loadLaptopCatalog();
+});
+
+laptopCatalogPrevPageButton.addEventListener("click", () => {
+  if (laptopCatalogState.page > 1) {
+    laptopCatalogState.page -= 1;
+    loadLaptopCatalog();
+  }
+});
+
+laptopCatalogNextPageButton.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(laptopCatalogState.totalCount / LAPTOP_CATALOG_PAGE_SIZE));
+  if (laptopCatalogState.page < totalPages) {
+    laptopCatalogState.page += 1;
+    loadLaptopCatalog();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// إضافة / تعديل سجل كتالوج — Admin أو Super Admin فقط (RLS هو الضامن)
+// ---------------------------------------------------------------------------
+
+function openLaptopCatalogForm(entry) {
+  laptopCatalogFormError.hidden = true;
+  laptopCatalogFormError.textContent = "";
+
+  laptopCatalogFormTitle.textContent = entry ? "تعديل سجل الكتالوج" : "إضافة نوع لابتوب";
+  laptopCatalogFormIdInput.value = entry ? entry.id : "";
+  laptopCatalogFormSerialInput.value = entry ? entry.serial_number || "" : "";
+  laptopCatalogFormTypeInput.value = entry ? entry.laptop_type || "" : "";
+  laptopCatalogFormAssetTagInput.value = entry ? entry.asset_tag || "" : "";
+
+  laptopCatalogFormModal.hidden = false;
+}
+
+addLaptopCatalogButton.addEventListener("click", () => openLaptopCatalogForm(null));
+
+laptopCatalogForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  laptopCatalogFormError.hidden = true;
+  laptopCatalogFormError.textContent = "";
+
+  const serialNumber = laptopCatalogFormSerialInput.value.trim();
+
+  if (!serialNumber) {
+    laptopCatalogFormError.textContent = "الرقم التسلسلي مطلوب.";
+    laptopCatalogFormError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    serial_number: serialNumber,
+    laptop_type: laptopCatalogFormTypeInput.value.trim() || null,
+    asset_tag: laptopCatalogFormAssetTagInput.value.trim() || null,
+  };
+
+  laptopCatalogFormSubmitButton.disabled = true;
+  laptopCatalogFormSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const editingId = laptopCatalogFormIdInput.value;
+    let error;
+
+    if (editingId) {
+      payload.updated_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_laptop_catalog").update(payload).eq("id", editingId));
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      ({ error } = await supabaseClient.from("it_laptop_catalog").insert(payload));
+    }
+
+    if (error) {
+      console.error("Error saving laptop catalog entry:", error);
+
+      if (
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+      ) {
+        laptopCatalogFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
+      } else if (error.code === "23505") {
+        laptopCatalogFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لسجل نشط آخر.";
+      } else {
+        laptopCatalogFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+      }
+
+      laptopCatalogFormError.hidden = false;
+      return;
+    }
+
+    laptopCatalogFormModal.hidden = true;
+    loadLaptopCatalog();
+  } catch (unexpectedError) {
+    console.error("Unexpected error saving laptop catalog entry:", unexpectedError);
+    laptopCatalogFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    laptopCatalogFormError.hidden = false;
+  } finally {
+    laptopCatalogFormSubmitButton.disabled = false;
+    laptopCatalogFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// استبعاد سجل (Void) — بدل الحذف النهائي
+// ---------------------------------------------------------------------------
+
+function openLaptopCatalogVoidConfirm(entry) {
+  laptopCatalogEntryBeingVoided = entry;
+  laptopCatalogVoidReasonInput.value = "";
+  laptopCatalogVoidError.hidden = true;
+  laptopCatalogVoidError.textContent = "";
+  laptopCatalogVoidModal.hidden = false;
+}
+
+laptopCatalogVoidConfirmButton.addEventListener("click", async () => {
+  if (!laptopCatalogEntryBeingVoided) return;
+
+  laptopCatalogVoidError.hidden = true;
+  laptopCatalogVoidConfirmButton.disabled = true;
+  laptopCatalogVoidConfirmButton.textContent = "جارٍ الاستبعاد...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("it_laptop_catalog")
+      .update({
+        status: "voided",
+        void_reason: laptopCatalogVoidReasonInput.value.trim() || null,
+        voided_by: currentAuthUser ? currentAuthUser.id : null,
+        voided_at: new Date().toISOString(),
+      })
+      .eq("id", laptopCatalogEntryBeingVoided.id);
+
+    if (error) {
+      console.error("Error voiding laptop catalog entry:", error);
+      laptopCatalogVoidError.textContent =
+        error.code === "42501" ||
+        (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حصل خطأ أثناء الاستبعاد: " + error.message;
+      laptopCatalogVoidError.hidden = false;
+      return;
+    }
+
+    laptopCatalogVoidModal.hidden = true;
+    laptopCatalogEntryBeingVoided = null;
+    loadLaptopCatalog();
+  } catch (unexpectedError) {
+    console.error("Unexpected error voiding laptop catalog entry:", unexpectedError);
+    laptopCatalogVoidError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    laptopCatalogVoidError.hidden = false;
+  } finally {
+    laptopCatalogVoidConfirmButton.disabled = false;
+    laptopCatalogVoidConfirmButton.textContent = "تأكيد الاستبعاد";
   }
 });
 
@@ -4161,6 +5902,61 @@ async function loadDashboardActivity() {
         "</div>"
     )
     .join("");
+}
+
+// ============================================================================
+// 9b. أصول تقنية المعلومات (IT Assets) — مرحلة 2: تبديل التبويبات فقط
+// (نفس آلية تبويبات مركز التقارير بالظبط). كل تبويب هيتفعّل بمنطقه ببيانات
+// حقيقية في مرحلة لاحقة — loadAssetTab دلوقتي مجرد "مفتاح توجيه" فاضي.
+// ============================================================================
+
+const assetTabsContainer = document.getElementById("it-assets-tabs");
+const assetPanels = {
+  laptops: document.getElementById("asset-panel-laptops"),
+  email: document.getElementById("asset-panel-email"),
+  sim: document.getElementById("asset-panel-sim"),
+  tablets: document.getElementById("asset-panel-tablets"),
+  "laptop-catalog": document.getElementById("asset-panel-laptop-catalog"),
+};
+
+let currentAssetTab = "laptops";
+
+assetTabsContainer.querySelectorAll("[data-asset-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentAssetTab = btn.dataset.assetTab;
+    assetTabsContainer.querySelectorAll("[data-asset-tab]").forEach((b) => {
+      b.classList.toggle("active", b === btn);
+    });
+    Object.keys(assetPanels).forEach((key) => {
+      assetPanels[key].hidden = key !== currentAssetTab;
+    });
+    loadAssetTab(currentAssetTab);
+  });
+});
+
+// كل حالة هتتحوّل من "// TODO" لاستدعاء دالة تحميل حقيقية أول ما نبني
+// تبويبها (بالترتيب: لابتوب ثم إيميل ثم سيم ثم تابلت ثم كتالوج اللابتوبات)
+function loadAssetTab(tab) {
+  if (tab === "laptops") {
+    loadLaptopAssignments();
+    return;
+  }
+  if (tab === "email") {
+    loadEmailAssignments();
+    return;
+  }
+  if (tab === "sim") {
+    loadSimAssignments();
+    return;
+  }
+  if (tab === "tablets") {
+    loadTabletAssignments();
+    return;
+  }
+  if (tab === "laptop-catalog") {
+    loadLaptopCatalog();
+    return;
+  }
 }
 
 // ============================================================================
@@ -6540,6 +8336,416 @@ IMPORT_CONFIGS.fuel = {
 
 const importFuelButton = document.getElementById("import-fuel-button");
 importFuelButton.addEventListener("click", () => openImportWizard("fuel"));
+
+// ---------------------------------------------------------------------------
+// 14.1b استيراد اللابتوبات — تحقق من عدم تكرار الرقم التسلسلي (داخل الملف
+//       وضد قاعدة البيانات)، مطابق تمامًا لقواعد نموذج الإضافة اليدوية
+// ---------------------------------------------------------------------------
+
+const YES_LABEL_VALUES = ["نعم", "yes", "y", "1", "true"];
+
+function parseYesNoValue(raw) {
+  const normalized = String(raw || "").trim().toLowerCase();
+  return YES_LABEL_VALUES.includes(normalized);
+}
+
+async function validateLaptopImportRows(rawRows) {
+  const { data: existing, error } = await supabaseClient
+    .from("it_laptop_assignments")
+    .select("serial_number")
+    .eq("status", "active");
+  if (error) {
+    console.error("Error loading existing laptops for import validation:", error);
+    throw new Error("تعذر التحقق من اللابتوبات الموجودة حاليًا في النظام. يُرجى المحاولة مرة أخرى.");
+  }
+
+  const existingSerials = new Set((existing || []).map((a) => normalizeImportKey(a.serial_number)));
+  const seenSerialsInFile = new Set();
+
+  return rawRows.map((raw, index) => {
+    const rowNumber = index + 2; // +2: الصف 1 في Excel هو رأس الأعمدة
+    const staffId = String(raw["الرقم الوظيفي"] || "").trim();
+    const staffName = String(raw["اسم الموظف"] || "").trim();
+    const serialNumber = String(raw["الرقم التسلسلي"] || "").trim();
+    const assetTag = String(raw["رقم العهدة"] || "").trim();
+    const antivirusRaw = raw["مضاد الفيروسات (نعم/لا)"];
+    const jobPosition = String(raw["المسمى الوظيفي"] || "").trim();
+    const staffLocation = String(raw["الموقع"] || "").trim();
+
+    if (!staffName) {
+      return { rowNumber, raw, status: "error", reason: "اسم الموظف حقل مطلوب." };
+    }
+    if (!serialNumber) {
+      return { rowNumber, raw, status: "error", reason: "الرقم التسلسلي حقل مطلوب." };
+    }
+
+    const serialKey = normalizeImportKey(serialNumber);
+
+    if (existingSerials.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي موجود بالفعل في النظام." };
+    }
+    if (seenSerialsInFile.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي مكرر داخل الملف نفسه." };
+    }
+
+    seenSerialsInFile.add(serialKey);
+
+    return {
+      rowNumber,
+      raw,
+      status: "valid",
+      reason: "",
+      payload: {
+        staff_id: staffId || null,
+        staff_name: staffName,
+        serial_number: serialNumber,
+        asset_tag: assetTag || null,
+        antivirus_licensed: parseYesNoValue(antivirusRaw),
+        job_position: jobPosition || null,
+        staff_location: staffLocation || null,
+        created_by: currentAuthUser ? currentAuthUser.id : null,
+      },
+    };
+  });
+}
+
+IMPORT_CONFIGS.laptops = {
+  title: "استيراد اللابتوبات من Excel",
+  entityLabelPlural: "لابتوب",
+  templateHeaders: [
+    "الرقم الوظيفي",
+    "اسم الموظف",
+    "الرقم التسلسلي",
+    "رقم العهدة",
+    "مضاد الفيروسات (نعم/لا)",
+    "المسمى الوظيفي",
+    "الموقع",
+  ],
+  templateFilename: "قالب-استيراد-اللابتوبات.xlsx",
+  rejectedReportFilename: "صفوف-مرفوضة-اللابتوبات.csv",
+  step1Desc:
+    "حمّل القالب وعبّي بياناته باللابتوبات المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري). عمود \"مضاد الفيروسات\" فيه دروب داون ليست (نعم/لا) — اختَر منها بدل ما تكتبها يدويًا. وارفع الملف في الخطوة التالية.",
+  templateColumnValidations: {
+    "مضاد الفيروسات (نعم/لا)": ["نعم", "لا"],
+  },
+  validate: validateLaptopImportRows,
+  insertOne: (payload) => supabaseClient.from("it_laptop_assignments").insert(payload),
+  afterImport: () => loadLaptopAssignments(),
+};
+
+importLaptopsButton.addEventListener("click", () => openImportWizard("laptops"));
+
+// ---------------------------------------------------------------------------
+// 14.1c استيراد البريد الإلكتروني — تحقق من عدم تكرار العنوان (داخل الملف
+//       وضد قاعدة البيانات) وصحة صيغته، مطابق تمامًا لقواعد نموذج الإضافة اليدوية
+// ---------------------------------------------------------------------------
+
+const EMAIL_FORMAT_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+async function validateEmailImportRows(rawRows) {
+  const { data: existing, error } = await supabaseClient
+    .from("it_email_assignments")
+    .select("email_address")
+    .eq("status", "active");
+  if (error) {
+    console.error("Error loading existing email assignments for import validation:", error);
+    throw new Error("تعذر التحقق من البريدات الإلكترونية الموجودة حاليًا في النظام. يُرجى المحاولة مرة أخرى.");
+  }
+
+  const existingEmails = new Set((existing || []).map((a) => normalizeImportKey(a.email_address)));
+  const seenEmailsInFile = new Set();
+
+  return rawRows.map((raw, index) => {
+    const rowNumber = index + 2; // +2: الصف 1 في Excel هو رأس الأعمدة
+    const staffId = String(raw["الرقم الوظيفي"] || "").trim();
+    const staffName = String(raw["اسم الموظف"] || "").trim();
+    const emailAddress = String(raw["البريد الإلكتروني"] || "").trim();
+    const jobPosition = String(raw["المسمى الوظيفي"] || "").trim();
+    const staffLocation = String(raw["الموقع"] || "").trim();
+
+    if (!staffName) {
+      return { rowNumber, raw, status: "error", reason: "اسم الموظف حقل مطلوب." };
+    }
+    if (!emailAddress) {
+      return { rowNumber, raw, status: "error", reason: "البريد الإلكتروني حقل مطلوب." };
+    }
+    if (!EMAIL_FORMAT_REGEX.test(emailAddress)) {
+      return { rowNumber, raw, status: "error", reason: "صيغة البريد الإلكتروني غير صحيحة." };
+    }
+
+    const emailKey = normalizeImportKey(emailAddress);
+
+    if (existingEmails.has(emailKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "البريد الإلكتروني موجود بالفعل في النظام." };
+    }
+    if (seenEmailsInFile.has(emailKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "البريد الإلكتروني مكرر داخل الملف نفسه." };
+    }
+
+    seenEmailsInFile.add(emailKey);
+
+    return {
+      rowNumber,
+      raw,
+      status: "valid",
+      reason: "",
+      payload: {
+        staff_id: staffId || null,
+        staff_name: staffName,
+        email_address: emailAddress,
+        job_position: jobPosition || null,
+        staff_location: staffLocation || null,
+        created_by: currentAuthUser ? currentAuthUser.id : null,
+      },
+    };
+  });
+}
+
+IMPORT_CONFIGS.email = {
+  title: "استيراد البريد الإلكتروني من Excel",
+  entityLabelPlural: "بريد إلكتروني",
+  templateHeaders: ["الرقم الوظيفي", "اسم الموظف", "البريد الإلكتروني", "المسمى الوظيفي", "الموقع"],
+  templateFilename: "قالب-استيراد-البريد-الإلكتروني.xlsx",
+  rejectedReportFilename: "صفوف-مرفوضة-البريد-الإلكتروني.csv",
+  step1Desc:
+    "حمّل القالب وعبّي بياناته بالبريدات الإلكترونية المطلوب إضافتها (اسم الموظف والبريد الإلكتروني مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+  validate: validateEmailImportRows,
+  insertOne: (payload) => supabaseClient.from("it_email_assignments").insert(payload),
+  afterImport: () => loadEmailAssignments(),
+};
+
+importEmailButton.addEventListener("click", () => openImportWizard("email"));
+
+// ---------------------------------------------------------------------------
+// 14.1d استيراد أرقام الجوال — تحقق من عدم تكرار الرقم (داخل الملف وضد قاعدة
+//       البيانات)، مطابق تمامًا لقواعد نموذج الإضافة اليدوية. ملحوظة: إكسل
+//       بيخزّن رقم الجوال كرقم فبيشيل الصفر الأول (مثلاً 0557215469 بتتسجل
+//       557215469) — فبنرجّعه تلقائيًا لو الرقم طلع 9 خانات بالظبط
+// ---------------------------------------------------------------------------
+
+function normalizeSaudiMobileNumber(raw) {
+  let digits = String(raw || "").trim();
+  // إكسل بيرجّع الأرقام كـ float أحيانًا (مثلاً "557215469.0")
+  digits = digits.replace(/\.0$/, "").replace(/\D/g, "");
+  if (digits.length === 9 && digits[0] !== "0") {
+    digits = "0" + digits;
+  }
+  return digits;
+}
+
+async function validateSimImportRows(rawRows) {
+  const { data: existing, error } = await supabaseClient
+    .from("it_sim_assignments")
+    .select("mobile_number")
+    .eq("status", "active");
+  if (error) {
+    console.error("Error loading existing SIM assignments for import validation:", error);
+    throw new Error("تعذر التحقق من أرقام الجوال الموجودة حاليًا في النظام. يُرجى المحاولة مرة أخرى.");
+  }
+
+  const existingNumbers = new Set((existing || []).map((a) => normalizeImportKey(a.mobile_number)));
+  const seenNumbersInFile = new Set();
+
+  return rawRows.map((raw, index) => {
+    const rowNumber = index + 2; // +2: الصف 1 في Excel هو رأس الأعمدة
+    const staffId = String(raw["الرقم الوظيفي"] || "").trim();
+    const staffName = String(raw["اسم الموظف"] || "").trim();
+    const mobileNumber = normalizeSaudiMobileNumber(raw["رقم الجوال"]);
+    const jobPosition = String(raw["المسمى الوظيفي"] || "").trim();
+    const staffLocation = String(raw["الموقع"] || "").trim();
+
+    if (!staffName) {
+      return { rowNumber, raw, status: "error", reason: "اسم الموظف حقل مطلوب." };
+    }
+    if (!mobileNumber) {
+      return { rowNumber, raw, status: "error", reason: "رقم الجوال حقل مطلوب." };
+    }
+
+    const numberKey = normalizeImportKey(mobileNumber);
+
+    if (existingNumbers.has(numberKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "رقم الجوال موجود بالفعل في النظام." };
+    }
+    if (seenNumbersInFile.has(numberKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "رقم الجوال مكرر داخل الملف نفسه." };
+    }
+
+    seenNumbersInFile.add(numberKey);
+
+    return {
+      rowNumber,
+      raw,
+      status: "valid",
+      reason: "",
+      payload: {
+        staff_id: staffId || null,
+        staff_name: staffName,
+        mobile_number: mobileNumber,
+        job_position: jobPosition || null,
+        staff_location: staffLocation || null,
+        created_by: currentAuthUser ? currentAuthUser.id : null,
+      },
+    };
+  });
+}
+
+IMPORT_CONFIGS.sim = {
+  title: "استيراد أرقام الجوال من Excel",
+  entityLabelPlural: "رقم جوال",
+  templateHeaders: ["الرقم الوظيفي", "اسم الموظف", "رقم الجوال", "المسمى الوظيفي", "الموقع"],
+  templateFilename: "قالب-استيراد-أرقام-الجوال.xlsx",
+  rejectedReportFilename: "صفوف-مرفوضة-أرقام-الجوال.csv",
+  step1Desc:
+    "حمّل القالب وعبّي بياناته بأرقام الجوال المطلوب إضافتها (اسم الموظف ورقم الجوال مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+  validate: validateSimImportRows,
+  insertOne: (payload) => supabaseClient.from("it_sim_assignments").insert(payload),
+  afterImport: () => loadSimAssignments(),
+};
+
+importSimButton.addEventListener("click", () => openImportWizard("sim"));
+
+// ---------------------------------------------------------------------------
+// 14.1e استيراد الأجهزة اللوحية — تحقق من عدم تكرار الرقم التسلسلي (داخل
+//       الملف وضد قاعدة البيانات)، مطابق تمامًا لقواعد نموذج الإضافة اليدوية
+// ---------------------------------------------------------------------------
+
+async function validateTabletImportRows(rawRows) {
+  const { data: existing, error } = await supabaseClient
+    .from("it_tablet_assignments")
+    .select("serial_number")
+    .eq("status", "active");
+  if (error) {
+    console.error("Error loading existing tablets for import validation:", error);
+    throw new Error("تعذر التحقق من الأجهزة اللوحية الموجودة حاليًا في النظام. يُرجى المحاولة مرة أخرى.");
+  }
+
+  const existingSerials = new Set((existing || []).map((a) => normalizeImportKey(a.serial_number)));
+  const seenSerialsInFile = new Set();
+
+  return rawRows.map((raw, index) => {
+    const rowNumber = index + 2; // +2: الصف 1 في Excel هو رأس الأعمدة
+    const staffId = String(raw["الرقم الوظيفي"] || "").trim();
+    const staffName = String(raw["اسم الموظف"] || "").trim();
+    const serialNumber = String(raw["الرقم التسلسلي"] || "").trim();
+    const staffLocation = String(raw["الموقع"] || "").trim();
+
+    if (!staffName) {
+      return { rowNumber, raw, status: "error", reason: "اسم الموظف حقل مطلوب." };
+    }
+    if (!serialNumber) {
+      return { rowNumber, raw, status: "error", reason: "الرقم التسلسلي حقل مطلوب." };
+    }
+
+    const serialKey = normalizeImportKey(serialNumber);
+
+    if (existingSerials.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي موجود بالفعل في النظام." };
+    }
+    if (seenSerialsInFile.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي مكرر داخل الملف نفسه." };
+    }
+
+    seenSerialsInFile.add(serialKey);
+
+    return {
+      rowNumber,
+      raw,
+      status: "valid",
+      reason: "",
+      payload: {
+        staff_id: staffId || null,
+        staff_name: staffName,
+        serial_number: serialNumber,
+        staff_location: staffLocation || null,
+        created_by: currentAuthUser ? currentAuthUser.id : null,
+      },
+    };
+  });
+}
+
+IMPORT_CONFIGS.tablets = {
+  title: "استيراد الأجهزة اللوحية من Excel",
+  entityLabelPlural: "جهاز لوحي",
+  templateHeaders: ["الرقم الوظيفي", "اسم الموظف", "الرقم التسلسلي", "الموقع"],
+  templateFilename: "قالب-استيراد-الأجهزة-اللوحية.xlsx",
+  rejectedReportFilename: "صفوف-مرفوضة-الأجهزة-اللوحية.csv",
+  step1Desc:
+    "حمّل القالب وعبّي بياناته بالأجهزة اللوحية المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+  validate: validateTabletImportRows,
+  insertOne: (payload) => supabaseClient.from("it_tablet_assignments").insert(payload),
+  afterImport: () => loadTabletAssignments(),
+};
+
+importTabletsButton.addEventListener("click", () => openImportWizard("tablets"));
+
+// ---------------------------------------------------------------------------
+// 14.1f استيراد كتالوج اللابتوبات — تحقق من عدم تكرار الرقم التسلسلي (داخل
+//       الملف وضد قاعدة البيانات)، مطابق تمامًا لقواعد نموذج الإضافة اليدوية
+// ---------------------------------------------------------------------------
+
+async function validateLaptopCatalogImportRows(rawRows) {
+  const { data: existing, error } = await supabaseClient
+    .from("it_laptop_catalog")
+    .select("serial_number")
+    .eq("status", "active");
+  if (error) {
+    console.error("Error loading existing laptop catalog entries for import validation:", error);
+    throw new Error("تعذر التحقق من سجلات الكتالوج الموجودة حاليًا في النظام. يُرجى المحاولة مرة أخرى.");
+  }
+
+  const existingSerials = new Set((existing || []).map((a) => normalizeImportKey(a.serial_number)));
+  const seenSerialsInFile = new Set();
+
+  return rawRows.map((raw, index) => {
+    const rowNumber = index + 2; // +2: الصف 1 في Excel هو رأس الأعمدة
+    const serialNumber = String(raw["الرقم التسلسلي"] || "").trim();
+    const laptopType = String(raw["نوع اللابتوب"] || "").trim();
+    const assetTag = String(raw["رقم العهدة"] || "").trim();
+
+    if (!serialNumber) {
+      return { rowNumber, raw, status: "error", reason: "الرقم التسلسلي حقل مطلوب." };
+    }
+
+    const serialKey = normalizeImportKey(serialNumber);
+
+    if (existingSerials.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي موجود بالفعل في النظام." };
+    }
+    if (seenSerialsInFile.has(serialKey)) {
+      return { rowNumber, raw, status: "duplicate", reason: "الرقم التسلسلي مكرر داخل الملف نفسه." };
+    }
+
+    seenSerialsInFile.add(serialKey);
+
+    return {
+      rowNumber,
+      raw,
+      status: "valid",
+      reason: "",
+      payload: {
+        serial_number: serialNumber,
+        laptop_type: laptopType || null,
+        asset_tag: assetTag || null,
+        created_by: currentAuthUser ? currentAuthUser.id : null,
+      },
+    };
+  });
+}
+
+IMPORT_CONFIGS["laptop-catalog"] = {
+  title: "استيراد كتالوج اللابتوبات من Excel",
+  entityLabelPlural: "سجل",
+  templateHeaders: ["الرقم التسلسلي", "نوع اللابتوب", "رقم العهدة"],
+  templateFilename: "قالب-استيراد-كتالوج-اللابتوبات.xlsx",
+  rejectedReportFilename: "صفوف-مرفوضة-كتالوج-اللابتوبات.csv",
+  step1Desc:
+    "حمّل القالب وعبّي بياناته بسجلات كتالوج اللابتوبات المطلوب إضافتها (الرقم التسلسلي مطلوب، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+  validate: validateLaptopCatalogImportRows,
+  insertOne: (payload) => supabaseClient.from("it_laptop_catalog").insert(payload),
+  afterImport: () => loadLaptopCatalog(),
+};
+
+importLaptopCatalogButton.addEventListener("click", () => openImportWizard("laptop-catalog"));
 
 // ---------------------------------------------------------------------------
 // 14.3 استيراد المصروفات — تحقق من مطابقة اسم الفئة، وصحة المبلغ/التاريخ،
