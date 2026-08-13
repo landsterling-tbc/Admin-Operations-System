@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>نظام العمليات الإدارية</title>
 
+  <!-- تطبيق الوضع الغامق/الفاتح فورًا قبل أي رسم للصفحة (تفادي وميض
+       الثيم الخاطئ لحظة التحميل) — سكريبت صغير مستقل عن script.js عمدًا -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("theme");
+        if (saved === "dark" || saved === "light") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (e) {
+        /* تجاهل (خصوصية متصفح تمنع localStorage) */
+      }
+    })();
+  </script>
+
   <!-- خطوط عربية احترافية: Tajawal للعناوين، IBM Plex Sans Arabic للنصوص -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,6 +44,7 @@
       <aside class="login-visual" aria-hidden="true">
         <div class="login-visual-shape login-visual-shape--1"></div>
         <div class="login-visual-shape login-visual-shape--2"></div>
+        <div class="login-visual-shape login-visual-shape--3"></div>
         <div class="login-visual-content">
           <span class="login-visual-badge">منصّة العمليات الداخلية</span>
           <h1 class="login-visual-title">نظام العمليات الإدارية</h1>
@@ -131,6 +147,11 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button type="button" id="theme-toggle-button" class="btn-sidebar-action" aria-pressed="false">
+          <svg id="theme-toggle-icon-dark" class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5Z" /></svg>
+          <svg id="theme-toggle-icon-light" class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><circle cx="12" cy="12" r="4.5" /><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" /></svg>
+          <span id="theme-toggle-label">الوضع الغامق</span>
+        </button>
         <button type="button" id="change-password-button" class="btn-sidebar-action">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="1.5" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
           <span>تغيير كلمة المرور</span>
@@ -168,7 +189,11 @@
         <!-- ==================== الرئيسية (Dashboard) — Phase 5 ==================== -->
         <section id="dashboard-page" class="app-page">
           <div class="welcome-card">
-            <h2 id="welcome-message">مرحبًا</h2>
+            <span id="welcome-avatar" class="welcome-avatar" aria-hidden="true"></span>
+            <div class="welcome-text">
+              <span class="welcome-greeting">مرحبًا بعودتك</span>
+              <h2 id="welcome-message"></h2>
+            </div>
           </div>
 
           <div id="dashboard-stats" class="stat-cards-grid">
@@ -271,22 +296,22 @@
 
           <div class="summary-cards">
             <div class="summary-card">
-              <span class="card-icon" aria-hidden="true">⛽</span>
+              <span class="card-icon" aria-hidden="true"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" /></svg></span>
               <span class="summary-card-label">إجمالي اللترات</span>
               <span id="fuel-summary-liters" class="summary-card-value">0</span>
             </div>
             <div class="summary-card">
-              <span class="card-icon" aria-hidden="true">💰</span>
+              <span class="card-icon" aria-hidden="true"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg></span>
               <span class="summary-card-label">إجمالي التكلفة (ر.س)</span>
               <span id="fuel-summary-amount" class="summary-card-value">0</span>
             </div>
             <div class="summary-card">
-              <span class="card-icon" aria-hidden="true">🔢</span>
+              <span class="card-icon" aria-hidden="true"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 7 21M17 3l-2 18M4 8h17M3 16h17" /></svg></span>
               <span class="summary-card-label">عدد المعاملات</span>
               <span id="fuel-summary-count" class="summary-card-value">0</span>
             </div>
             <div class="summary-card">
-              <span class="card-icon" aria-hidden="true">📊</span>
+              <span class="card-icon" aria-hidden="true"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-6" /></svg></span>
               <span class="summary-card-label">متوسط تكلفة المعاملة</span>
               <span id="fuel-summary-average" class="summary-card-value">0</span>
             </div>
@@ -478,7 +503,7 @@
             <div class="page-toolbar-filters">
               <span class="text-muted">تصدير نسخة كاملة من كل البيانات (السيارات، الوقود، العهدة، المصروفات، الموظفين) في ملف Excel واحد.</span>
             </div>
-            <button type="button" id="full-backup-export-button" class="btn-secondary btn-inline" hidden>⬇ نسخة احتياطية كاملة (Excel)</button>
+            <button type="button" id="full-backup-export-button" class="btn-secondary btn-inline" hidden><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> نسخة احتياطية كاملة (Excel)</button>
           </div>
 
           <div class="modal-tabs page-tabs" id="reports-tabs">
@@ -495,7 +520,7 @@
                 <input type="date" id="report-vehicles-date-from" class="input-select" aria-label="من تاريخ الإضافة" />
                 <input type="date" id="report-vehicles-date-to" class="input-select" aria-label="إلى تاريخ الإضافة" />
               </div>
-              <button type="button" id="report-vehicles-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+              <button type="button" id="report-vehicles-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
             </div>
             <div id="report-vehicles-summary" class="summary-cards"></div>
             <div class="table-card">
@@ -522,7 +547,7 @@
                 <input type="date" id="report-fuel-date-from" class="input-select" aria-label="من تاريخ" />
                 <input type="date" id="report-fuel-date-to" class="input-select" aria-label="إلى تاريخ" />
               </div>
-              <button type="button" id="report-fuel-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+              <button type="button" id="report-fuel-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
             </div>
             <div id="report-fuel-summary" class="summary-cards"></div>
             <p class="summary-note">
@@ -599,7 +624,7 @@
                 <input type="date" id="report-petty-cash-date-from" class="input-select" aria-label="من تاريخ التمويل" />
                 <input type="date" id="report-petty-cash-date-to" class="input-select" aria-label="إلى تاريخ التمويل" />
               </div>
-              <button type="button" id="report-petty-cash-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+              <button type="button" id="report-petty-cash-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
             </div>
             <div id="report-petty-cash-summary" class="summary-cards"></div>
 
@@ -633,7 +658,7 @@
                 <input type="date" id="report-expenses-date-from" class="input-select" aria-label="من تاريخ" />
                 <input type="date" id="report-expenses-date-to" class="input-select" aria-label="إلى تاريخ" />
               </div>
-              <button type="button" id="report-expenses-export" class="btn-secondary btn-inline">⬇ تصدير CSV</button>
+              <button type="button" id="report-expenses-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
             </div>
             <div id="report-expenses-summary" class="summary-cards"></div>
 
@@ -1631,6 +1656,10 @@
   <!-- ExcelJS — لإنشاء قوالب الاستيراد بـ Data Validation (دروب داون ليست حقيقية)،
        ميزة مش متاحة في SheetJS المجاني -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <!-- Chart.js — رسوم بيانية أغنى (حركة، tooltips أنعم) بدل الرسم اليدوي بـ
+       Canvas API. البداية بلوحة الرئيسية بس؛ تشارتات مركز التقارير لسه على
+       الرسم اليدوي القديم لحد ما نوصلها في مرحلة تالية -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>

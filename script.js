@@ -59,6 +59,7 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 
 const welcomeMessage = document.getElementById("welcome-message");
+const welcomeAvatar = document.getElementById("welcome-avatar");
 const logoutButton = document.getElementById("logout-button");
 const pageTitleEl = document.getElementById("page-title");
 const topbarUserName = document.getElementById("topbar-user-name");
@@ -76,7 +77,7 @@ function clearError() {
 
 function setLoading(isLoading) {
   loginButton.disabled = isLoading;
-  loginButton.textContent = isLoading ? "جارٍ تسجيل الدخول..." : "دخول";
+  loginButton.classList.toggle("is-loading", isLoading);
 }
 
 function roleLabel(role) {
@@ -92,6 +93,48 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+// ---------------------------------------------------------------------------
+// مكتبة أيقونات SVG داخلية — بنفس أسلوب الأيقونات الموجودة أصلًا في
+// السايدبار (Heroicons-style: viewBox 24×24، stroke-width 2، حواف
+// مدوّرة)، بدل أي مكتبة خارجية عبر CDN — كده الشكل متسق 100% مع الأيقونات
+// الموجودة، وما فيش أي طلب شبكة إضافي أو استدعاء init منفصل بعد كل تحديث
+// ديناميكي للـ DOM (زي ما مكتبات الأيقونات الخارجية بتحتاج عادةً).
+// ---------------------------------------------------------------------------
+const ICON_PATHS = {
+  car: '<path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" />',
+  fuel: '<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" />',
+  wallet: '<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />',
+  receipt: '<path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h4" />',
+  hash: '<path d="M9 3 7 21M17 3l-2 18M4 8h17M3 16h17" />',
+  chartBar: '<path d="M6 20V10M12 20V4M18 20v-6" />',
+  pin: '<path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.3" />',
+  checkCircle: '<circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.3 2.3L16 10" />',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2Z" />',
+  noEntry: '<circle cx="12" cy="12" r="9" /><path d="m6 6 12 12" />',
+  archive: '<rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" />',
+  cash: '<rect x="2.5" y="6.5" width="19" height="11" rx="1.5" /><circle cx="12" cy="12" r="2.5" /><path d="M6 8v8M18 8v8" />',
+  tag: '<path d="M20 12.5 12.5 20a1.5 1.5 0 0 1-2.1 0L4 13.6a1.5 1.5 0 0 1 0-2.1L11.5 4H18a2 2 0 0 1 2 2v6.5Z" /><circle cx="15" cy="8" r="1" />',
+  clock: '<circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />',
+  user: '<circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" />',
+  warningTriangle: '<path d="M12 3 2 20h20L12 3Z" /><path d="M12 9.5v4.5" /><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />',
+  check: '<path d="m5 12 5 5 9-11" />',
+  cross: '<path d="m6 6 12 12M18 6 6 18" />',
+  download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" />',
+};
+
+// بيبني سترينج <svg> جاهز للحقن المباشر جوه أي HTML string حالي (بدل
+// الإيموجي)، بحجم افتراضي 1em عشان يورث حجمه من font-size العنصر الأب
+function icon(name, extraClass) {
+  const paths = ICON_PATHS[name];
+  if (!paths) return "";
+  const cls = "icon-inline" + (extraClass ? " " + extraClass : "");
+  return (
+    '<svg class="' + cls + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths + "</svg>"
+  );
 }
 
 function formatDateTime(value) {
@@ -260,8 +303,10 @@ function clearSavedSession() {
 function showAppShell(profile) {
   loginPage.hidden = true;
   appShell.hidden = false;
-  welcomeMessage.textContent =
-    "مرحبًا " + profile.full_name + " — دورك: " + roleLabel(profile.role);
+  welcomeAvatar.textContent = (profile.full_name || "؟").trim().charAt(0);
+  welcomeMessage.innerHTML =
+    escapeHtml(profile.full_name) +
+    '<span class="welcome-role-badge">' + escapeHtml(roleLabel(profile.role)) + "</span>";
   topbarUserName.textContent = profile.full_name;
   topbarUserRole.textContent = roleLabel(profile.role);
 
@@ -405,6 +450,44 @@ logoutButton.addEventListener("click", () => {
   clearError();
   showLoginPage();
 });
+
+// ---------------------------------------------------------------------------
+// 1.0.1 الوضع الغامق/الفاتح — data-theme على <html>، محفوظ في localStorage.
+// التطبيق الفوري عند التحميل (تفادي الوميض) بيحصل في سكريبت صغير مستقل
+// جوه index.html <head>؛ الكود هنا مسؤول بس عن زرار التبديل نفسه ومزامنة
+// شكله (أيقونة + نص) مع الحالة الحالية.
+// ---------------------------------------------------------------------------
+const themeToggleButton = document.getElementById("theme-toggle-button");
+const themeToggleIconDark = document.getElementById("theme-toggle-icon-dark");
+const themeToggleIconLight = document.getElementById("theme-toggle-icon-light");
+const themeToggleLabel = document.getElementById("theme-toggle-label");
+
+function getEffectiveTheme() {
+  const explicit = document.documentElement.getAttribute("data-theme");
+  if (explicit === "dark" || explicit === "light") return explicit;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function syncThemeToggleUI() {
+  const isDark = getEffectiveTheme() === "dark";
+  themeToggleIconDark.hidden = isDark;
+  themeToggleIconLight.hidden = !isDark;
+  themeToggleLabel.textContent = isDark ? "الوضع الفاتح" : "الوضع الغامق";
+  themeToggleButton.setAttribute("aria-pressed", String(isDark));
+}
+
+themeToggleButton.addEventListener("click", () => {
+  const nextTheme = getEffectiveTheme() === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", nextTheme);
+  try {
+    localStorage.setItem("theme", nextTheme);
+  } catch (storageError) {
+    // تجاهل (خصوصية متصفح تمنع localStorage)
+  }
+  syncThemeToggleUI();
+});
+
+syncThemeToggleUI();
 
 // ---------------------------------------------------------------------------
 // 1.1 تغيير كلمة المرور — متاح لأي مستخدم مسجّل دخول لحسابه الشخصي فقط، عبر
@@ -906,7 +989,7 @@ async function loadVehicles() {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
         vehiclesStateBox,
-        "🚗",
+        icon("car"),
         "لا توجد سيارات بعد",
         "لا توجد أي سيارة مسجّلة في النظام بعد. ابدأ بإضافة أول سيارة يدويًا أو استورد قائمة كاملة من Excel.",
         isSuperAdmin
@@ -1094,13 +1177,13 @@ async function loadVehicleFuelSummaryTab() {
 
   vehicleFuelSummaryContent.innerHTML =
     '<div class="summary-cards">' +
-    '<div class="summary-card"><span class="card-icon" aria-hidden="true">⛽</span><span class="summary-card-label">إجمالي اللترات</span>' +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' + icon("fuel") + '</span><span class="summary-card-label">إجمالي اللترات</span>' +
     '<span class="summary-card-value">' + formatNumber(data.total_liters, 2) + "</span></div>" +
-    '<div class="summary-card"><span class="card-icon" aria-hidden="true">💰</span><span class="summary-card-label">إجمالي التكلفة</span>' +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' + icon("wallet") + '</span><span class="summary-card-label">إجمالي التكلفة</span>' +
     '<span class="summary-card-value">' + formatNumber(data.total_cost, 2) + " ر.س</span></div>" +
-    '<div class="summary-card"><span class="card-icon" aria-hidden="true">🔢</span><span class="summary-card-label">عدد المعاملات</span>' +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' + icon("hash") + '</span><span class="summary-card-label">عدد المعاملات</span>' +
     '<span class="summary-card-value">' + (data.transaction_count || 0) + "</span></div>" +
-    '<div class="summary-card"><span class="card-icon" aria-hidden="true">📊</span><span class="summary-card-label">متوسط تكلفة المعاملة</span>' +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' + icon("chartBar") + '</span><span class="summary-card-label">متوسط تكلفة المعاملة</span>' +
     '<span class="summary-card-value">' + formatNumber(data.average_cost_per_transaction, 2) + " ر.س</span></div>" +
     "</div>";
 }
@@ -1615,7 +1698,7 @@ async function loadFuelTransactions() {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
         fuelStateBox,
-        "⛽",
+        icon("fuel"),
         "لا توجد معاملات وقود بعد",
         "لا توجد أي معاملة وقود مسجّلة بعد. سجّل أول معاملة يدويًا أو استورد دفعة كاملة من Excel.",
         isSuperAdmin
@@ -2060,7 +2143,7 @@ function renderCurrentFundCard(fund) {
     '<div class="table-card"><div class="fund-card-body">' +
     '<div class="fund-card-header">' +
     "<div>" +
-    '<span class="card-icon" aria-hidden="true">💰</span>' +
+    '<span class="card-icon" aria-hidden="true">' + icon("wallet") + '</span>' +
     '<span class="fund-card-code">' + escapeHtml(fund.fund_code) + "</span>" +
     '<h2 class="fund-card-title">العهدة الحالية</h2>' +
     "</div>" +
@@ -2475,7 +2558,7 @@ async function loadFundingHistory() {
     const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
     showRichEmptyState(
       fundsStateBox,
-      "💰",
+      icon("wallet"),
       "لا توجد عهد نقدية بعد",
       "لا توجد أي عهدة نقدية مسجّلة بعد. أنشئ أول عهدة لتتمكن من تسجيل المصروفات عليها.",
       isSuperAdmin ? '<button type="button" class="btn-primary" id="empty-add-fund-button">+ إنشاء أول عهدة</button>' : ""
@@ -2835,7 +2918,7 @@ async function loadExpenses() {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
         expensesStateBox,
-        "🧾",
+        icon("receipt"),
         "لا توجد مصروفات بعد",
         "لا توجد أي مصروفات مسجّلة بعد. سجّل أول مصروف على العهدة النشطة الحالية أو استورد دفعة كاملة من Excel.",
         isSuperAdmin
@@ -3133,79 +3216,33 @@ function exportRowsToCSV(filename, headers, rows) {
 }
 
 // ============================================================================
-// 8b. أداة رسم بياني بسيطة بـ Canvas API — بدون أي مكتبة خارجية عبر CDN،
-//     حفاظًا على بساطة المشروع. تستخدم ألوان النظام الحالية (CSS variables)،
-//     تدعم tooltip عند hover، وتعيد رسم نفسها تلقائيًا عند تغيير حجم الشاشة.
-//     هذا كود عرض بصري بحت (Presentation) ولا يغيّر أي منطق أعمال — البيانات
-//     المُغذّية له بتيجي من نفس الاستعلامات الموجودة بالفعل في كل تقرير.
+// 8b. أداة رسم بياني — Chart.js (بدل الرسم اليدوي بـ Canvas API القديم).
+//     نفس أسماء وتوقيعات الدوال (drawLineChart/drawBarChart/drawDonutChart)
+//     محفوظة زي ما هي، فكل نداءاتها في التقارير ولوحة الرئيسية شغالة من غير
+//     أي تعديل — التغيير في التنفيذ الداخلي بس. بتدّي حركة دخول أنعم وtooltip
+//     جاهز من غير منطق hover يدوي. هذا كود عرض بصري بحت (Presentation) ولا
+//     يغيّر أي منطق أعمال — البيانات المُغذّية له من نفس الاستعلامات الموجودة.
 // ============================================================================
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#000000";
 }
 
-const chartRegistry = [];
-
-function registerChart(canvas, drawFn) {
-  // لو نفس الـ canvas اتسجل قبل كده (إعادة تحميل نفس التقرير)، نستبدل
-  // دالة الرسم القديمة بدل ما نكدّس listeners/إدخالات من غير داعي
-  const existing = chartRegistry.find((c) => c.canvas === canvas);
-  if (existing) {
-    existing.draw = drawFn;
-  } else {
-    chartRegistry.push({ canvas, draw: drawFn });
-  }
-  drawFn();
+// بيحوّل لون hex لنفس اللون بشفافية (لتعبئة متدرجة تحت خط الرسم) — بيدعم
+// صيغة #rrggbb بس (وهو الشكل اللي كل ألوان النظام معرّفة بيه في :root)
+function hexWithAlpha(hex, alphaHex) {
+  return /^#[0-9a-fA-F]{6}$/.test(hex) ? hex + alphaHex : hex;
 }
 
-let chartResizeDebounce;
-window.addEventListener("resize", () => {
-  clearTimeout(chartResizeDebounce);
-  chartResizeDebounce = setTimeout(() => {
-    chartRegistry.forEach((c) => {
-      if (c.canvas.isConnected) c.draw();
-    });
-  }, 150);
-});
-
-function setupCanvasSize(canvas) {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const width = Math.max(rect.width, 40);
-  const height = Math.max(rect.height, 40);
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-  return { ctx, width, height };
+// لو الكانفاس ده كان عليه Chart.js instance قديم (إعادة تحميل نفس التقرير)،
+// لازم نتخلص منه الأول قبل ما ننشئ واحد جديد على نفس العنصر
+function destroyExistingChart(canvas) {
+  if (typeof Chart === "undefined") return;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
 }
 
-function chartTooltipEl() {
-  let el = document.getElementById("chart-tooltip");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "chart-tooltip";
-    el.className = "chart-tooltip";
-    el.hidden = true;
-    document.body.appendChild(el);
-  }
-  return el;
-}
-
-function showChartTooltip(clientX, clientY, text) {
-  const el = chartTooltipEl();
-  el.textContent = text;
-  el.style.left = clientX + 14 + "px";
-  el.style.top = clientY + 14 + "px";
-  el.hidden = false;
-}
-
-function hideChartTooltip() {
-  chartTooltipEl().hidden = true;
-}
-
-const ARABIC_MONTHS_SHORT = ["ينا", "فبر", "مار", "أبر", "ماي", "يون", "يول", "أغس", "سبت", "أكت", "نوف", "ديس"];
+const ENGLISH_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // تجميع مجموع قيمة (زي liters/amount) حسب الشهر من صفوف فيها حقل تاريخ —
 // مستخدمة في رسوم اتجاه الوقود والمصروفات الشهرية. بترجع مصفوفتين متوازيتين
@@ -3222,7 +3259,7 @@ function groupSumByMonth(rows, dateField, valueField) {
   const keys = Object.keys(totals).sort();
   const labels = keys.map((k) => {
     const [y, m] = k.split("-");
-    return ARABIC_MONTHS_SHORT[Number(m) - 1] + " " + y.slice(2);
+    return ENGLISH_MONTHS_SHORT[Number(m) - 1] + " " + y.slice(2);
   });
   const values = keys.map((k) => totals[k]);
   return { labels, values };
@@ -3267,232 +3304,140 @@ const CHART_PALETTE = [
 // مصغّر عند تمرير sparkline:true (بدون شبكة/تسميات/حواف)
 // ---------------------------------------------------------------------------
 function drawLineChart(canvas, values, labels, options) {
+  if (!canvas || typeof Chart === "undefined") return;
   const opts = options || {};
+  const sparkline = !!opts.sparkline;
+  const formatValue = opts.formatValue || ((v) => formatNumber(v, 1));
+  const color = opts.color || cssVar("--color-primary");
 
-  const draw = () => {
-    const { ctx, width, height } = setupCanvasSize(canvas);
-    if (!values.length) return;
+  destroyExistingChart(canvas);
+  if (!values.length) return;
 
-    const sparkline = !!opts.sparkline;
-    const padding = sparkline
-      ? { top: 2, right: 2, bottom: 2, left: 2 }
-      : { top: 12, right: 12, bottom: 26, left: 46 };
-    const chartW = width - padding.left - padding.right;
-    const chartH = height - padding.top - padding.bottom;
-
-    const maxVal = Math.max(...values, 1);
-    const minVal = Math.min(0, ...values);
-    const range = maxVal - minVal || 1;
-
-    const stepX = values.length > 1 ? chartW / (values.length - 1) : 0;
-    const points = values.map((v, i) => ({
-      x: padding.left + i * stepX,
-      y: padding.top + chartH - ((v - minVal) / range) * chartH,
-      value: v,
-    }));
-
-    if (!sparkline) {
-      ctx.strokeStyle = cssVar("--color-border");
-      ctx.lineWidth = 1;
-      const gridLines = 3;
-      ctx.fillStyle = cssVar("--color-text-muted");
-      ctx.font = "11px " + cssVar("--font-body");
-      ctx.textAlign = "left";
-      for (let i = 0; i <= gridLines; i++) {
-        const y = padding.top + (chartH / gridLines) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, y);
-        ctx.lineTo(width - padding.right, y);
-        ctx.stroke();
-        const labelVal = maxVal - (range / gridLines) * i;
-        ctx.fillText(formatNumber(labelVal, 0), 2, y + 3);
-      }
-    }
-
-    // تعبئة متدرجة تحت الخط
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
-    gradient.addColorStop(0, cssVar("--color-primary-light"));
-    gradient.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.beginPath();
-    points.forEach((p, i) => {
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.lineTo(points[points.length - 1].x, padding.top + chartH);
-    ctx.lineTo(points[0].x, padding.top + chartH);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // الخط نفسه
-    ctx.strokeStyle = cssVar("--color-primary");
-    ctx.lineWidth = sparkline ? 1.5 : 2;
-    ctx.beginPath();
-    points.forEach((p, i) => {
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.stroke();
-
-    if (!sparkline) {
-      ctx.fillStyle = cssVar("--color-primary");
-      points.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      if (labels && labels.length === values.length) {
-        ctx.fillStyle = cssVar("--color-text-muted");
-        ctx.font = "11px " + cssVar("--font-body");
-        ctx.textAlign = "center";
-        points.forEach((p, i) => {
-          ctx.fillText(labels[i], p.x, height - 8);
-        });
-      }
-    }
-
-    canvas._chartPoints = points;
-    canvas._chartLabels = labels || [];
-    canvas._chartFormat = opts.formatValue || ((v) => formatNumber(v, 1));
-  };
-
-  registerChart(canvas, draw);
-
-  if (!opts.sparkline && !canvas._hasHoverHandler) {
-    canvas._hasHoverHandler = true;
-    canvas.addEventListener("mousemove", (event) => {
-      const points = canvas._chartPoints;
-      if (!points || !points.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      let nearestIndex = 0;
-      let minDist = Infinity;
-      points.forEach((p, i) => {
-        const dist = Math.abs(p.x - mouseX);
-        if (dist < minDist) {
-          minDist = dist;
-          nearestIndex = i;
-        }
-      });
-      const label = canvas._chartLabels[nearestIndex] || "";
-      const text = (label ? label + ": " : "") + canvas._chartFormat(points[nearestIndex].value);
-      showChartTooltip(event.clientX, event.clientY, text);
-    });
-    canvas.addEventListener("mouseleave", hideChartTooltip);
-  }
+  new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: labels || values.map((_, i) => i),
+      datasets: [
+        {
+          data: values,
+          borderColor: color,
+          backgroundColor: (context) => {
+            const { ctx, chartArea } = context.chart;
+            if (!chartArea) return hexWithAlpha(color, "22");
+            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            gradient.addColorStop(0, hexWithAlpha(color, "3d"));
+            gradient.addColorStop(1, hexWithAlpha(color, "00"));
+            return gradient;
+          },
+          borderWidth: sparkline ? 1.5 : 2,
+          pointRadius: sparkline ? 0 : 3,
+          pointHoverRadius: sparkline ? 3 : 5,
+          pointBackgroundColor: color,
+          pointHoverBackgroundColor: color,
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 650, easing: "easeOutQuart" },
+      interaction: { intersect: false, mode: "index" },
+      scales: sparkline
+        ? { x: { display: false }, y: { display: false } }
+        : {
+            x: {
+              grid: { display: false },
+              ticks: { color: cssVar("--color-text-muted"), font: { size: 11 } },
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: cssVar("--color-border") },
+              ticks: { color: cssVar("--color-text-muted"), font: { size: 11 }, callback: (v) => formatNumber(v, 0) },
+            },
+          },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: false,
+          callbacks: { label: (ctx) => formatValue(ctx.parsed.y) },
+        },
+      },
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
 // رسم أعمدة (Bar Chart) — رأسي أو أفقي عبر options.horizontal
 // ---------------------------------------------------------------------------
 function drawBarChart(canvas, values, labels, options) {
+  if (!canvas || typeof Chart === "undefined") return;
   const opts = options || {};
   const horizontal = !!opts.horizontal;
+  const formatValue = opts.formatValue || ((v) => formatNumber(v, 1));
+  const color = cssVar("--color-primary");
+  const hoverColor = cssVar("--color-primary-hover");
 
-  const draw = () => {
-    const { ctx, width, height } = setupCanvasSize(canvas);
-    if (!values.length) return;
+  destroyExistingChart(canvas);
+  if (!values.length) return;
 
-    const maxVal = Math.max(...values, 1);
-    const bars = [];
-
-    if (horizontal) {
-      const padding = { top: 8, right: 50, bottom: 8, left: 90 };
-      const chartW = width - padding.left - padding.right;
-      const chartH = height - padding.top - padding.bottom;
-      const barGap = 8;
-      const barH = Math.max(6, chartH / values.length - barGap);
-
-      ctx.font = "11px " + cssVar("--font-body");
-      values.forEach((v, i) => {
-        const barW = (v / maxVal) * chartW;
-        const y = padding.top + i * (barH + barGap);
-        const x = padding.left;
-
-        ctx.fillStyle = cssVar("--color-text-muted");
-        ctx.textAlign = "right";
-        const label = (labels && labels[i]) || "";
-        ctx.fillText(label.length > 12 ? label.slice(0, 11) + "…" : label, padding.left - 8, y + barH / 2 + 4);
-
-        ctx.fillStyle = cssVar("--color-primary");
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(x, y, Math.max(barW, 2), barH, 4) : ctx.rect(x, y, Math.max(barW, 2), barH);
-        ctx.fill();
-
-        ctx.fillStyle = cssVar("--color-text");
-        ctx.textAlign = "left";
-        ctx.fillText(formatNumber(v, 1), x + barW + 6, y + barH / 2 + 4);
-
-        bars.push({ x, y, w: barW, h: barH, value: v, label });
-      });
-    } else {
-      const padding = { top: 12, right: 12, bottom: 26, left: 46 };
-      const chartW = width - padding.left - padding.right;
-      const chartH = height - padding.top - padding.bottom;
-      const barGap = 10;
-      const barW = Math.max(6, chartW / values.length - barGap);
-
-      ctx.strokeStyle = cssVar("--color-border");
-      ctx.lineWidth = 1;
-      ctx.fillStyle = cssVar("--color-text-muted");
-      ctx.font = "11px " + cssVar("--font-body");
-      ctx.textAlign = "left";
-      const gridLines = 3;
-      for (let i = 0; i <= gridLines; i++) {
-        const y = padding.top + (chartH / gridLines) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, y);
-        ctx.lineTo(width - padding.right, y);
-        ctx.stroke();
-        ctx.fillText(formatNumber(maxVal - (maxVal / gridLines) * i, 0), 2, y + 3);
-      }
-
-      values.forEach((v, i) => {
-        const barH = (v / maxVal) * chartH;
-        const x = padding.left + i * (barW + barGap) + barGap / 2;
-        const y = padding.top + chartH - barH;
-
-        ctx.fillStyle = cssVar("--color-primary");
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(x, y, barW, Math.max(barH, 2), 4) : ctx.rect(x, y, barW, Math.max(barH, 2));
-        ctx.fill();
-
-        if (labels && labels[i]) {
-          ctx.fillStyle = cssVar("--color-text-muted");
-          ctx.textAlign = "center";
-          ctx.font = "11px " + cssVar("--font-body");
-          ctx.fillText(labels[i], x + barW / 2, height - 8);
-        }
-
-        bars.push({ x, y, w: barW, h: barH, value: v, label: (labels && labels[i]) || "" });
-      });
-    }
-
-    canvas._chartBars = bars;
-    canvas._chartFormat = opts.formatValue || ((v) => formatNumber(v, 1));
+  const valueAxis = {
+    beginAtZero: true,
+    grid: { color: cssVar("--color-border") },
+    ticks: { color: cssVar("--color-text-muted"), font: { size: 11 }, callback: (v) => formatNumber(v, 0) },
+  };
+  const labelAxis = {
+    grid: { display: false },
+    ticks: {
+      color: cssVar("--color-text-muted"),
+      font: { size: horizontal ? 12 : 11, weight: horizontal ? "600" : "400" },
+      padding: horizontal ? 8 : 4,
+      callback: function (value) {
+        const label = this.getLabelForValue(value);
+        // للأسماء (رسوم أفقية) بنسمح بطول أكبر قبل الاختصار، وللتسميات
+        // القصيرة زي الشهور (رسوم رأسية) مفيش داعي للاختصار أصلًا
+        const maxLen = horizontal ? 22 : 14;
+        return label && label.length > maxLen ? label.slice(0, maxLen - 1) + "…" : label;
+      },
+    },
   };
 
-  registerChart(canvas, draw);
-
-  if (!canvas._hasHoverHandler) {
-    canvas._hasHoverHandler = true;
-    canvas.addEventListener("mousemove", (event) => {
-      const bars = canvas._chartBars;
-      if (!bars || !bars.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      const hit = bars.find((b) => mouseX >= b.x && mouseX <= b.x + b.w && mouseY >= b.y && mouseY <= b.y + b.h);
-      if (!hit) {
-        hideChartTooltip();
-        return;
-      }
-      const text = (hit.label ? hit.label + ": " : "") + canvas._chartFormat(hit.value);
-      showChartTooltip(event.clientX, event.clientY, text);
-    });
-    canvas.addEventListener("mouseleave", hideChartTooltip);
-  }
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels || [],
+      datasets: [
+        {
+          data: values,
+          backgroundColor: hexWithAlpha(color, "e6"),
+          hoverBackgroundColor: hoverColor,
+          borderRadius: 6,
+          borderSkipped: false,
+          maxBarThickness: horizontal ? 22 : 40,
+        },
+      ],
+    },
+    options: {
+      indexAxis: horizontal ? "y" : "x",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 650, easing: "easeOutQuart" },
+      scales: horizontal ? { x: valueAxis, y: labelAxis } : { x: labelAxis, y: valueAxis },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: false,
+          callbacks: {
+            title: (items) => (items[0] ? items[0].label : ""),
+            label: (ctx) => formatValue(horizontal ? ctx.parsed.x : ctx.parsed.y),
+          },
+        },
+      },
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -3500,76 +3445,46 @@ function drawBarChart(canvas, values, labels, options) {
 // segments: [{ label, value, color? }]
 // ---------------------------------------------------------------------------
 function drawDonutChart(canvas, segments, options) {
+  if (!canvas || typeof Chart === "undefined") return;
   const opts = options || {};
+  const formatValue = opts.formatValue || ((v) => formatNumber(v, 1));
 
-  const draw = () => {
-    const { ctx, width, height } = setupCanvasSize(canvas);
-    const total = segments.reduce((sum, s) => sum + Math.max(s.value, 0), 0);
-    if (!total) return;
+  destroyExistingChart(canvas);
+  const total = segments.reduce((sum, s) => sum + Math.max(s.value, 0), 0);
+  if (!total) return;
 
-    const cx = width / 2;
-    const cy = height / 2;
-    const outerR = Math.min(width, height) / 2 - 4;
-    const innerR = outerR * (opts.thickness || 0.62);
+  const colors = segments.map((seg, i) => seg.color || CHART_PALETTE[i % CHART_PALETTE.length]);
 
-    let startAngle = -Math.PI / 2;
-    const arcs = [];
-
-    segments.forEach((seg, i) => {
-      const sliceAngle = (Math.max(seg.value, 0) / total) * Math.PI * 2;
-      const endAngle = startAngle + sliceAngle;
-      const color = seg.color || CHART_PALETTE[i % CHART_PALETTE.length];
-
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, outerR, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      arcs.push({ start: startAngle, end: endAngle, label: seg.label, value: seg.value, color });
-      startAngle = endAngle;
-    });
-
-    // فتحة Donut في المنتصف بلون الخلفية
-    ctx.beginPath();
-    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-    ctx.fillStyle = cssVar("--color-surface");
-    ctx.fill();
-
-    canvas._chartArcs = arcs;
-    canvas._chartCenter = { cx, cy, innerR, outerR };
-    canvas._chartFormat = opts.formatValue || ((v) => formatNumber(v, 1));
-  };
-
-  registerChart(canvas, draw);
-
-  if (!canvas._hasHoverHandler) {
-    canvas._hasHoverHandler = true;
-    canvas.addEventListener("mousemove", (event) => {
-      const arcs = canvas._chartArcs;
-      const center = canvas._chartCenter;
-      if (!arcs || !center) return;
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left - center.cx;
-      const mouseY = event.clientY - rect.top - center.cy;
-      const dist = Math.sqrt(mouseX * mouseX + mouseY * mouseY);
-      if (dist < center.innerR || dist > center.outerR) {
-        hideChartTooltip();
-        return;
-      }
-      let angle = Math.atan2(mouseY, mouseX);
-      if (angle < -Math.PI / 2) angle += Math.PI * 2;
-      const hit = arcs.find((a) => angle >= a.start && angle <= a.end);
-      if (!hit) {
-        hideChartTooltip();
-        return;
-      }
-      const text = hit.label + ": " + canvas._chartFormat(hit.value);
-      showChartTooltip(event.clientX, event.clientY, text);
-    });
-    canvas.addEventListener("mouseleave", hideChartTooltip);
-  }
+  new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: segments.map((s) => s.label),
+      datasets: [
+        {
+          data: segments.map((s) => Math.max(s.value, 0)),
+          backgroundColor: colors,
+          hoverBackgroundColor: colors,
+          borderColor: cssVar("--color-surface"),
+          borderWidth: 2,
+          hoverOffset: 6,
+        },
+      ],
+    },
+    options: {
+      cutout: (opts.thickness || 0.62) * 100 + "%",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 650, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: true,
+          callbacks: { label: (ctx) => ctx.label + ": " + formatValue(ctx.parsed) },
+        },
+      },
+    },
+  });
 }
 
 function renderChartLegend(container, items) {
@@ -3606,12 +3521,21 @@ function goToVehiclesWithStatusFilter(status) {
   loadVehicles();
 }
 
-function statCardHtml(icon, label, value, hint, extraHtml) {
+// variant اختياري بيضيف لون/تدرج مخصص للكارت (primary/fuel/fund/expense) —
+// من غير ما نبعته بيفضل الشكل الافتراضي القديم زي ما هو (مستخدم برضو في
+// كروت الملخص بتاعت التقارير والصفحات التانية، مش بس Dashboard)
+function statCardHtml(icon, label, value, hint, extraHtml, variant) {
+  const variantClass = variant ? " stat-card-" + variant : "";
+  // القيمة عادة رقم قصير (زي "150" أو "22,889.2 لتر")، لكن أحيانًا بتكون
+  // رسالة نصية كاملة لما مفيش بيانات (زي "لا توجد عهدة نشطة") — في الحالة
+  // دي بنستخدم خط أصغر بدل ما نفرض نفس حجم الأرقام الكبير على جملة كاملة
+  const plainValueLength = String(value).replace(/<[^>]*>/g, "").trim().length;
+  const valueClass = "stat-card-value" + (plainValueLength > 14 ? " is-compact" : "");
   return (
-    '<div class="stat-card">' +
+    '<div class="stat-card' + variantClass + '">' +
     (icon ? '<span class="card-icon" aria-hidden="true">' + icon + "</span>" : "") +
     '<span class="stat-card-label">' + escapeHtml(label) + "</span>" +
-    '<span class="stat-card-value">' + value + "</span>" +
+    '<span class="' + valueClass + '">' + value + "</span>" +
     (hint ? '<span class="stat-card-hint">' + escapeHtml(hint) + "</span>" : "") +
     (extraHtml || "") +
     "</div>"
@@ -3621,25 +3545,33 @@ function statCardHtml(icon, label, value, hint, extraHtml) {
 // مؤشر اتجاه بسيط (▲/▼) بمقارنة القيمة الحالية بالشهر السابق — بيانات
 // حقيقية فقط من قاعدة البيانات؛ لو مفيش بيانات كافية للشهر السابق
 // (صفر أو غير موجودة)، بيتم تجاهل المؤشر تمامًا بدل اختلاق نسبة
-function trendBadgeHtml(current, previous) {
+function trendBadgeHtml(current, previous, previousMonthLabel) {
   if (!previous || previous <= 0) return "";
+  const monthSuffix = previousMonthLabel ? " عن " + previousMonthLabel : " عن الشهر السابق";
   const change = ((current - previous) / previous) * 100;
+
   if (Math.abs(change) < 0.5) {
-    return '<span class="trend-badge trend-flat">≈ بدون تغيير عن الشهر السابق</span>';
+    return '<span class="trend-badge trend-flat">≈ بدون تغيير' + monthSuffix + "</span>";
   }
+
   const isUp = change > 0;
   const cls = isUp ? "trend-up" : "trend-down";
   const arrow = isUp ? "▲" : "▼";
-  return (
-    '<span class="trend-badge ' + cls + '">' + arrow + " " + formatNumber(Math.abs(change), 0) + "% عن الشهر السابق</span>"
-  );
-}
 
-function previousMonthRange() {
-  const now = new Date();
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const start = prevMonthDate.getFullYear() + "-" + String(prevMonthDate.getMonth() + 1).padStart(2, "0") + "-01";
-  return { start, endExclusive: currentMonthStartDate() };
+  // لو الشهر السابق بيانته قليلة جدًا، النسبة المئوية بتطلع رقم ضخم ومضلل
+  // (زي 30,688%) — بدل ما نعرضه كرقم، بنوضح إن المقارنة مش دقيقة بسبب قلة
+  // بيانات الشهر السابق نفسه، مش خطأ في الحساب
+  if (Math.abs(change) > 300) {
+    return (
+      '<span class="trend-badge ' + cls + '">' + arrow + " " +
+      (isUp ? "ارتفاع كبير" : "انخفاض كبير") +
+      monthSuffix + " (بيانات الشهر السابق قليلة، فالمقارنة تقريبية)</span>"
+    );
+  }
+
+  return (
+    '<span class="trend-badge ' + cls + '">' + arrow + " " + formatNumber(Math.abs(change), 0) + "%" + monthSuffix + "</span>"
+  );
 }
 
 // خط اتجاه مصغّر (Sparkline) لآخر 7 أيام — بيانات حقيقية فقط، ولو مفيش أي
@@ -3690,7 +3622,11 @@ async function loadDashboardSparklines() {
 
   if (fuelCanvas) {
     if (fuelValues.some((v) => v > 0)) {
-      drawLineChart(fuelCanvas, fuelValues, days, { sparkline: true });
+      drawLineChart(fuelCanvas, fuelValues, null, {
+        sparkline: true,
+        color: "#ea580c",
+        formatValue: (v) => formatNumber(v, 1) + " لتر",
+      });
     } else {
       fuelCanvas.closest(".sparkline-wrapper").hidden = true;
     }
@@ -3698,7 +3634,11 @@ async function loadDashboardSparklines() {
 
   if (expCanvas) {
     if (expValues.some((v) => v > 0)) {
-      drawLineChart(expCanvas, expValues, days, { sparkline: true });
+      drawLineChart(expCanvas, expValues, null, {
+        sparkline: true,
+        color: "#e11d48",
+        formatValue: (v) => formatNumber(v, 2) + " ر.س",
+      });
     } else {
       expCanvas.closest(".sparkline-wrapper").hidden = true;
     }
@@ -3712,11 +3652,56 @@ function currentMonthStartDate() {
   return year + "-" + month + "-01";
 }
 
+// بيبني حدود الشهر (بداية + بداية الشهر اللي بعده كـ"سقف مستبعد") من أي
+// تاريخ داخل الشهر ده، وبيرجع كمان تاريخ "أول يوم في الشهر" كـ Date عشان
+// نقدر نجيب اسم الشهر بـ formatMonthOnly لما نحتاج نعرضه في عنوان الكارت
+function monthRangeFromDateString(dateStr) {
+  const [year, month] = dateStr.slice(0, 7).split("-").map(Number);
+  const start = year + "-" + String(month).padStart(2, "0") + "-01";
+  const endYear = month === 12 ? year + 1 : year;
+  const endMonth = month === 12 ? 1 : month + 1;
+  const endExclusive = endYear + "-" + String(endMonth).padStart(2, "0") + "-01";
+  return { start, endExclusive, year, month };
+}
+
+function monthRangeBefore(range) {
+  const prevMonth = range.month === 1 ? 12 : range.month - 1;
+  const prevYear = range.month === 1 ? range.year - 1 : range.year;
+  return monthRangeFromDateString(prevYear + "-" + String(prevMonth).padStart(2, "0") + "-01");
+}
+
+// الوقود والمصروفات عادةً بتتسجل دفعة واحدة شهريًا (بيان من الشركة/المورّد)
+// مش يوميًا، فلو استخدمنا "الشهر الحالي بالتقويم" حرفيًا، الكارت هيفضل
+// صفر لحد ما بيان الشهر ده يوصل ويتسجّل حتى لو البيانات كلها سليمة. الحل:
+// نجيب آخر شهر فيه بيانات فعليًا لكل جدول لوحده، ونستخدمه بدل الشهر الحالي
+// حرفيًا — ولو مفيش بيانات خالص، بنرجع للشهر الحالي بالتقويم كافتراضي
+async function latestMonthWithData(tableName, dateColumn) {
+  const { data, error } = await supabaseClient
+    .from(tableName)
+    .select(dateColumn)
+    .eq("status", "active")
+    .order(dateColumn, { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data || !data[dateColumn]) return null;
+  return monthRangeFromDateString(data[dateColumn]);
+}
+
 async function loadDashboardStats() {
   dashboardStatsContainer.innerHTML = skeletonCardsHtml(4, "stat-cards-grid", "stat-card");
 
-  const monthStart = currentMonthStartDate();
-  const { start: prevMonthStart, endExclusive: prevMonthEnd } = previousMonthRange();
+  const currentCalendarMonthStart = currentMonthStartDate();
+
+  const [latestFuelMonth, latestExpenseMonth] = await Promise.all([
+    latestMonthWithData("fuel_transactions", "transaction_date"),
+    latestMonthWithData("expenses", "expense_date"),
+  ]);
+
+  const fuelMonthRange = latestFuelMonth || monthRangeFromDateString(currentCalendarMonthStart);
+  const expenseMonthRange = latestExpenseMonth || monthRangeFromDateString(currentCalendarMonthStart);
+  const prevFuelMonthRange = monthRangeBefore(fuelMonthRange);
+  const prevExpenseMonthRange = monthRangeBefore(expenseMonthRange);
 
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -3728,26 +3713,29 @@ async function loadDashboardStats() {
       .from("fuel_transactions")
       .select("liters, amount, vehicle:vehicles ( license_plate )")
       .eq("status", "active")
-      .gte("transaction_date", monthStart),
+      .gte("transaction_date", fuelMonthRange.start)
+      .lt("transaction_date", fuelMonthRange.endExclusive),
     supabaseClient
       .from("expenses")
       .select("amount, category:expense_categories ( name, name_ar )")
       .eq("status", "active")
-      .gte("expense_date", monthStart),
-    // بيانات الشهر السابق — تُستخدم فقط لحساب مؤشر الاتجاه (▲/▼)، ولو
-    // فشل الاستعلام أو كانت النتيجة صفر بيتم تجاهل المؤشر تمامًا
+      .gte("expense_date", expenseMonthRange.start)
+      .lt("expense_date", expenseMonthRange.endExclusive),
+    // بيانات الشهر اللي قبل الشهر المعروض (مش بالضرورة الشهر الحالي
+    // بالتقويم) — تُستخدم فقط لحساب مؤشر الاتجاه (▲/▼)، ولو فشل الاستعلام
+    // أو كانت النتيجة صفر بيتم تجاهل المؤشر تمامًا
     supabaseClient
       .from("fuel_transactions")
       .select("amount")
       .eq("status", "active")
-      .gte("transaction_date", prevMonthStart)
-      .lt("transaction_date", prevMonthEnd),
+      .gte("transaction_date", prevFuelMonthRange.start)
+      .lt("transaction_date", prevFuelMonthRange.endExclusive),
     supabaseClient
       .from("expenses")
       .select("amount")
       .eq("status", "active")
-      .gte("expense_date", prevMonthStart)
-      .lt("expense_date", prevMonthEnd),
+      .gte("expense_date", prevExpenseMonthRange.start)
+      .lt("expense_date", prevExpenseMonthRange.endExclusive),
     // سيارات عليها تفويض قيادة منتهي أو هينتهي خلال 30 يوم — لعرضها في
     // "الأشياء التي تحتاج الانتباه" تحت
     supabaseClient
@@ -3810,42 +3798,63 @@ async function loadDashboardStats() {
   });
   const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
+  // عنوان الكارت بيفضل "هذا الشهر" طول ما الشهر المعروض هو فعلاً الشهر
+  // الحالي بالتقويم. لو رجعنا لآخر شهر فيه بيانات (لأن بيانات الشهر
+  // الحالي لسه ما وصلتش/اتسجلتش)، بنوضح اسم الشهر المعروض صراحةً بدل ما
+  // نضلل إن ده "الشهر الحالي" وهو مش كده
+  const fuelCardTitle =
+    fuelMonthRange.start === currentCalendarMonthStart
+      ? "الوقود هذا الشهر"
+      : "الوقود — " + formatMonthOnly(fuelMonthRange.start);
+  const expenseCardTitle =
+    expenseMonthRange.start === currentCalendarMonthStart
+      ? "مصروفات هذا الشهر"
+      : "مصروفات — " + formatMonthOnly(expenseMonthRange.start);
+
   dashboardStatsContainer.innerHTML =
     statCardHtml(
-      "🚗",
+      icon("car"),
       "السيارات",
       vehiclesRes.error ? "—" : String(totalVehicles),
       vehiclesRes.error
         ? "تعذر تحميل بيانات السيارات، حاول تحديث الصفحة"
         : totalVehicles
         ? assignedCount + " مخصصة — " + maintenanceCount + " تحت الصيانة"
-        : "لا توجد سيارات مضافة بعد"
+        : "لا توجد سيارات مضافة بعد",
+      "",
+      "primary"
     ) +
     statCardHtml(
-      "⛽",
-      "الوقود هذا الشهر",
+      icon("fuel"),
+      fuelCardTitle,
       fuelRes.error ? "—" : formatNumber(monthLiters, 1) + " لتر",
       fuelRes.error ? "تعذر تحميل بيانات الوقود، حاول تحديث الصفحة" : "التكلفة: " + formatNumber(monthFuelCost, 2) + " ر.س",
-      (fuelRes.error ? "" : trendBadgeHtml(monthFuelCost, prevMonthFuelCost)) +
-        (fuelRes.error ? "" : '<div class="sparkline-wrapper"><canvas id="dashboard-fuel-sparkline"></canvas></div>')
+      (fuelRes.error ? "" : trendBadgeHtml(monthFuelCost, prevMonthFuelCost, formatMonthOnly(prevFuelMonthRange.start))) +
+        (fuelRes.error ? "" : '<div class="sparkline-wrapper"><canvas id="dashboard-fuel-sparkline"></canvas></div>'),
+      "fuel"
     ) +
     statCardHtml(
-      "💰",
+      icon("wallet"),
       "رصيد العهدة النشطة",
       currentActiveFund ? formatNumber(currentActiveFund.current_balance, 2) + " ر.س" : "لا توجد عهدة نشطة",
-      currentActiveFund ? "العهدة: " + currentActiveFund.fund_code : ""
+      currentActiveFund ? "العهدة: " + currentActiveFund.fund_code : "",
+      "",
+      "fund"
     ) +
     statCardHtml(
-      "🧾",
-      "مصروفات هذا الشهر",
+      icon("receipt"),
+      expenseCardTitle,
       expensesRes.error ? "—" : formatNumber(monthExpenseTotal, 2) + " ر.س",
       expensesRes.error
         ? "تعذر تحميل بيانات المصروفات، حاول تحديث الصفحة"
         : topCategoryEntry
         ? "أعلى فئة: " + topCategoryEntry[0]
         : "لا توجد مصروفات بعد",
-      (expensesRes.error ? "" : trendBadgeHtml(monthExpenseTotal, prevMonthExpenseTotal)) +
-        (expensesRes.error ? "" : '<div class="sparkline-wrapper"><canvas id="dashboard-expenses-sparkline"></canvas></div>')
+      (expensesRes.error
+        ? ""
+        : trendBadgeHtml(monthExpenseTotal, prevMonthExpenseTotal, formatMonthOnly(prevExpenseMonthRange.start))) +
+        (expensesRes.error ? "" : '<div class="sparkline-wrapper"><canvas id="dashboard-expenses-sparkline"></canvas></div>'),
+      "expense"
     );
 
   if (!fuelRes.error || !expensesRes.error) loadDashboardSparklines();
@@ -3864,6 +3873,10 @@ async function loadDashboardStats() {
     prevMonthExpenseTotal,
     topVehicleFuelEntry,
     fuelOk: !fuelRes.error,
+    expenseMonthLabel:
+      expenseMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : "في " + formatMonthOnly(expenseMonthRange.start),
+    fuelMonthLabel:
+      fuelMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : "في " + formatMonthOnly(fuelMonthRange.start),
   });
 
   loadDashboardActivity();
@@ -3978,20 +3991,30 @@ function renderDashboardAttention({
 // 9.2 ملخص ذكي — جمل نصية مبنية فقط على بيانات حقيقية محمّلة أصلًا؛ أي
 // مؤشر غير متوفر بيانات كافية له بيُعرض بنص صريح بدل رقم مختلق
 // ---------------------------------------------------------------------------
-function renderDashboardSmartSummary({ expensesOk, monthExpenseTotal, prevMonthExpenseTotal, topVehicleFuelEntry, fuelOk }) {
+function renderDashboardSmartSummary({
+  expensesOk,
+  monthExpenseTotal,
+  prevMonthExpenseTotal,
+  topVehicleFuelEntry,
+  fuelOk,
+  expenseMonthLabel,
+  fuelMonthLabel,
+}) {
   const lines = [];
+  const expenseLabel = expenseMonthLabel || "هذا الشهر";
+  const fuelLabel = fuelMonthLabel || "هذا الشهر";
 
   lines.push(
     expensesOk
       ? monthExpenseTotal > 0
-        ? "بلغ إجمالي المصروفات هذا الشهر " + formatNumber(monthExpenseTotal, 2) + " ر.س."
-        : "لم تُسجَّل أي مصروفات هذا الشهر بعد."
+        ? "بلغ إجمالي المصروفات " + expenseLabel + " " + formatNumber(monthExpenseTotal, 2) + " ر.س."
+        : "لم تُسجَّل أي مصروفات " + expenseLabel + " بعد."
       : "لا تتوفر بيانات كافية لإنتاج هذا المؤشر."
   );
 
   if (fuelOk && topVehicleFuelEntry) {
     lines.push(
-      "سجلت السيارة " + topVehicleFuelEntry[0] + " أعلى تكلفة وقود هذا الشهر بقيمة " +
+      "سجلت السيارة " + topVehicleFuelEntry[0] + " أعلى تكلفة وقود " + fuelLabel + " بقيمة " +
         formatNumber(topVehicleFuelEntry[1], 2) + " ر.س."
     );
   } else {
@@ -4001,7 +4024,7 @@ function renderDashboardSmartSummary({ expensesOk, monthExpenseTotal, prevMonthE
   if (expensesOk && prevMonthExpenseTotal > 0) {
     const change = ((monthExpenseTotal - prevMonthExpenseTotal) / prevMonthExpenseTotal) * 100;
     if (Math.abs(change) < 0.5) {
-      lines.push("استقر الإنفاق هذا الشهر مقارنة بالشهر السابق تقريبًا.");
+      lines.push("استقر الإنفاق " + expenseLabel + " مقارنة بالشهر السابق تقريبًا.");
     } else {
       lines.push(
         (change > 0 ? "ارتفع" : "انخفض") + " الإنفاق بنسبة " + formatNumber(Math.abs(change), 0) +
@@ -4230,12 +4253,12 @@ async function loadVehiclesReport() {
   });
 
   reportVehiclesSummary.innerHTML =
-    statCardHtml("🚗", "إجمالي السيارات", String(reportVehiclesRows.length), "") +
-    statCardHtml("📍", "مخصصة", String(counts.assigned), "") +
-    statCardHtml("✅", "متاحة", String(counts.available), "") +
-    statCardHtml("🔧", "تحت الصيانة", String(counts.under_maintenance), "") +
-    statCardHtml("⛔", "خارج الخدمة", String(counts.out_of_service), "") +
-    statCardHtml("📦", "مؤرشفة", String(counts.archived), "");
+    statCardHtml(icon("car"), "إجمالي السيارات", String(reportVehiclesRows.length), "") +
+    statCardHtml(icon("pin"), "مخصصة", String(counts.assigned), "") +
+    statCardHtml(icon("checkCircle"), "متاحة", String(counts.available), "") +
+    statCardHtml(icon("wrench"), "تحت الصيانة", String(counts.under_maintenance), "") +
+    statCardHtml(icon("noEntry"), "خارج الخدمة", String(counts.out_of_service), "") +
+    statCardHtml(icon("archive"), "مؤرشفة", String(counts.archived), "");
 
   if (reportVehiclesRows.length === 0) {
     setReportState(reportVehiclesState, "لا توجد سيارات مطابقة للفلتر المحدد.");
@@ -4316,9 +4339,9 @@ async function loadFuelReport() {
     const totalLiters = rows.reduce((sum, r) => sum + Number(r.liters || 0), 0);
     const totalCost = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
     reportFuelSummary.innerHTML =
-      statCardHtml("⛽", "إجمالي اللترات (للفترة)", formatNumber(totalLiters, 2), "") +
-      statCardHtml("💰", "إجمالي التكلفة (للفترة)", formatNumber(totalCost, 2) + " ر.س", "") +
-      statCardHtml("🔢", "عدد المعاملات (للفترة)", String(rows.length), "");
+      statCardHtml(icon("fuel"), "إجمالي اللترات (للفترة)", formatNumber(totalLiters, 2), "") +
+      statCardHtml(icon("wallet"), "إجمالي التكلفة (للفترة)", formatNumber(totalCost, 2) + " ر.س", "") +
+      statCardHtml(icon("hash"), "عدد المعاملات (للفترة)", String(rows.length), "");
 
     const monthly = groupSumByMonth(rows, "transaction_date", "liters");
     if (monthly.values.length < 2) {
@@ -4550,9 +4573,9 @@ async function loadPettyCashReport() {
   const totalBalance = reportPettyCashRows.reduce((sum, f) => sum + Number(f.current_balance || 0), 0);
 
   reportPettyCashSummary.innerHTML =
-    statCardHtml("💵", "إجمالي التمويل", formatNumber(totalFunded, 2) + " ر.س", "") +
-    statCardHtml("🧾", "إجمالي المصروف", formatNumber(totalSpent, 2) + " ر.س", "") +
-    statCardHtml("💰", "إجمالي الرصيد المتبقي", formatNumber(totalBalance, 2) + " ر.س", "");
+    statCardHtml(icon("cash"), "إجمالي التمويل", formatNumber(totalFunded, 2) + " ر.س", "") +
+    statCardHtml(icon("receipt"), "إجمالي المصروف", formatNumber(totalSpent, 2) + " ر.س", "") +
+    statCardHtml(icon("wallet"), "إجمالي الرصيد المتبقي", formatNumber(totalBalance, 2) + " ر.س", "");
 
   setReportState(reportPettyCashState, null);
   reportPettyCashTableBody.innerHTML = reportPettyCashRows
@@ -4678,9 +4701,9 @@ async function loadExpensesReport() {
   }
 
   reportExpensesSummary.innerHTML =
-    statCardHtml("🧾", "إجمالي الإنفاق", formatNumber(totalSpending, 2) + " ر.س", "") +
-    statCardHtml("🔢", "عدد المصروفات", String(rows.length), "") +
-    statCardHtml("🏷️", "أعلى فئة إنفاقًا", reportExpensesRows[0] ? reportExpensesRows[0].name : "—", "");
+    statCardHtml(icon("receipt"), "إجمالي الإنفاق", formatNumber(totalSpending, 2) + " ر.س", "") +
+    statCardHtml(icon("hash"), "عدد المصروفات", String(rows.length), "") +
+    statCardHtml(icon("tag"), "أعلى فئة إنفاقًا", reportExpensesRows[0] ? reportExpensesRows[0].name : "—", "");
 
   setReportState(reportExpensesState, null);
   reportExpensesTableBody.innerHTML = reportExpensesRows
@@ -5000,7 +5023,7 @@ async function loadAuditLog() {
     } else {
       showRichEmptyState(
         auditStateBox,
-        "📜",
+        icon("clock"),
         "لا توجد عمليات مسجّلة بعد",
         "يُعبَّأ سجل العمليات تلقائيًا فور حدوث أي إنشاء أو تعديل أو إلغاء في السيارات، الوقود، العهدة النقدية، أو المصروفات.",
         ""
@@ -5319,7 +5342,7 @@ function openAccountCredentialsModal(message, password) {
 accountCredentialsCopyButton.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(accountCredentialsValueInput.value);
-    accountCredentialsCopyButton.textContent = "اتنسخت ✓";
+    accountCredentialsCopyButton.innerHTML = "اتنسخت " + icon("check");
     setTimeout(() => {
       accountCredentialsCopyButton.textContent = "نسخ";
     }, 1500);
@@ -5357,7 +5380,7 @@ async function loadAccountsList() {
   if (!data || data.length === 0) {
     showRichEmptyState(
       accountsStateBox,
-      "👥",
+      icon("users"),
       "لا توجد حسابات بعد",
       "الحساب الحالي المفروض يكون موجود دايمًا هنا — لو الجدول فاضي فعليًا، جرّب تحديث الصفحة.",
       ""
@@ -5683,7 +5706,7 @@ async function loadEmployeesList() {
     } else {
       showRichEmptyState(
         employeesStateBox,
-        "👤",
+        icon("user"),
         "لا يوجد موظفون بعد",
         "لا يوجد أي موظف مسجّل بعد. أضف أول موظف لتتمكن من ربطه بسيارات أو عهد نقدية.",
         '<button type="button" class="btn-primary" id="empty-add-employee-button">+ إضافة أول موظف</button>'
@@ -6163,9 +6186,9 @@ function renderImportPreview(config, validatedRows) {
   importPreviewState.hidden = true;
   importPreviewSummary.hidden = false;
   importPreviewSummary.innerHTML =
-    '<span class="import-preview-summary-item is-valid">✓ ' + validCount + " صف صالح</span>" +
-    '<span class="import-preview-summary-item is-duplicate">⚠ ' + duplicateCount + " صف مكرر</span>" +
-    '<span class="import-preview-summary-item is-error">✕ ' + errorCount + " صف به أخطاء</span>";
+    '<span class="import-preview-summary-item is-valid">' + icon("check") + " " + validCount + " صف صالح</span>" +
+    '<span class="import-preview-summary-item is-duplicate">' + icon("warningTriangle") + " " + duplicateCount + " صف مكرر</span>" +
+    '<span class="import-preview-summary-item is-error">' + icon("cross") + " " + errorCount + " صف به أخطاء</span>";
 
   importPreviewTableWrapper.hidden = false;
   importPreviewThead.innerHTML =
@@ -6269,9 +6292,9 @@ importConfirmButton.addEventListener("click", async () => {
   importResultSummary.hidden = false;
   importResultSummary.innerHTML =
     '<div class="import-result-summary">' +
-    '<span class="import-preview-summary-item is-valid">✓ تم إدخال ' + successCount + " بنجاح</span>" +
+    '<span class="import-preview-summary-item is-valid">' + icon("check") + " تم إدخال " + successCount + " بنجاح</span>" +
     (failedRows.length
-      ? '<span class="import-preview-summary-item is-error">✕ فشل إدخال ' + failedRows.length + " صف أثناء الحفظ</span>"
+      ? '<span class="import-preview-summary-item is-error">' + icon("cross") + " فشل إدخال " + failedRows.length + " صف أثناء الحفظ</span>"
       : "") +
     "</div>";
 
