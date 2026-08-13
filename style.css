@@ -5,11 +5,11 @@
    مراجعة شاملة (Full Audit) — إعادة بناء نظام التصميم من الصفر:
    - هوية لونية واحدة: درجة غامقة أساسية (Charcoal Slate) + لون تمييز واحد
      قوي (Indigo) يُستخدم بحكمة في العناصر التفاعلية فقط (أزرار أساسية،
-     الحالة النشطة، التركيز) — مش كديكور في كل مكان.
+     الحالة النشطة، التركيز) — وليس عنصر ديكور في كل مكان.
    - ألوان دلالية واضحة وموحّدة لكل الحالات (نجاح/تحذير/خطر/معطّل).
-   - مقياس طباعة موحّد من 7 أحجام فقط (بدل أكثر من 15 قيمة متفرقة).
+   - مقياس طباعة موحّد من 7 أحجام فقط (بدلاً من أكثر من 15 قيمة متفرقة).
    - مقياس مسافات موحّد (4/8/12/16/24/32px + امتدادين للمساحات الكبيرة
-     جدًا زي الشاشة الرئيسية لتسجيل الدخول، وهما مضاعفات لنفس الوحدة).
+     جدًا مثل الشاشة الرئيسية لتسجيل الدخول، وهما مضاعفات لنفس الوحدة).
    - مدة انتقال واحدة موحّدة لكل تفاعل في النظام.
    ============================================================================ */
 
@@ -19,11 +19,11 @@
   --font-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
 
   /* ---- مقياس الطباعة (Typography Scale) ----
-     المستوى الوظيفي (xs/sm/base/md) فضل شبه ثابت عمدًا — ده تطبيق إداري
-     كثيف بالبيانات (جداول/فورمات)، وأي تكبير هنا بيكسر الكثافة ويتعارض
-     مع طلبات تصغير الكروت اللي اتعملت قبل كده في نفس الجلسة. التدرّج
-     الواضح (نسبة ~1.25) اتطبّق بس على المستوى "التعبيري" (lg → xl → 2xl)
-     المستخدم في العناوين وقيم كروت الداشبورد. */
+     المستوى الوظيفي (xs/sm/base/md) ظل شبه ثابت عمدًا — هذا تطبيق إداري
+     كثيف بالبيانات (جداول/فورمات)، وأي تكبير هنا يكسر الكثافة ويتعارض
+     مع طلبات تصغير البطاقات التي أُجريت سابقًا في نفس الجلسة. التدرّج
+     الواضح (نسبة ~1.25) طُبِّق فقط على المستوى "التعبيري" (lg → xl → 2xl)
+     المستخدم في العناوين وقيم بطاقات لوحة الرئيسية. */
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 14px;
@@ -47,14 +47,13 @@
   --color-surface: #ffffff;
   --color-border: #e2e4e9;
 
-  /* ---- العلامة: درجة أعمق وأغنى من الإنديجو الأساسي + تدرّج للأزرار +
-     لون ثانوي واحد واضح (كهرماني) يُستخدم بحكمة فقط (شعار السايدبار،
-     تنبيهات مميزة) — مش ديكور عام ---- */
+  /* ---- العلامة: درجة أعمق وأغنى من الإنديجو الأساسي + لون ثانوي واحد
+     واضح (كهرماني) يُستخدم بحكمة فقط (شعار السايدبار، تنبيهات مميزة)
+     — وليس عنصر ديكور عام ---- */
   --color-primary: #4338ca;
   --color-primary-hover: #3730a3;
   --color-primary-light: #e0e7ff;
   --color-primary-dark: #27225e;
-  --color-primary-gradient: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
   --color-accent: #f59e0b;
   --color-accent-hover: #d97706;
 
@@ -71,40 +70,40 @@
   --color-success-bg: #dcfce7;
   --color-success-text: #15803d;
   --color-warning-bg: #fef3c7;
-  --color-warning-text: #92400e; /* أغمق شوية من b45309 لتباين أفضل (6.4:1 بدل 4.5:1) */
+  --color-warning-text: #92400e; /* أغمق قليلاً من b45309 لتباين أفضل (6.4:1 بدل 4.5:1) */
   --color-warning-border: #fde68a;
   --color-neutral-bg: #e5e7eb;
   --color-neutral-text: #6b7280;
 
   /* Dark surfaces (Sidebar / شاشة تسجيل الدخول) — درجة غامقة واحدة فقط،
-     ثابتة دايمًا بغض النظر عن Dark Mode (سايدبار غامق تصميميًا في الحالتين) */
+     ثابتة دائمًا بغض النظر عن Dark Mode (سايدبار غامق تصميميًا في الحالتين) */
   --color-dark-from: #12141a;
   --color-dark-via: #1a1d26;
   --color-dark-to: #22242e;
 
-  /* ألوان دلالية بديلة مخصوصة للخلفيات الغامقة بس (السايدبار) — نفس درجات
+  /* ألوان دلالية بديلة مخصوصة للخلفيات الغامقة فقط (السايدبار) — نفس درجات
      الخطر لكن بتباين مناسب مع الخلفية الغامقة (11.6:1 بدل 2.6:1 لو استخدمنا
      --color-danger-text العادي فوق خلفية غامقة) */
   --color-danger-text-on-dark: #fecaca;
   --color-danger-border-on-dark: #ef4444;
 
-  /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  /* Radii — مقياس أضيق قليلاً من قبل (أقرب لهوية Enterprise SaaS هادئة،
+     بعيدة عن الشكل "الفقاعي" المبالغ فيه) */
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-pill: 999px;
 
-  /* ظلال ناعمة متعدّدة الطبقات — أعمق وأكثر طبيعية من نسخة قبل كده،
-     لسه مؤسسية وليست صاخبة */
-  --shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.06), 0 1px 1px rgba(15, 17, 21, 0.04);
-  --shadow-md: 0 2px 4px rgba(15, 17, 21, 0.05), 0 8px 16px rgba(15, 17, 21, 0.07);
-  --shadow-lg: 0 4px 8px rgba(15, 17, 21, 0.06), 0 16px 32px rgba(15, 17, 21, 0.1),
-    0 1px 2px rgba(15, 17, 21, 0.04);
-  --shadow-xl: 0 8px 16px rgba(15, 17, 21, 0.08), 0 24px 48px rgba(15, 17, 21, 0.14);
+  /* ظلال ناعمة متعدّدة الطبقات — خفيفة ومحكمة (غير صارخة)، هدفها إيحاء
+     بسيط بالارتفاع فقط، لا لفت الانتباه */
+  --shadow-sm: 0 1px 2px rgba(15, 17, 21, 0.05), 0 1px 1px rgba(15, 17, 21, 0.03);
+  --shadow-md: 0 1px 2px rgba(15, 17, 21, 0.04), 0 6px 12px rgba(15, 17, 21, 0.06);
+  --shadow-lg: 0 2px 4px rgba(15, 17, 21, 0.05), 0 12px 24px rgba(15, 17, 21, 0.08);
+  --shadow-xl: 0 4px 8px rgba(15, 17, 21, 0.06), 0 20px 40px rgba(15, 17, 21, 0.12);
   --shadow-focus: 0 0 0 3px var(--color-primary-light);
 
   /* ---- حركة موحّدة — مدة أساسية لكل تفاعل، + سريعة للـ micro-interactions
-     (ضغط زرار) وبطيئة شوية لدخول/خروج المودالات ---- */
+     (ضغط زر) وبطيئة قليلاً لدخول/خروج المودالات ---- */
   --transition-base: all 0.18s ease;
   --transition-fast: all 0.12s ease;
   --transition-slow: all 0.32s cubic-bezier(0.16, 1, 0.3, 1);
@@ -114,15 +113,15 @@
 }
 
 /* ============================================================================
-   Dark Mode — عبر [data-theme="dark"] الصريح (هيتحط من زرار التبديل في
-   الخطوة الجاية)، أو تلقائيًا لو نظام التشغيل غامق ومفيش اختيار صريح
+   Dark Mode — عبر [data-theme="dark"] الصريح (يُوضع من زر التبديل في
+   الخطوة القادمة)، أو تلقائيًا لو نظام التشغيل غامق ولا يوجد اختيار صريح
    ============================================================================ */
-/* ⚠️ القيم هنا لازم تفضل مطابقة تمامًا للنسخة المكررة تحت جوه
-   @media (prefers-color-scheme: dark) — أي تعديل هنا لازم ينعمل في
-   الاتنين مع بعض، وإلا هيحصل تعارض بين المستخدم اللي اختار الوضع الغامق
-   يدويًا واللي بيعتمد على إعداد نظام التشغيل بس. كل القيم هنا اتراجعت
+/* ⚠️ القيم هنا يجب أن تظل مطابقة تمامًا للنسخة المكررة بالأسفل في
+   @media (prefers-color-scheme: dark) — أي تعديل هنا يجب أن يُنفَّذ في
+   الاثنين معًا، وإلا سيحدث تعارض بين المستخدم الذي اختار الوضع الغامق
+   يدويًا والذي يعتمد على إعداد نظام التشغيل فقط. كل القيم هنا رُوجعت
    بمعادلة تباين WCAG فعليًا (نص فوق خلفية، أيقونة فوق كارت الأيقونة،
-   شارة الحالة فوق خلفيتها) مش بالعين بس */
+   شارة الحالة فوق خلفيتها) وليس بالعين فقط */
 [data-theme="dark"] {
   --color-bg: #0a0b0f;
   --color-surface: #181c28;
@@ -132,7 +131,6 @@
   --color-primary-hover: #a5b4fc;
   --color-primary-light: rgba(129, 140, 248, 0.18);
   --color-primary-dark: #818cf8;
-  --color-primary-gradient: linear-gradient(135deg, #5b5ff0 0%, #7c3aed 100%);
   --color-accent: #fbbf24;
   --color-accent-hover: #f59e0b;
 
@@ -169,7 +167,6 @@
     --color-primary-hover: #a5b4fc;
     --color-primary-light: rgba(129, 140, 248, 0.18);
     --color-primary-dark: #818cf8;
-    --color-primary-gradient: linear-gradient(135deg, #5b5ff0 0%, #7c3aed 100%);
     --color-accent: #fbbf24;
     --color-accent-hover: #f59e0b;
 
@@ -196,32 +193,43 @@
     --shadow-focus: 0 0 0 3px rgba(129, 140, 248, 0.35);
   }
 
-  /* نفس بدائل خلفيات أيقونة الكارت الغامقة فوق، لكن لمستخدم بيعتمد على
-     إعداد نظام التشغيل بس من غير ما يضغط زرار التبديل صراحةً (مفيش
-     [data-theme="dark"] موجود في الحالة دي، فلازم تتكرر هنا بنفس القيم) */
+  /* نفس بدائل خلفيات أيقونة الكارت الغامقة أعلاه، لكن لمستخدم يعتمد على
+     إعداد نظام التشغيل فقط من غير أن يضغط زر التبديل صراحةً (لا يوجد
+     [data-theme="dark"] موجود في هذه الحالة، فيجب أن تتكرر هنا بنفس القيم) */
   :root:not([data-theme="light"]) .card-icon {
-    background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.4));
+    background: rgba(129, 140, 248, 0.22);
     color: #c7d2fe;
   }
 
   :root:not([data-theme="light"]) .stat-card-fuel .card-icon {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.42));
+    background: rgba(245, 158, 11, 0.22);
     color: #fde68a;
   }
 
   :root:not([data-theme="light"]) .stat-card-fund .card-icon {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(21, 128, 61, 0.42));
+    background: rgba(34, 197, 94, 0.22);
     color: #bbf7d0;
   }
 
   :root:not([data-theme="light"]) .stat-card-expense .card-icon {
-    background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(190, 18, 60, 0.42));
+    background: rgba(244, 63, 94, 0.22);
     color: #fecdd3;
   }
 
   :root:not([data-theme="light"]) .stat-card-assets .card-icon {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(109, 40, 217, 0.42));
+    background: rgba(139, 92, 246, 0.22);
     color: #ddd6fe;
+  }
+
+  :root:not([data-theme="light"]) .btn-primary,
+  :root:not([data-theme="light"]) .wizard-step.active .wizard-step-circle {
+    color: #ffffff;
+  }
+
+  :root:not([data-theme="light"]) .welcome-avatar,
+  :root:not([data-theme="light"]) .topbar-user-avatar {
+    background: var(--color-primary);
+    color: #ffffff;
   }
 }
 
@@ -290,7 +298,10 @@ textarea:focus-visible,
   overflow: hidden;
   padding: var(--space-8);
   background: linear-gradient(135deg, var(--color-dark-from) 0%, var(--color-dark-via) 55%, var(--color-dark-to) 100%);
-  color: var(--color-text-inverse);
+  /* لون ثابت (غير متغيّر بالثيم) — الخلفية هنا غامقة دائمًا بغض النظر عن
+     الوضع الفاتح/الداكن، فمتغيّر --color-text-inverse (الذي ينعكس نفسه في
+     الوضع الداكن ليصبح شبه أسود) غير مناسب هنا؛ يلزم لون فاتح ثابت */
+  color: rgba(247, 248, 250, 0.94);
 }
 
 /* شبكة نقاط خفيفة جدًا كخلفية زخرفية بسيطة — بديل CSS-only لصورة
@@ -467,8 +478,8 @@ textarea:focus-visible,
 }
 
 /* ---- حالة خطأ اختيارية لحقل مفرد (كلاس has-error يُضاف يدويًا لو
-   احتجنا نميّز حقل بعينه — النمط الحالي في script.js بيعرض رسالة خطأ
-   واحدة أعلى الفورم عبر .error-message، وده بيفضل زي ما هو) ---- */
+   احتجنا نميّز حقل بعينه — النمط الحالي في script.js يعرض رسالة خطأ
+   واحدة أعلى الفورم عبر .error-message، وهذا يظل كما هو) ---- */
 .form-field.has-error input,
 .form-field.has-error select,
 .form-field.has-error textarea {
@@ -525,8 +536,8 @@ textarea:focus-visible,
   font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-text-inverse);
-  background: var(--color-primary-gradient);
-  border: none;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: inherit;
@@ -536,14 +547,14 @@ textarea:focus-visible,
 }
 
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
-  filter: brightness(0.95);
   transition: var(--transition-fast);
 }
 
@@ -552,7 +563,7 @@ textarea:focus-visible,
   cursor: not-allowed;
 }
 
-/* ---- حالة تحميل عامة لأي زرار (primary/secondary/danger) — بتتفعّل
+/* ---- حالة تحميل عامة لأي زر (primary/secondary/danger) — تُفعَّل
    بإضافة كلاس is-loading من script.js أثناء أي عملية submit/حفظ ---- */
 .btn-primary.is-loading,
 .btn-secondary.is-loading,
@@ -639,9 +650,11 @@ textarea:focus-visible,
   height: 100vh;
   position: sticky;
   top: 0;
-  padding: var(--space-5) var(--space-4) var(--space-3);
+  padding: var(--space-5) var(--space-3) var(--space-3);
   background: linear-gradient(180deg, var(--color-dark-from), var(--color-dark-via) 55%, var(--color-dark-to));
-  color: var(--color-text-inverse);
+  /* لون ثابت — نفس سبب .login-visual أعلاه: خلفية السايدبار غامقة دائمًا
+     بغض النظر عن الثيم، فيلزم نص فاتح ثابت غير متغيّر بالثيم */
+  color: rgba(247, 248, 250, 0.94);
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
@@ -649,15 +662,24 @@ textarea:focus-visible,
 .sidebar-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding: var(--space-1) var(--space-2) var(--space-5);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
   border-bottom: 1px solid rgba(247, 248, 250, 0.08);
   flex-shrink: 0;
 }
 
 .sidebar-logo {
-  font-size: var(--text-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(247, 248, 250, 0.08);
+  border: 1px solid rgba(247, 248, 250, 0.1);
+  font-size: var(--text-md);
   color: var(--color-accent);
 }
 
@@ -666,6 +688,7 @@ textarea:focus-visible,
   font-weight: 700;
   font-size: var(--text-sm);
   line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .sidebar-nav {
@@ -673,7 +696,7 @@ textarea:focus-visible,
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-5);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(247, 248, 250, 0.25) transparent;
@@ -692,16 +715,40 @@ textarea:focus-visible,
   background: transparent;
 }
 
+/* ---- تجميع عناصر التنقل في أقسام منطقية، مع عنوان صغير فوق كل مجموعة —
+   المجموعة التي كل عناصرها مخفية (hidden) تختفي هي نفسها تلقائيًا حتى لا
+   يبقى عنوان قسم فارغ ظاهرًا لمستخدم ليس له صلاحية عليه ---- */
+.sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav-group:not(:has(> .sidebar-nav-item:not([hidden]))) {
+  display: none;
+}
+
+/* ---- من غير letter-spacing أو uppercase — تكسر شكل الحروف العربية
+   المتصلة ومناسبة فقط للنصوص اللاتينية ---- */
+.sidebar-nav-group-label {
+  display: block;
+  padding: 0 var(--space-3) 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(247, 248, 250, 0.4);
+}
+
 .sidebar-nav-item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-3);
+  padding: 9px var(--space-3);
   border-radius: var(--radius-sm);
-  color: rgba(247, 248, 250, 0.78);
+  color: rgba(247, 248, 250, 0.7);
   text-decoration: none;
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   font-weight: 500;
+  position: relative;
   transition: var(--transition-base);
 }
 
@@ -711,9 +758,11 @@ textarea:focus-visible,
   flex-shrink: 0;
   fill: none;
   stroke: currentColor;
+  opacity: 0.85;
+  transition: var(--transition-base);
 }
 
-/* ---- أيقونة SVG داخلية عامة (بديل الإيموجي) — بتورث حجمها من
+/* ---- أيقونة SVG داخلية عامة (بديل الإيموجي) — ترث حجمها من
    font-size العنصر الأب (1em)، فمحتاجة صفر تعديل إضافي لكل سياق ---- */
 .icon-inline {
   width: 1em;
@@ -732,15 +781,36 @@ textarea:focus-visible,
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(247, 248, 250, 0.1);
-  color: var(--color-text-inverse);
-  transform: translateX(-2px);
+  background: rgba(247, 248, 250, 0.07);
+  color: rgba(247, 248, 250, 0.94);
+}
+
+.sidebar-nav-item:hover .sidebar-nav-icon {
+  opacity: 1;
 }
 
 .sidebar-nav-item.active {
-  background: var(--color-primary-gradient);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-sm);
+  background: rgba(129, 140, 248, 0.16);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.sidebar-nav-item.active .sidebar-nav-icon {
+  opacity: 1;
+  color: #a5b4fc;
+}
+
+/* ---- مؤشر رفيع يوضّح الصفحة النشطة — بديل هادئ لتعبئة الخلفية بالكامل
+   بتدرّج لوني، أقرب لأنماط الـSidebar المؤسسية الحديثة (Linear/Notion) ---- */
+.sidebar-nav-item.active::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #818cf8, #6366f1);
 }
 
 .app-main {
@@ -752,17 +822,18 @@ textarea:focus-visible,
 }
 
 .app-topbar {
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
 }
 
 .app-topbar-title {
   font-family: var(--font-heading);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: var(--color-text);
 }
 
 .app-content {
@@ -875,6 +946,16 @@ textarea:focus-visible,
     min-width: 0;
   }
 
+  .sidebar-nav-group {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .sidebar-nav-group-label {
+    display: none;
+  }
+
   .app-topbar {
     padding: var(--space-4) var(--space-5);
   }
@@ -906,7 +987,7 @@ textarea:focus-visible,
    3. موديول السيارات (Vehicles) — Phase 2
    ============================================================================ */
 
-/* ---- شريط الأدوات (بحث + فلتر + زرار إضافة) ---- */
+/* ---- شريط الأدوات (بحث + فلتر + زر إضافة) ---- */
 
 .page-toolbar {
   display: flex;
@@ -992,6 +1073,37 @@ textarea:focus-visible,
   font-size: var(--text-sm);
 }
 
+/* ---- زر شفاف بلا حدود (Ghost) — لإجراءات ثانوية جدًا داخل مساحة
+   مزدحمة (صفوف الجداول، أشرطة الأدوات الفرعية) لا تستحق وزن Secondary
+   الكامل بحدوده وخلفيته ---- */
+.btn-ghost {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.btn-ghost:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: var(--transition-fast);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ---- كارت الجدول ---- */
 
 .table-card {
@@ -1027,8 +1139,8 @@ textarea:focus-visible,
   background: var(--color-text-muted);
 }
 
-/* ---- شريط تنقّل يمين/يسار فوق الجداول اللي أعمدتها أعرض من الشاشة؛
-   بيظهر تلقائيًا بس لما الجدول يبقى فعلًا قابل للتمرير أفقيًا ---- */
+/* ---- شريط تنقّل يمين/يسار فوق الجداول التي أعمدتها أعرض من الشاشة؛
+   يظهر تلقائيًا فقط عندما يصبح الجدول فعلًا قابلاً للتمرير أفقيًا ---- */
 
 .table-scroll-controls {
   display: none;
@@ -1077,6 +1189,8 @@ textarea:focus-visible,
   min-width: 780px;
 }
 
+/* ---- ترويسة الجدول: خط أصغر وهادئ — من غير letter-spacing أو
+   uppercase (تكسر شكل الحروف العربية المتصلة، مناسبة فقط للاتينية) ---- */
 .data-table th {
   text-align: right;
   padding: var(--space-3) var(--space-4);
@@ -1133,7 +1247,6 @@ textarea:focus-visible,
 
 .clickable-row:hover {
   background: var(--color-primary-light);
-  box-shadow: 0 1px 4px rgba(15, 17, 21, 0.08);
 }
 
 .table-state {
@@ -1147,14 +1260,14 @@ textarea:focus-visible,
 .table-state::before {
   content: "";
   display: block;
-  width: 36px;
-  height: 36px;
-  margin: 0 auto var(--space-4);
+  width: 32px;
+  height: 32px;
+  margin: 0 auto var(--space-3);
   border-radius: 50%;
-  border: 2px dashed var(--color-border);
+  border: 1.5px dashed var(--color-border);
 }
 
-/* ---- حالة "فارغ تمامًا" مصمّمة (أيقونة + عنوان + وصف + زرار فعل) ---- */
+/* ---- حالة "فارغ تمامًا" مصمّمة (أيقونة + عنوان + وصف + زر فعل) ---- */
 .table-state.is-rich {
   padding: 0;
 }
@@ -1304,14 +1417,19 @@ textarea:focus-visible,
 }
 
 .modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
   background: transparent;
   border: none;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   line-height: 1;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   transition: var(--transition-base);
 }
 
@@ -1381,7 +1499,7 @@ textarea:focus-visible,
   margin-bottom: var(--space-4);
 }
 
-/* ---- حقل اختيار مع زرار إجراء ملاصق (زي "+ موظف جديد") ---- */
+/* ---- حقل اختيار مع زر إجراء ملاصق (مثل "+ موظف جديد") ---- */
 .input-with-action {
   display: flex;
   gap: var(--space-2);
@@ -1443,7 +1561,7 @@ textarea:focus-visible,
    4. موديول الوقود (Fuel) — Phase 3
    ============================================================================ */
 
-/* ---- كروت الملخص السريع ---- */
+/* ---- بطاقات الملخص السريع ---- */
 
 .summary-cards {
   display: grid;
@@ -1457,14 +1575,14 @@ textarea:focus-visible,
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  gap: 3px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   position: relative;
   overflow: hidden;
-  animation: statCardRiseIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: statCardRiseIn 0.4s ease backwards;
 }
 
 .summary-cards .summary-card:nth-child(1) { animation-delay: 0s; }
@@ -1477,20 +1595,21 @@ textarea:focus-visible,
   content: "";
   position: absolute;
   inset-inline-start: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
+  top: var(--space-3);
+  bottom: var(--space-3);
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  opacity: 0.85;
 }
 
 .summary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .summary-card:hover .card-icon {
-  transform: scale(1.08) rotate(-4deg);
+  transform: scale(1.06);
 }
 
 .summary-card .card-icon {
@@ -1573,7 +1692,7 @@ textarea:focus-visible,
   color: var(--color-text-muted);
 }
 
-/* ---- زرار خطر (إلغاء/Void) ---- */
+/* ---- زر خطر (إلغاء/Void) ---- */
 
 .btn-danger {
   padding: var(--space-2) var(--space-4);
@@ -1670,7 +1789,7 @@ textarea:focus-visible,
   color: var(--color-text);
 }
 
-/* قيمة الرصيد/الإجمالي داخل كروت الملخص (إعادة استخدام .summary-card) */
+/* قيمة الرصيد/الإجمالي داخل بطاقات الملخص (إعادة استخدام .summary-card) */
 .summary-card-value.is-balance {
   color: var(--color-primary);
 }
@@ -1706,6 +1825,118 @@ textarea:focus-visible,
   background: var(--color-success-bg);
   color: var(--color-success-text);
   border: 1px solid var(--color-success-text);
+}
+
+/* ---- تنبيهات عابرة (Toasts) — تأكيد سريع وهادئ لعمليات مثل تصدير ملف،
+   يختفي تلقائيًا من غير ما يعطّل المستخدم أو يحتاج تفاعل ---- */
+.toast-container {
+  position: fixed;
+  bottom: var(--space-5);
+  inset-inline-end: var(--space-5);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 340px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-text-muted);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  pointer-events: auto;
+  animation: toastSlideIn 0.22s ease;
+}
+
+.toast.is-leaving {
+  animation: toastSlideOut 0.18s ease forwards;
+}
+
+.toast-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  stroke: currentColor;
+  fill: none;
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin: -2px;
+  background: transparent;
+  border: none;
+  font-size: var(--text-md);
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: var(--transition-base);
+}
+
+.toast-close:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.toast.toast-success {
+  border-inline-start-color: var(--color-success-text);
+}
+
+.toast.toast-success .toast-icon {
+  color: var(--color-success-text);
+}
+
+.toast.toast-error {
+  border-inline-start-color: var(--color-danger-text);
+}
+
+.toast.toast-error .toast-icon {
+  color: var(--color-danger-text);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    inset-inline: var(--space-3);
+    max-width: none;
+  }
 }
 
 .fund-card-actions {
@@ -1826,9 +2057,28 @@ textarea:focus-visible,
   max-width: 420px;
 }
 
+/* ---- أيقونة بحث زخرفية داخل الحقل — عبر mask بدل صورة عادية حتى تأخذ
+   لونها من currentColor/متغيّر CSS وتتكيّف تلقائيًا مع الوضع الغامق ---- */
+.global-search::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  background-color: var(--color-text-muted);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>")
+    no-repeat center / contain;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>")
+    no-repeat center / contain;
+  pointer-events: none;
+}
+
 .global-search-input {
   width: 100%;
   padding: var(--space-2) var(--space-4);
+  padding-inline-start: 34px;
   font-size: var(--text-base);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1922,8 +2172,8 @@ textarea:focus-visible,
   gap: var(--space-2);
 }
 
-/* ---- زر سريع لتبديل الوضع الداكن — هلال ثابت الشكل جمب حرف المستخدم في
-   الأفاتار، بيبدّل الوضع فورًا من غير فتح القائمة المنسدلة ---- */
+/* ---- زر سريع لتبديل الوضع الداكن — هلال ثابت الشكل بجانب حرف المستخدم في
+   الأفاتار، يبدّل الوضع فورًا من غير فتح القائمة المنسدلة ---- */
 .theme-toggle-quick {
   display: inline-flex;
   align-items: center;
@@ -2125,14 +2375,14 @@ textarea:focus-visible,
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  gap: 3px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   position: relative;
   overflow: hidden;
-  animation: statCardRiseIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: statCardRiseIn 0.4s ease backwards;
 }
 
 .stat-card:nth-child(1) { animation-delay: 0s; }
@@ -2155,37 +2405,41 @@ textarea:focus-visible,
   content: "";
   position: absolute;
   inset-inline-start: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
+  top: var(--space-3);
+  bottom: var(--space-3);
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  opacity: 0.85;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-/* ---- تدرجات لونية دلالية لكل نوع كارت (السيارات/الوقود/العهدة/المصروفات) ---- */
+/* ---- ألوان دلالية واحدة هادئة لكل نوع كارت (السيارات/الوقود/العهدة/المصروفات) —
+   لون واحد مسطّح بدل تدرّج مزدوج، حتى يظل الكارت هادئًا وليست "كل جزء لونه
+   مختلف" ---- */
 
 .stat-card-fuel::before {
-  background: linear-gradient(180deg, #f59e0b, #ea580c);
+  background: #d97706;
 }
 
 .stat-card-fund::before {
-  background: linear-gradient(180deg, #22c55e, #15803d);
+  background: #15803d;
 }
 
 .stat-card-expense::before {
-  background: linear-gradient(180deg, #fb7185, #e11d48);
+  background: #e11d48;
 }
 
 .stat-card-assets::before {
-  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+  background: #6d28d9;
 }
 
-/* ---- أيقونة موحّدة لكل أنواع الكروت (Dashboard / Summary / Fund) ---- */
+/* ---- أيقونة موحّدة لكل أنواع الكروت (Dashboard / Summary / Fund) — لون
+   مسطّح واحد هادئ بدل تدرّج قطري، أقرب لهوية Enterprise SaaS بسيطة ---- */
 .card-icon {
   display: inline-flex;
   align-items: center;
@@ -2193,73 +2447,91 @@ textarea:focus-visible,
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--color-primary-light), #c7d2fe);
-  box-shadow: var(--shadow-sm);
+  background: var(--color-primary-light);
   font-size: var(--text-md);
   margin-bottom: var(--space-1);
-  transition: transform 0.22s ease;
+  transition: transform 0.15s ease;
 }
 
-/* ---- نسخة أكبر ومتدرجة من الأيقونة، مخصوصة لكروت لوحة الرئيسية بس ---- */
+/* ---- نسخة أصغر قليلاً من الأيقونة، مخصوصة لبطاقات لوحة الرئيسية فقط ---- */
 .stat-card .card-icon {
   width: 26px;
   height: 26px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  box-shadow: var(--shadow-sm);
-  background: linear-gradient(135deg, var(--color-primary-light), #c7d2fe);
-  transition: transform 0.22s ease;
+  background: var(--color-primary-light);
+  transition: transform 0.15s ease;
   margin-bottom: 2px;
 }
 
 .stat-card:hover .card-icon {
-  transform: scale(1.08) rotate(-4deg);
+  transform: scale(1.06);
 }
 
 .stat-card-fuel .card-icon {
-  background: linear-gradient(135deg, #fef3c7, #fdba74);
+  background: #fef3c7;
 }
 
 .stat-card-fund .card-icon {
-  background: linear-gradient(135deg, #dcfce7, #86efac);
+  background: #dcfce7;
 }
 
 .stat-card-expense .card-icon {
-  background: linear-gradient(135deg, #fee2e2, #fda4af);
+  background: #fee2e2;
 }
 
 .stat-card-assets .card-icon {
-  background: linear-gradient(135deg, #ede9fe, #c4b5fd);
+  background: #ede9fe;
 }
 
-/* ---- الوضع الغامق: خلفيات الأيقونة الباستيل الفاتحة فوق بقيت شبه
-   مستحيلة القراءة (الأيقونة بتاخد لون النص العادي، والنص في الغامق فاتح
-   — يبقى أيقونة فاتحة فوق خلفية فاتحة). هنا بدايل غامقة/مشبّعة أكتر +
-   لون أيقونة فاتح مخصوص لكل نوع، اتراجعوا كلهم بمعادلة تباين WCAG ===
-   (أقل نتيجة 6.9:1، والمطلوب 3:1 بس لعناصر الواجهة زي الأيقونات) ---- */
+/* ---- الوضع الغامق: خلفيات الأيقونة الباستيل الفاتحة أعلاه أصبحت شبه
+   مستحيلة القراءة (الأيقونة تأخذ لون النص العادي، والنص في الغامق فاتح
+   — يصبح أيقونة فاتحة فوق خلفية فاتحة). هنا بدائل غامقة/مشبّعة أكثر +
+   لون أيقونة فاتح مخصوص لكل نوع، رُوجعت كلها بمعادلة تباين WCAG
+   (أقل نتيجة 6.9:1، والمطلوب 3:1 فقط لعناصر الواجهة مثل الأيقونات) ---- */
 [data-theme="dark"] .card-icon {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.4));
+  background: rgba(129, 140, 248, 0.22);
   color: #c7d2fe;
 }
 
 [data-theme="dark"] .stat-card-fuel .card-icon {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.42));
+  background: rgba(245, 158, 11, 0.22);
   color: #fde68a;
 }
 
 [data-theme="dark"] .stat-card-fund .card-icon {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(21, 128, 61, 0.42));
+  background: rgba(34, 197, 94, 0.22);
   color: #bbf7d0;
 }
 
 [data-theme="dark"] .stat-card-expense .card-icon {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(190, 18, 60, 0.42));
+  background: rgba(244, 63, 94, 0.22);
   color: #fecdd3;
 }
 
 [data-theme="dark"] .stat-card-assets .card-icon {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(109, 40, 217, 0.42));
+  background: rgba(139, 92, 246, 0.22);
   color: #ddd6fe;
+}
+
+/* ---- الوضع الغامق: لون --color-primary يكون بنفسجي/إنديجو متوسط
+   الإضاءة، والنص شبه الأسود (--color-text-inverse) فوقه يعطي تباينًا أضعف
+   من المطلوب (3.98:1 بدل 4.5:1) — الأبيض فوقه يعطي تباينًا أفضل بوضوح
+   (4.84:1)، فنفرضه صراحةً هنا على العناصر التي خلفيتها لون primary مسطّح ---- */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .wizard-step.active .wizard-step-circle {
+  color: #ffffff;
+}
+
+/* ---- الأفاتار الدائرية تستخدم تدرّج قطري بين لونين — طرفه الأفتح
+   (--color-primary-dark، فاتح تصميميًا في الغامق) لا يعطي تباينًا كافيًا مع
+   أي من الأبيض أو الأسود شبه الكامل معًا. الحل: خلفية مسطّحة بلون واحد
+   فقط في الوضع الغامق (بدل التدرّج) + نص أبيض، حتى يظل التباين ثابتًا
+   ومضمونًا على كل مساحة الدائرة ---- */
+[data-theme="dark"] .welcome-avatar,
+[data-theme="dark"] .topbar-user-avatar {
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 /* ---- مؤشر اتجاه بسيط (▲/▼) مقارنة بالشهر السابق ---- */
@@ -2302,8 +2574,8 @@ textarea:focus-visible,
   line-height: 1.2;
 }
 
-/* لما القيمة تكون نص/رسالة (زي "لا توجد عهدة نشطة") بدل رقم فعلي —
-   بنعرضها بخط أصغر وأخف عشان الكارت يفضل بنفس ارتفاع باقي الكروت */
+/* عندما تكون القيمة نص/رسالة (مثل "لا توجد عهدة نشطة") بدل رقم فعلي —
+   نعرضها بخط أصغر وأخف حتى يظل الكارت بنفس ارتفاع باقي البطاقات */
 .stat-card-value.is-compact {
   font-size: var(--text-sm);
   font-weight: 700;
@@ -2599,21 +2871,19 @@ textarea:focus-visible,
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   padding: var(--space-4) var(--space-5);
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
-  animation: statCardRiseIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  transition: box-shadow 0.18s ease;
+  animation: statCardRiseIn 0.4s ease backwards;
 }
 
 .chart-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  border-color: transparent;
+  box-shadow: var(--shadow-md);
 }
 
 .chart-card-title {
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: 700;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-4);
   color: var(--color-text);
 }
 
@@ -2893,6 +3163,8 @@ textarea:focus-visible,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

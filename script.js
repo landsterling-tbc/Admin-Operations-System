@@ -145,6 +145,61 @@ function icon(name, extraClass) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// تنبيه عابر (Toast) — تأكيد سريع لعملية ناجحة (تصدير ملف، نسخة احتياطية،
+// إلخ) يختفي تلقائيًا من غير ما يحتاج أي تفاعل من المستخدم. مستقل تمامًا
+// عن رسائل الخطأ الموجودة أصلًا داخل الفورمات (.error-message)، التي لا
+// تزال تعمل بنفس الشكل ومكانها.
+// ---------------------------------------------------------------------------
+const toastContainer = document.getElementById("toast-container");
+const TOAST_ICONS = { success: "check", error: "cross", info: "checkCircle" };
+
+function showToast(message, type) {
+  if (!toastContainer) return;
+  const toastType = type || "success";
+  const toastEl = document.createElement("div");
+  toastEl.className = "toast toast-" + toastType;
+  toastEl.setAttribute("role", "status");
+  toastEl.innerHTML =
+    icon(TOAST_ICONS[toastType] || "check", "toast-icon") +
+    '<span class="toast-message">' + escapeHtml(message) + "</span>" +
+    '<button type="button" class="toast-close" aria-label="إغلاق">' + icon("cross", "") + "</button>";
+  toastContainer.appendChild(toastEl);
+
+  const DURATION = 3200;
+  let remaining = DURATION;
+  let timerId = null;
+  let startedAt = 0;
+
+  const remove = () => {
+    if (timerId) clearTimeout(timerId);
+    toastEl.classList.add("is-leaving");
+    setTimeout(() => toastEl.remove(), 200);
+  };
+
+  const startTimer = () => {
+    startedAt = Date.now();
+    timerId = setTimeout(remove, remaining);
+  };
+
+  const pauseTimer = () => {
+    if (!timerId) return;
+    clearTimeout(timerId);
+    timerId = null;
+    remaining -= Date.now() - startedAt;
+  };
+
+  toastEl.addEventListener("mouseenter", pauseTimer);
+  toastEl.addEventListener("mouseleave", startTimer);
+  toastEl.addEventListener("focusin", pauseTimer);
+  toastEl.addEventListener("focusout", startTimer);
+
+  const closeButton = toastEl.querySelector(".toast-close");
+  if (closeButton) closeButton.addEventListener("click", remove);
+
+  startTimer();
+}
+
 function formatDateTime(value) {
   if (!value) return "—";
   const date = new Date(value);
@@ -4982,6 +5037,8 @@ function exportRowsToCSV(filename, headers, rows) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  showToast("تم تنزيل الملف بنجاح.", "success");
 }
 
 // ============================================================================
@@ -6120,7 +6177,7 @@ function loadReportTab(tab) {
   else if (tab === "fuel") loadFuelReport();
   else if (tab === "petty-cash") loadPettyCashReport();
   else if (tab === "expenses") loadExpensesReport();
-  else if (tab === "it-assets") loadItAssetsReport();
+  else if (tab === "it-assets") loadItAssetsReportSubtab(currentItAssetsReportSubtab);
 }
 
 function setReportState(el, message) {
@@ -6826,6 +6883,213 @@ reportItAssetsExportButton.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 10.4c تبويبات مستقلة لكل نوع أصل داخل تقرير أصول تقنية المعلومات — كل
+//       تبويب بيوضّح إجمالي النوع ده وحده، وعدد النشط/المتاح مقابل
+//       المسترد/المستبعد، مع توزيع حسب الموقع (أو نوع اللابتوب لكتالوج
+//       اللابتوبات تحديدًا لأنه غير مرتبط بموقع أصلًا)
+// ---------------------------------------------------------------------------
+
+const itAssetsReportSubtabsContainer = document.getElementById("it-assets-report-subtabs");
+const itAssetsReportSubpanels = {
+  overview: document.getElementById("it-assets-report-panel-overview"),
+  laptops: document.getElementById("it-assets-report-panel-laptops"),
+  email: document.getElementById("it-assets-report-panel-email"),
+  sim: document.getElementById("it-assets-report-panel-sim"),
+  tablets: document.getElementById("it-assets-report-panel-tablets"),
+  "laptop-catalog": document.getElementById("it-assets-report-panel-laptop-catalog"),
+};
+
+let currentItAssetsReportSubtab = "overview";
+
+const IT_ASSET_REPORT_TYPES = [
+  {
+    key: "laptops",
+    table: "it_laptop_assignments",
+    icon: "laptop",
+    activeLabel: "نشطة",
+    inactiveLabel: "مستردة",
+    groupField: "staff_location",
+    groupHeader: "الموقع",
+    groupFallback: "غير محدد",
+  },
+  {
+    key: "email",
+    table: "it_email_assignments",
+    icon: "mail",
+    activeLabel: "نشطة",
+    inactiveLabel: "مستردة",
+    groupField: "staff_location",
+    groupHeader: "الموقع",
+    groupFallback: "غير محدد",
+  },
+  {
+    key: "sim",
+    table: "it_sim_assignments",
+    icon: "phone",
+    activeLabel: "نشطة",
+    inactiveLabel: "مستردة",
+    groupField: "staff_location",
+    groupHeader: "الموقع",
+    groupFallback: "غير محدد",
+  },
+  {
+    key: "tablets",
+    table: "it_tablet_assignments",
+    icon: "tablet",
+    activeLabel: "نشطة",
+    inactiveLabel: "مستردة",
+    groupField: "staff_location",
+    groupHeader: "الموقع",
+    groupFallback: "غير محدد",
+  },
+  {
+    key: "laptop-catalog",
+    table: "it_laptop_catalog",
+    icon: "archive",
+    activeLabel: "نشط",
+    inactiveLabel: "مستبعد",
+    groupField: "laptop_type",
+    groupHeader: "نوع اللابتوب",
+    groupFallback: "غير محدد",
+  },
+];
+
+// آخر جدول توزيع اتحسب لكل نوع — مستخدم في تصدير CSV الخاص بتبويبه
+const itAssetTypeReportRowsCache = {};
+
+itAssetsReportSubtabsContainer.querySelectorAll("[data-it-report-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentItAssetsReportSubtab = btn.dataset.itReportTab;
+    itAssetsReportSubtabsContainer.querySelectorAll("[data-it-report-tab]").forEach((b) => {
+      b.classList.toggle("active", b === btn);
+    });
+    Object.keys(itAssetsReportSubpanels).forEach((key) => {
+      itAssetsReportSubpanels[key].hidden = key !== currentItAssetsReportSubtab;
+    });
+    loadItAssetsReportSubtab(currentItAssetsReportSubtab);
+  });
+});
+
+function loadItAssetsReportSubtab(tab) {
+  if (tab === "overview") {
+    loadItAssetsReport();
+    return;
+  }
+  const cfg = IT_ASSET_REPORT_TYPES.find((t) => t.key === tab);
+  if (cfg) loadItAssetTypeReport(cfg);
+}
+
+async function loadItAssetTypeReport(cfg) {
+  const summaryEl = document.getElementById("report-it-assets-" + cfg.key + "-summary");
+  const statusChartCanvas = document.getElementById("report-it-assets-" + cfg.key + "-status-chart");
+  const statusStateEl = document.getElementById("report-it-assets-" + cfg.key + "-status-state");
+  const groupChartCanvas = document.getElementById("report-it-assets-" + cfg.key + "-group-chart");
+  const groupStateEl = document.getElementById("report-it-assets-" + cfg.key + "-group-state");
+  const tableBody = document.getElementById("report-it-assets-" + cfg.key + "-table-body");
+  const stateEl = document.getElementById("report-it-assets-" + cfg.key + "-state");
+
+  renderTableSkeleton(tableBody, 5, 4);
+  setReportState(stateEl, null);
+  summaryEl.innerHTML = "";
+
+  const { data, error } = await supabaseClient.from(cfg.table).select("status, " + cfg.groupField);
+  if (error) {
+    console.error("Error loading IT asset type report (" + cfg.key + "):", error);
+    setReportState(stateEl, "حصل خطأ أثناء تحميل التقرير.");
+    return;
+  }
+
+  const rows = data || [];
+  const activeCount = rows.filter((r) => r.status === "active").length;
+  const inactiveCount = rows.length - activeCount;
+
+  summaryEl.innerHTML =
+    statCardHtml(icon(cfg.icon), "الإجمالي", String(rows.length), "") +
+    statCardHtml(icon("checkCircle"), cfg.activeLabel, String(activeCount), "") +
+    statCardHtml(icon("noEntry"), cfg.inactiveLabel, String(inactiveCount), "");
+
+  // ---- رسم دائري: الحالة (نشط/متاح مقابل مسترد/مستبعد) ----
+  if (!rows.length) {
+    setReportState(statusStateEl, "لا توجد بيانات لعرضها.");
+    destroyExistingChart(statusChartCanvas);
+  } else {
+    setReportState(statusStateEl, null);
+    drawDonutChart(
+      statusChartCanvas,
+      [
+        { label: cfg.activeLabel, value: activeCount },
+        { label: cfg.inactiveLabel, value: inactiveCount },
+      ],
+      { formatValue: (v) => formatNumber(v, 0) }
+    );
+  }
+
+  // ---- تجميع حسب الموقع (أو نوع اللابتوب لكتالوج اللابتوبات) ----
+  const groupMap = {};
+  rows.forEach((r) => {
+    const key = r[cfg.groupField] || cfg.groupFallback;
+    if (!groupMap[key]) groupMap[key] = { group: key, active: 0, inactive: 0 };
+    if (r.status === "active") groupMap[key].active += 1;
+    else groupMap[key].inactive += 1;
+  });
+  const groupRows = Object.values(groupMap)
+    .map((r) => ({ ...r, total: r.active + r.inactive }))
+    .sort((a, b) => b.total - a.total);
+
+  itAssetTypeReportRowsCache[cfg.key] = groupRows;
+
+  const topGroups = groupRows.slice(0, 10);
+  if (!topGroups.length) {
+    setReportState(groupStateEl, "لا توجد بيانات لعرضها.");
+    destroyExistingChart(groupChartCanvas);
+  } else {
+    setReportState(groupStateEl, null);
+    drawBarChart(
+      groupChartCanvas,
+      topGroups.map((r) => r.total),
+      topGroups.map((r) => r.group),
+      { horizontal: true, formatValue: (v) => formatNumber(v, 0) }
+    );
+  }
+
+  if (!groupRows.length) {
+    setReportState(stateEl, "لا توجد بيانات لعرضها.");
+    tableBody.innerHTML = "";
+    return;
+  }
+
+  setReportState(stateEl, null);
+  tableBody.innerHTML = groupRows
+    .map(
+      (r) =>
+        "<tr><td>" +
+        escapeHtml(r.group) +
+        "</td><td>" +
+        r.active +
+        "</td><td>" +
+        r.inactive +
+        "</td><td><strong>" +
+        r.total +
+        "</strong></td></tr>"
+    )
+    .join("");
+}
+
+document.querySelectorAll("[data-it-report-export]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.itReportExport;
+    const cfg = IT_ASSET_REPORT_TYPES.find((t) => t.key === key);
+    if (!cfg) return;
+    const rows = itAssetTypeReportRowsCache[key] || [];
+    exportRowsToCSV(
+      "it-assets-" + key + "-report.csv",
+      [cfg.groupHeader, cfg.activeLabel, cfg.inactiveLabel, "الإجمالي"],
+      rows.map((r) => [r.group, r.active, r.inactive, r.total])
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 10.5 نسخة احتياطية كاملة (Excel) — كل الجداول الأساسية في ملف واحد بعدة
 // شيتات، مستقلة عن أي فلتر تاريخ في التبويبات فوق. بتستخدم fetchAllRowsPaged
 // عشان محدش جدول يتقطع عند أول 1000 صف زي ما حصل قبل كده في التقارير
@@ -6983,6 +7247,7 @@ async function exportFullBackupToExcel() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast("تم إنشاء النسخة الاحتياطية وتنزيلها بنجاح.", "success");
     URL.revokeObjectURL(url);
   } catch (unexpectedError) {
     console.error("Unexpected error exporting full backup:", unexpectedError);
@@ -8166,6 +8431,8 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  showToast("تم تنزيل القالب بنجاح.", "success");
 }
 
 // تحويل قيمة تاريخ (Date حقيقي من Excel، أو نص) لصيغة YYYY-MM-DD المطلوبة

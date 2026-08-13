@@ -108,46 +108,56 @@
       </div>
 
       <nav class="sidebar-nav" aria-label="التنقل الرئيسي">
-        <a href="#" class="sidebar-nav-item active" data-page="dashboard">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" /></svg>
-          <span>الرئيسية</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="vehicles" id="vehicles-nav-item">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" /></svg>
-          <span>السيارات</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="fuel" id="fuel-nav-item">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" /></svg>
-          <span>الوقود</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="petty-cash" id="petty-cash-nav-item">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
-          <span>العهدة النقدية</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="expenses" id="expenses-nav-item">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
-          <span>المصروفات</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="it-assets">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
-          <span>أصول تقنية المعلومات</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="reports" id="reports-nav-item">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-6" /></svg>
-          <span>التقارير</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="audit-log" id="audit-log-nav-item" hidden>
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
-          <span>سجل العمليات</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="accounts" id="accounts-nav-item" hidden>
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" /></svg>
-          <span>حسابات النظام</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" data-page="employees" id="employees-nav-item" hidden>
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-          <span>الموظفون</span>
-        </a>
+        <div class="sidebar-nav-group">
+          <a href="#" class="sidebar-nav-item active" data-page="dashboard">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" /></svg>
+            <span>الرئيسية</span>
+          </a>
+        </div>
+
+        <div class="sidebar-nav-group">
+          <span class="sidebar-nav-group-label">العمليات</span>
+          <a href="#" class="sidebar-nav-item" data-page="vehicles" id="vehicles-nav-item">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" /></svg>
+            <span>السيارات</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="fuel" id="fuel-nav-item">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" /></svg>
+            <span>الوقود</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="petty-cash" id="petty-cash-nav-item">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
+            <span>العهدة النقدية</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="expenses" id="expenses-nav-item">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
+            <span>المصروفات</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="it-assets">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
+            <span>أصول تقنية المعلومات</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="reports" id="reports-nav-item">
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-6" /></svg>
+            <span>التقارير</span>
+          </a>
+        </div>
+
+        <div class="sidebar-nav-group">
+          <span class="sidebar-nav-group-label">الإدارة</span>
+          <a href="#" class="sidebar-nav-item" data-page="audit-log" id="audit-log-nav-item" hidden>
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
+            <span>سجل العمليات</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="accounts" id="accounts-nav-item" hidden>
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" /></svg>
+            <span>حسابات النظام</span>
+          </a>
+          <a href="#" class="sidebar-nav-item" data-page="employees" id="employees-nav-item" hidden>
+            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            <span>الموظفون</span>
+          </a>
+        </div>
       </nav>
 
     </aside>
@@ -1046,54 +1056,209 @@
 
           <!-- ---- تقرير أصول تقنية المعلومات (توزيع حسب النوع والموقع) ---- -->
           <div id="report-panel-it-assets" class="report-panel" hidden>
-            <div class="page-toolbar">
-              <div class="page-toolbar-filters">
-                <select id="report-it-assets-location-filter" class="input-select">
-                  <option value="">كل المواقع</option>
-                </select>
-              </div>
-              <button type="button" id="report-it-assets-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
-            </div>
-            <div id="report-it-assets-summary" class="summary-cards"></div>
-            <p class="summary-note">
-              كتالوج اللابتوبات مش مرتبط بموظف أو موقع (مجرد جرد لأنواع
-              الأجهزة الموجودة فعليًا)، فمش داخل في توزيع الرسوم والجدول تحت.
-            </p>
-
-            <div class="chart-grid">
-              <div class="chart-card">
-                <h3 class="chart-card-title">توزيع الأصول الموزّعة حسب النوع</h3>
-                <div class="chart-canvas-wrapper">
-                  <canvas id="report-it-assets-type-chart"></canvas>
-                </div>
-                <div id="report-it-assets-type-state" class="table-state" hidden></div>
-              </div>
-              <div class="chart-card">
-                <h3 class="chart-card-title">أعلى المواقع (إجمالي كل الأنواع)</h3>
-                <div class="chart-canvas-wrapper">
-                  <canvas id="report-it-assets-location-chart"></canvas>
-                </div>
-                <div id="report-it-assets-location-state" class="table-state" hidden></div>
-              </div>
+            <div class="modal-tabs page-tabs" id="it-assets-report-subtabs">
+              <button type="button" class="modal-tab active" data-it-report-tab="overview">نظرة عامة</button>
+              <button type="button" class="modal-tab" data-it-report-tab="laptops">اللابتوبات</button>
+              <button type="button" class="modal-tab" data-it-report-tab="email">البريد الإلكتروني</button>
+              <button type="button" class="modal-tab" data-it-report-tab="sim">أرقام الجوال</button>
+              <button type="button" class="modal-tab" data-it-report-tab="tablets">الأجهزة اللوحية</button>
+              <button type="button" class="modal-tab" data-it-report-tab="laptop-catalog">كتالوج اللابتوبات</button>
             </div>
 
-            <div class="table-card">
-              <div class="table-scroll">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>الموقع</th>
-                      <th>اللابتوبات</th>
-                      <th>البريد الإلكتروني</th>
-                      <th>أرقام الجوال</th>
-                      <th>الأجهزة اللوحية</th>
-                      <th>الإجمالي</th>
-                    </tr>
-                  </thead>
-                  <tbody id="report-it-assets-table-body"></tbody>
-                </table>
+            <!-- ---- نظرة عامة: توزيع كل الأنواع مجمّعة مع بعضها ---- -->
+            <div id="it-assets-report-panel-overview" class="it-assets-report-subpanel">
+              <div class="page-toolbar">
+                <div class="page-toolbar-filters">
+                  <select id="report-it-assets-location-filter" class="input-select">
+                    <option value="">كل المواقع</option>
+                  </select>
+                </div>
+                <button type="button" id="report-it-assets-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
               </div>
-              <div id="report-it-assets-state" class="table-state" hidden></div>
+              <div id="report-it-assets-summary" class="summary-cards"></div>
+              <p class="summary-note">
+                كتالوج اللابتوبات غير مرتبط بموظف أو موقع (مجرد جرد لأنواع
+                الأجهزة الموجودة فعليًا)، فهو غير داخل في توزيع الرسوم والجدول
+                أسفله — له تبويب مستقل بجانب هذا.
+              </p>
+
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">توزيع الأصول الموزّعة حسب النوع</h3>
+                  <div class="chart-canvas-wrapper">
+                    <canvas id="report-it-assets-type-chart"></canvas>
+                  </div>
+                  <div id="report-it-assets-type-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى المواقع (إجمالي كل الأنواع)</h3>
+                  <div class="chart-canvas-wrapper">
+                    <canvas id="report-it-assets-location-chart"></canvas>
+                  </div>
+                  <div id="report-it-assets-location-state" class="table-state" hidden></div>
+                </div>
+              </div>
+
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>الموقع</th>
+                        <th>اللابتوبات</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>أرقام الجوال</th>
+                        <th>الأجهزة اللوحية</th>
+                        <th>الإجمالي</th>
+                      </tr>
+                    </thead>
+                    <tbody id="report-it-assets-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <!-- ---- تبويبات مستقلة لكل نوع أصل: كم نشط/متاح وكم مسترد/مستبعد ---- -->
+            <div id="it-assets-report-panel-laptops" class="it-assets-report-subpanel" hidden>
+              <div class="page-toolbar">
+                <button type="button" class="btn-secondary btn-inline" data-it-report-export="laptops"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              </div>
+              <div id="report-it-assets-laptops-summary" class="summary-cards"></div>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">الحالة (نشطة مقابل مستردة)</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-laptops-status-chart"></canvas></div>
+                  <div id="report-it-assets-laptops-status-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى المواقع</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-laptops-group-chart"></canvas></div>
+                  <div id="report-it-assets-laptops-group-state" class="table-state" hidden></div>
+                </div>
+              </div>
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead><tr><th>الموقع</th><th>نشطة</th><th>مستردة</th><th>الإجمالي</th></tr></thead>
+                    <tbody id="report-it-assets-laptops-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-laptops-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div id="it-assets-report-panel-email" class="it-assets-report-subpanel" hidden>
+              <div class="page-toolbar">
+                <button type="button" class="btn-secondary btn-inline" data-it-report-export="email"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              </div>
+              <div id="report-it-assets-email-summary" class="summary-cards"></div>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">الحالة (نشطة مقابل مستردة)</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-email-status-chart"></canvas></div>
+                  <div id="report-it-assets-email-status-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى المواقع</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-email-group-chart"></canvas></div>
+                  <div id="report-it-assets-email-group-state" class="table-state" hidden></div>
+                </div>
+              </div>
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead><tr><th>الموقع</th><th>نشطة</th><th>مستردة</th><th>الإجمالي</th></tr></thead>
+                    <tbody id="report-it-assets-email-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-email-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div id="it-assets-report-panel-sim" class="it-assets-report-subpanel" hidden>
+              <div class="page-toolbar">
+                <button type="button" class="btn-secondary btn-inline" data-it-report-export="sim"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              </div>
+              <div id="report-it-assets-sim-summary" class="summary-cards"></div>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">الحالة (نشطة مقابل مستردة)</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-sim-status-chart"></canvas></div>
+                  <div id="report-it-assets-sim-status-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى المواقع</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-sim-group-chart"></canvas></div>
+                  <div id="report-it-assets-sim-group-state" class="table-state" hidden></div>
+                </div>
+              </div>
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead><tr><th>الموقع</th><th>نشطة</th><th>مستردة</th><th>الإجمالي</th></tr></thead>
+                    <tbody id="report-it-assets-sim-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-sim-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div id="it-assets-report-panel-tablets" class="it-assets-report-subpanel" hidden>
+              <div class="page-toolbar">
+                <button type="button" class="btn-secondary btn-inline" data-it-report-export="tablets"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              </div>
+              <div id="report-it-assets-tablets-summary" class="summary-cards"></div>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">الحالة (نشطة مقابل مستردة)</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-tablets-status-chart"></canvas></div>
+                  <div id="report-it-assets-tablets-status-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى المواقع</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-tablets-group-chart"></canvas></div>
+                  <div id="report-it-assets-tablets-group-state" class="table-state" hidden></div>
+                </div>
+              </div>
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead><tr><th>الموقع</th><th>نشطة</th><th>مستردة</th><th>الإجمالي</th></tr></thead>
+                    <tbody id="report-it-assets-tablets-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-tablets-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div id="it-assets-report-panel-laptop-catalog" class="it-assets-report-subpanel" hidden>
+              <div class="page-toolbar">
+                <button type="button" class="btn-secondary btn-inline" data-it-report-export="laptop-catalog"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              </div>
+              <div id="report-it-assets-laptop-catalog-summary" class="summary-cards"></div>
+              <p class="summary-note">التوزيع هنا حسب نوع اللابتوب (وليس الموقع)، لأن سجلات الكتالوج غير مرتبطة بموظف أو موقع.</p>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3 class="chart-card-title">الحالة (نشط مقابل مستبعد)</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-laptop-catalog-status-chart"></canvas></div>
+                  <div id="report-it-assets-laptop-catalog-status-state" class="table-state" hidden></div>
+                </div>
+                <div class="chart-card">
+                  <h3 class="chart-card-title">أعلى الأنواع</h3>
+                  <div class="chart-canvas-wrapper"><canvas id="report-it-assets-laptop-catalog-group-chart"></canvas></div>
+                  <div id="report-it-assets-laptop-catalog-group-state" class="table-state" hidden></div>
+                </div>
+              </div>
+              <div class="table-card">
+                <div class="table-scroll">
+                  <table class="data-table">
+                    <thead><tr><th>نوع اللابتوب</th><th>نشط</th><th>مستبعد</th><th>الإجمالي</th></tr></thead>
+                    <tbody id="report-it-assets-laptop-catalog-table-body"></tbody>
+                  </table>
+                </div>
+                <div id="report-it-assets-laptop-catalog-state" class="table-state" hidden></div>
+              </div>
             </div>
           </div>
         </section>
@@ -2457,6 +2622,10 @@
       </form>
     </div>
   </div>
+
+  <!-- حاوية التنبيهات العابرة (Toasts) — أعلى كل عناصر الصفحة، تُملأ
+       ديناميكيًا من script.js عبر showToast() -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Supabase JS SDK — عبر CDN، من غير npm أو build tools -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
