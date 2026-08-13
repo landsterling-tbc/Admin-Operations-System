@@ -64,6 +64,9 @@ const logoutButton = document.getElementById("logout-button");
 const pageTitleEl = document.getElementById("page-title");
 const topbarUserName = document.getElementById("topbar-user-name");
 const topbarUserRole = document.getElementById("topbar-user-role");
+const topbarUserAvatar = document.getElementById("topbar-user-avatar");
+const topbarUserTrigger = document.getElementById("topbar-user-trigger");
+const topbarUserMenu = document.getElementById("topbar-user-menu");
 
 function showError(message) {
   errorBox.textContent = message;
@@ -83,6 +86,7 @@ function setLoading(isLoading) {
 function roleLabel(role) {
   if (role === "super_admin") return "مدير النظام";
   if (role === "admin") return "أدمن";
+  if (role === "it_support") return "دعم تقني";
   return "مدير";
 }
 
@@ -313,12 +317,20 @@ function showAppShell(profile) {
     '<span class="welcome-role-badge">' + escapeHtml(roleLabel(profile.role)) + "</span>";
   topbarUserName.textContent = profile.full_name;
   topbarUserRole.textContent = roleLabel(profile.role);
+  if (topbarUserAvatar) {
+    topbarUserAvatar.textContent = (profile.full_name || "؟").trim().charAt(0);
+  }
 
   // إظهار/إخفاء عناصر مقصورة على Super Admin أو Admin العادي (الرفض
   // الفعلي بييجي من RLS في قاعدة البيانات نفسها — ده بس تحسين لتجربة
   // الاستخدام). Admin العادي يقدر يعدّل السيارات/الوقود/العهدة/المصروفات/
   // الموظفين، لكن مش حسابات النظام ولا سجل العمليات.
   const isAdminOrAbove = profile.role === "super_admin" || profile.role === "admin";
+
+  // أصول تقنية المعلومات بقى ليها صلاحية مستقلة: Super Admin أو IT Support
+  // بس هما اللي يقدروا يضيفوا/يعدّلوا/يستردوا — الأدمن العادي بقى يشوف
+  // الصفحة بالقراءة بس (زراير الإضافة/التعديل مختفية له)
+  const isItAssetManager = profile.role === "super_admin" || profile.role === "it_support";
 
   addVehicleButton.hidden = !isAdminOrAbove;
   addFuelButton.hidden = !isAdminOrAbove;
@@ -329,16 +341,16 @@ function showAppShell(profile) {
   importExpensesButton.hidden = !isAdminOrAbove;
   addEmployeeButton.hidden = !isAdminOrAbove;
   fullBackupExportButton.hidden = !isAdminOrAbove;
-  addLaptopButton.hidden = !isAdminOrAbove;
-  importLaptopsButton.hidden = !isAdminOrAbove;
-  addEmailButton.hidden = !isAdminOrAbove;
-  importEmailButton.hidden = !isAdminOrAbove;
-  addSimButton.hidden = !isAdminOrAbove;
-  importSimButton.hidden = !isAdminOrAbove;
-  addTabletButton.hidden = !isAdminOrAbove;
-  importTabletsButton.hidden = !isAdminOrAbove;
-  addLaptopCatalogButton.hidden = !isAdminOrAbove;
-  importLaptopCatalogButton.hidden = !isAdminOrAbove;
+  addLaptopButton.hidden = !isItAssetManager;
+  importLaptopsButton.hidden = !isItAssetManager;
+  addEmailButton.hidden = !isItAssetManager;
+  importEmailButton.hidden = !isItAssetManager;
+  addSimButton.hidden = !isItAssetManager;
+  importSimButton.hidden = !isItAssetManager;
+  addTabletButton.hidden = !isItAssetManager;
+  importTabletsButton.hidden = !isItAssetManager;
+  addLaptopCatalogButton.hidden = !isItAssetManager;
+  importLaptopCatalogButton.hidden = !isItAssetManager;
 
   // صفحات/عناصر مقصورة على Super Admin بالكامل (مش بس زرار داخل الصفحة)
   const auditLogNavItem = document.getElementById("audit-log-nav-item");
@@ -347,6 +359,16 @@ function showAppShell(profile) {
   if (auditLogNavItem) auditLogNavItem.hidden = profile.role !== "super_admin";
   if (accountsNavItem) accountsNavItem.hidden = profile.role !== "super_admin";
   if (employeesNavItem) employeesNavItem.hidden = !isAdminOrAbove;
+
+  // دور "IT Support" مسؤول حصريًا عن أصول تقنية المعلومات — القائمة
+  // الجانبية بتاعته تقتصر على الرئيسية + أصول تقنية المعلومات بس، وباقي
+  // الصفحات التشغيلية (سيارات/وقود/عهدة/مصروفات/تقارير) بتتخفي له تمامًا
+  const isItSupportOnly = profile.role === "it_support";
+  const itSupportHiddenNavIds = ["vehicles-nav-item", "fuel-nav-item", "petty-cash-nav-item", "expenses-nav-item", "reports-nav-item"];
+  itSupportHiddenNavIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = isItSupportOnly;
+  });
 
   navigateTo("dashboard");
 
@@ -472,9 +494,6 @@ logoutButton.addEventListener("click", () => {
 // شكله (أيقونة + نص) مع الحالة الحالية.
 // ---------------------------------------------------------------------------
 const themeToggleButton = document.getElementById("theme-toggle-button");
-const themeToggleIconDark = document.getElementById("theme-toggle-icon-dark");
-const themeToggleIconLight = document.getElementById("theme-toggle-icon-light");
-const themeToggleLabel = document.getElementById("theme-toggle-label");
 
 function getEffectiveTheme() {
   const explicit = document.documentElement.getAttribute("data-theme");
@@ -482,11 +501,11 @@ function getEffectiveTheme() {
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+// الزر ثابت الشكل والاسم دائمًا "الوضع الداكن" (أيقونة هلال واحدة) — الحالة
+// الحالية (مفعّل/غير مفعّل) بتتعرض بصريًا عبر aria-pressed فقط، من غير ما
+// يتغيّر النص أو الأيقونة نفسها.
 function syncThemeToggleUI() {
   const isDark = getEffectiveTheme() === "dark";
-  themeToggleIconDark.hidden = isDark;
-  themeToggleIconLight.hidden = !isDark;
-  themeToggleLabel.textContent = isDark ? "الوضع الفاتح" : "الوضع الغامق";
   themeToggleButton.setAttribute("aria-pressed", String(isDark));
 }
 
@@ -1867,14 +1886,14 @@ async function confirmFuelAmountIfAnomalous(vehicleId, liters, amount, excludeTr
 
   if (!litersIsHigh && !amountIsHigh) return true;
 
-  const lines = ["الرقم اللي دخلته أعلى بكتير من المعتاد لنفس السيارة:"];
+  const lines = ["الرقم الذي أدخلته أعلى بكثير من المعتاد لنفس السيارة:"];
   if (litersIsHigh) {
     lines.push("• اللترات: " + formatNumber(liters, 2) + " مقابل متوسط " + formatNumber(avgLiters, 2) + " لتر.");
   }
   if (amountIsHigh) {
     lines.push("• التكلفة: " + formatNumber(amount, 2) + " ر.س مقابل متوسط " + formatNumber(avgAmount, 2) + " ر.س.");
   }
-  lines.push("متأكد إن الرقم صح وعاوز تكمل الحفظ؟");
+  lines.push("هل أنت متأكد من صحة الرقم وترغب في إتمام الحفظ؟");
 
   return window.confirm(lines.join("\n"));
 }
@@ -2091,7 +2110,7 @@ function setLaptopState(message) {
 
 function renderLaptopRows(rows) {
   laptopTableBody.innerHTML = "";
-  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
 
   rows.forEach((asset) => {
     const tr = document.createElement("tr");
@@ -2186,7 +2205,7 @@ async function loadLaptopAssignments() {
     if (laptopState.search) {
       setLaptopState("لا توجد نتائج مطابقة للبحث.");
     } else {
-      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
         laptopStateBox,
         icon("chartBar"),
@@ -2316,7 +2335,7 @@ laptopForm.addEventListener("submit", async (event) => {
       ) {
         laptopFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23505") {
-        laptopFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لجهاز نشط آخر.";
+        laptopFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لجهاز نشط آخر.";
       } else {
         laptopFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
       }
@@ -2449,7 +2468,7 @@ function setEmailState(message) {
 
 function renderEmailRows(rows) {
   emailTableBody.innerHTML = "";
-  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
 
   rows.forEach((asset) => {
     const tr = document.createElement("tr");
@@ -2535,7 +2554,7 @@ async function loadEmailAssignments() {
     if (emailState.search) {
       setEmailState("لا توجد نتائج مطابقة للبحث.");
     } else {
-      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
         emailStateBox,
         icon("chartBar"),
@@ -2666,7 +2685,7 @@ emailForm.addEventListener("submit", async (event) => {
       ) {
         emailFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23505") {
-        emailFormError.textContent = "البريد الإلكتروني ده مسجّل بالفعل لموظف نشط آخر.";
+        emailFormError.textContent = "هذا البريد الإلكتروني مسجَّل بالفعل لموظف نشط آخر.";
       } else {
         emailFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
       }
@@ -2799,7 +2818,7 @@ function setSimState(message) {
 
 function renderSimRows(rows) {
   simTableBody.innerHTML = "";
-  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
 
   rows.forEach((asset) => {
     const tr = document.createElement("tr");
@@ -2885,7 +2904,7 @@ async function loadSimAssignments() {
     if (simState.search) {
       setSimState("لا توجد نتائج مطابقة للبحث.");
     } else {
-      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
         simStateBox,
         icon("chartBar"),
@@ -3011,7 +3030,7 @@ simForm.addEventListener("submit", async (event) => {
       ) {
         simFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23505") {
-        simFormError.textContent = "رقم الجوال ده مسجّل بالفعل لموظف نشط آخر.";
+        simFormError.textContent = "هذا الرقم مسجَّل بالفعل لموظف نشط آخر.";
       } else {
         simFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
       }
@@ -3143,7 +3162,7 @@ function setTabletState(message) {
 
 function renderTabletRows(rows) {
   tabletTableBody.innerHTML = "";
-  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
 
   rows.forEach((asset) => {
     const tr = document.createElement("tr");
@@ -3228,7 +3247,7 @@ async function loadTabletAssignments() {
     if (tabletState.search) {
       setTabletState("لا توجد نتائج مطابقة للبحث.");
     } else {
-      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
         tabletStateBox,
         icon("chartBar"),
@@ -3352,7 +3371,7 @@ tabletForm.addEventListener("submit", async (event) => {
       ) {
         tabletFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23505") {
-        tabletFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لجهاز نشط آخر.";
+        tabletFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لجهاز نشط آخر.";
       } else {
         tabletFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
       }
@@ -3485,7 +3504,7 @@ function setLaptopCatalogState(message) {
 
 function renderLaptopCatalogRows(rows) {
   laptopCatalogTableBody.innerHTML = "";
-  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+  const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
 
   rows.forEach((entry) => {
     const tr = document.createElement("tr");
@@ -3569,7 +3588,7 @@ async function loadLaptopCatalog() {
     if (laptopCatalogState.search) {
       setLaptopCatalogState("لا توجد نتائج مطابقة للبحث.");
     } else {
-      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
+      const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
         laptopCatalogStateBox,
         icon("chartBar"),
@@ -3687,7 +3706,7 @@ laptopCatalogForm.addEventListener("submit", async (event) => {
       ) {
         laptopCatalogFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23505") {
-        laptopCatalogFormError.textContent = "الرقم التسلسلي ده مسجّل بالفعل لسجل نشط آخر.";
+        laptopCatalogFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لسجل نشط آخر.";
       } else {
         laptopCatalogFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
       }
@@ -4229,7 +4248,7 @@ cancelFundConfirmButton.addEventListener("click", async () => {
       console.error("Error cancelling fund:", error);
       cancelFundError.textContent =
         error.code === "22P02" || (error.message && error.message.toLowerCase().includes("invalid input value"))
-          ? "قيمة الحالة 'ملغاة' لسه مش مضافة في قاعدة البيانات — شغّل استعلام القسم 13 في schema.sql الأول."
+          ? "قيمة الحالة 'ملغاة' لم تُضَف بعد إلى قاعدة البيانات — نفِّذ استعلام القسم 13 في schema.sql أولًا."
           : error.code === "42501" ||
             (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
@@ -5039,15 +5058,20 @@ async function fetchAllRowsPaged(buildQuery, pageSize) {
   return { data: allRows, error: null };
 }
 
-const CHART_PALETTE = [
-  cssVar("--color-primary"),
-  cssVar("--color-accent"),
-  cssVar("--color-success-text"),
-  cssVar("--color-warning-text"),
-  cssVar("--color-danger-text"),
-  cssVar("--color-neutral-text"),
-  cssVar("--color-primary-dark"),
-];
+// دالة (مش const ثابت) عشان تتقرأ من جديد كل مرة الرسم يترسم — لو كانت
+// const عادي، الألوان كانت هتتجمد على أول ثيم كان شغال وقت تحميل الصفحة،
+// ومش هتتحدث لما المستخدم يبدّل الوضع الغامق/الفاتح من غير ريفريش
+function getChartPalette() {
+  return [
+    cssVar("--color-primary"),
+    cssVar("--color-accent"),
+    cssVar("--color-success-text"),
+    cssVar("--color-warning-text"),
+    cssVar("--color-danger-text"),
+    cssVar("--color-neutral-text"),
+    cssVar("--color-primary-dark"),
+  ];
+}
 
 // ---------------------------------------------------------------------------
 // رسم خطي (Line Chart) — للاتجاهات الزمنية، وبيُستخدم كذلك كـ Sparkline
@@ -5203,7 +5227,8 @@ function drawDonutChart(canvas, segments, options) {
   const total = segments.reduce((sum, s) => sum + Math.max(s.value, 0), 0);
   if (!total) return;
 
-  const colors = segments.map((seg, i) => seg.color || CHART_PALETTE[i % CHART_PALETTE.length]);
+  const chartPalette = getChartPalette();
+  const colors = segments.map((seg, i) => seg.color || chartPalette[i % chartPalette.length]);
 
   new Chart(canvas, {
     type: "doughnut",
@@ -6577,14 +6602,15 @@ async function loadExpensesReport() {
   }));
 
   setReportState(reportExpensesCategoryState, null);
+  const expensesChartPalette = getChartPalette();
   drawDonutChart(
     reportExpensesCategoryChart,
-    reportExpensesRows.map((c, i) => ({ label: c.name, value: c.total, color: CHART_PALETTE[i % CHART_PALETTE.length] })),
+    reportExpensesRows.map((c, i) => ({ label: c.name, value: c.total, color: expensesChartPalette[i % expensesChartPalette.length] })),
     { formatValue: (v) => formatNumber(v, 2) + " ر.س" }
   );
   renderChartLegend(reportExpensesCategoryLegend, reportExpensesRows.map((c, i) => ({
     label: c.name,
-    color: CHART_PALETTE[i % CHART_PALETTE.length],
+    color: expensesChartPalette[i % expensesChartPalette.length],
   })));
 
   const monthlyExpenses = groupSumByMonth(rows, "expense_date", "amount");
@@ -7210,6 +7236,42 @@ document.addEventListener("click", (event) => {
   }
 });
 
+// ---- قائمة المستخدم المنسدلة في الشريط العلوي ----
+
+function closeTopbarUserMenu() {
+  topbarUserMenu.hidden = true;
+  topbarUserTrigger.setAttribute("aria-expanded", "false");
+}
+
+function toggleTopbarUserMenu() {
+  const isOpen = !topbarUserMenu.hidden;
+  topbarUserMenu.hidden = isOpen;
+  topbarUserTrigger.setAttribute("aria-expanded", String(!isOpen));
+}
+
+topbarUserTrigger.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleTopbarUserMenu();
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".topbar-user-menu-wrapper")) {
+    closeTopbarUserMenu();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeTopbarUserMenu();
+  }
+});
+
+topbarUserMenu.addEventListener("click", (event) => {
+  if (event.target.closest("#theme-toggle-button, #change-password-button, #logout-button")) {
+    closeTopbarUserMenu();
+  }
+});
+
 async function runGlobalSearch(term) {
   globalSearchResults.hidden = false;
   globalSearchResults.innerHTML = '<div class="search-results-state">جارٍ البحث...</div>';
@@ -7652,7 +7714,7 @@ accountCreateForm.addEventListener("submit", async (event) => {
     accountCreateModal.hidden = true;
     loadAccountsList();
     openAccountCredentialsModal(
-      "تم إنشاء حساب «" + fullName + "» (" + email + ") بنجاح. بلّغ صاحب الحساب بكلمة المرور دي بنفسك:",
+      "تم إنشاء حساب «" + fullName + "» (" + email + ") بنجاح. يُرجى إبلاغ صاحب الحساب بكلمة المرور هذه بنفسك:",
       password
     );
   } finally {
@@ -8067,7 +8129,7 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
         showErrorMessage: true,
         errorStyle: "warning",
         errorTitle: "قيمة غير موجودة في القائمة",
-        error: "يُفضّل اختيار قيمة من القائمة المنسدلة عشان الاستيراد يعدّي من غير رفض.",
+        error: "يُفضَّل اختيار قيمة من القائمة المنسدلة لضمان قبول الصف أثناء الاستيراد.",
       };
     } else if (options.type === "date") {
       // خلية تاريخ: تنسيق عرض بصيغة تاريخ + تحقق إن القيمة تاريخ صحيح
@@ -8081,7 +8143,7 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
         showErrorMessage: true,
         errorStyle: "warning",
         errorTitle: "تاريخ غير صالح",
-        error: "من فضلك أدخل تاريخ صحيح، أو اسيب الخلية فاضية (الحقل ده اختياري).",
+        error: "من فضلك أدخل تاريخًا صحيحًا، أو اترك الخلية فارغة (هذا الحقل اختياري).",
       };
     }
 
@@ -8232,7 +8294,7 @@ importFileInput.addEventListener("change", async () => {
     const missingHeaders = config.templateHeaders.filter((h) => !firstRowKeys.includes(h));
     if (missingHeaders.length > 0) {
       importPreviewState.textContent =
-        "الملف المرفوع مش بنفس صيغة القالب. الأعمدة الناقصة: " + missingHeaders.join("، ") + " — حمّل القالب من الخطوة الأولى واستخدمه.";
+        "الملف المرفوع لا يطابق صيغة القالب. الأعمدة الناقصة: " + missingHeaders.join("، ") + " — يُرجى تحميل القالب من الخطوة الأولى واستخدامه.";
       importWizardState.validatedRows = [];
       return;
     }
@@ -8519,7 +8581,7 @@ IMPORT_CONFIGS.vehicles = {
   templateFilename: "قالب-استيراد-السيارات.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-السيارات.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بالسيارات المطلوب إضافتها (رقم اللوحة مطلوب، والباقي اختياري). عمود \"الحالة\" فيه دروب داون ليست بالقيم المسموحة — اختَر منها بدل ما تكتبها يدويًا. عمود \"تفويض حتى\" اتركه فاضي لو مفيش تاريخ نهاية محدد للتفويض (هيتسجل تلقائيًا \"مستخدم فعلي\" مستمر)، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات السيارات المطلوب إضافتها (رقم اللوحة مطلوب، والباقي اختياري). يحتوي عمود \"الحالة\" على قائمة منسدلة بالقيم المسموح بها — اختر منها بدلًا من كتابتها يدويًا. اترك عمود \"تفويض حتى\" فارغًا إذا لم يوجد تاريخ نهاية محدد للتفويض (سيُسجَّل تلقائيًا \"مستخدم فعلي\" مستمر)، ثم ارفع الملف في الخطوة التالية.",
   templateColumnValidations: {
     "الحالة": Object.values(VEHICLE_STATUS_LABELS),
     "تفويض حتى (اختياري)": { type: "date" },
@@ -8603,7 +8665,7 @@ IMPORT_CONFIGS.fuel = {
   templateFilename: "قالب-استيراد-الوقود.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-الوقود.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بمعاملات الوقود المطلوب إضافتها (رقم اللوحة، التاريخ، اللترات، التكلفة). رقم اللوحة لازم يكون موجود بالفعل في النظام، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات معاملات الوقود المطلوب إضافتها (رقم اللوحة، التاريخ، اللترات، التكلفة). يجب أن يكون رقم اللوحة موجودًا بالفعل في النظام، ثم ارفع الملف في الخطوة التالية.",
   validate: validateFuelImportRows,
   insertOne: (payload) => supabaseClient.from("fuel_transactions").insert(payload),
   afterImport: () => loadFuelTransactions(),
@@ -8699,7 +8761,7 @@ IMPORT_CONFIGS.laptops = {
   templateFilename: "قالب-استيراد-اللابتوبات.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-اللابتوبات.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته باللابتوبات المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري). عمود \"مضاد الفيروسات\" فيه دروب داون ليست (نعم/لا) — اختَر منها بدل ما تكتبها يدويًا. وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات اللابتوبات المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري). يحتوي عمود \"مضاد الفيروسات\" على قائمة منسدلة (نعم/لا) — اختر منها بدلًا من كتابتها يدويًا، ثم ارفع الملف في الخطوة التالية.",
   templateColumnValidations: {
     "مضاد الفيروسات (نعم/لا)": ["نعم", "لا"],
   },
@@ -8783,7 +8845,7 @@ IMPORT_CONFIGS.email = {
   templateFilename: "قالب-استيراد-البريد-الإلكتروني.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-البريد-الإلكتروني.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بالبريدات الإلكترونية المطلوب إضافتها (اسم الموظف والبريد الإلكتروني مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات البريد الإلكتروني المطلوب إضافتها (اسم الموظف والبريد الإلكتروني مطلوبان، والباقي اختياري)، ثم ارفع الملف في الخطوة التالية.",
   validate: validateEmailImportRows,
   insertOne: (payload) => supabaseClient.from("it_email_assignments").insert(payload),
   afterImport: () => loadEmailAssignments(),
@@ -8871,7 +8933,7 @@ IMPORT_CONFIGS.sim = {
   templateFilename: "قالب-استيراد-أرقام-الجوال.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-أرقام-الجوال.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بأرقام الجوال المطلوب إضافتها (اسم الموظف ورقم الجوال مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات أرقام الجوال المطلوب إضافتها (اسم الموظف ورقم الجوال مطلوبان، والباقي اختياري)، ثم ارفع الملف في الخطوة التالية.",
   validate: validateSimImportRows,
   insertOne: (payload) => supabaseClient.from("it_sim_assignments").insert(payload),
   afterImport: () => loadSimAssignments(),
@@ -8945,7 +9007,7 @@ IMPORT_CONFIGS.tablets = {
   templateFilename: "قالب-استيراد-الأجهزة-اللوحية.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-الأجهزة-اللوحية.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بالأجهزة اللوحية المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه ببيانات الأجهزة اللوحية المطلوب إضافتها (اسم الموظف والرقم التسلسلي مطلوبان، والباقي اختياري)، ثم ارفع الملف في الخطوة التالية.",
   validate: validateTabletImportRows,
   insertOne: (payload) => supabaseClient.from("it_tablet_assignments").insert(payload),
   afterImport: () => loadTabletAssignments(),
@@ -9014,7 +9076,7 @@ IMPORT_CONFIGS["laptop-catalog"] = {
   templateFilename: "قالب-استيراد-كتالوج-اللابتوبات.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-كتالوج-اللابتوبات.csv",
   step1Desc:
-    "حمّل القالب وعبّي بياناته بسجلات كتالوج اللابتوبات المطلوب إضافتها (الرقم التسلسلي مطلوب، والباقي اختياري)، وارفع الملف في الخطوة التالية.",
+    "حمِّل القالب واملأه بسجلات كتالوج اللابتوبات المطلوب إضافتها (الرقم التسلسلي مطلوب، والباقي اختياري)، ثم ارفع الملف في الخطوة التالية.",
   validate: validateLaptopCatalogImportRows,
   insertOne: (payload) => supabaseClient.from("it_laptop_catalog").insert(payload),
   afterImport: () => loadLaptopCatalog(),
@@ -9139,7 +9201,7 @@ IMPORT_CONFIGS.expenses = {
   templateFilename: "قالب-استيراد-المصروفات.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-المصروفات.csv",
   step1Desc:
-    "حمّل القالب وأدخل بياناته بالمصروفات المطلوب إضافتها (المبلغ، الفئة، التاريخ، الوصف). عمود \"الفئة\" فيه دروب داون ليست بالفئات الموجودة فعليًا في النظام — اختَر منها بدل ما تكتبها يدويًا. وسيتم ربط كل الصفوف بالعهدة النشطة الحالية تلقائيًا وقت التأكيد.",
+    "حمِّل القالب وأدخل بيانات المصروفات المطلوب إضافتها (المبلغ، الفئة، التاريخ، الوصف). يحتوي عمود \"الفئة\" على قائمة منسدلة بالفئات الموجودة فعليًا في النظام — اختر منها بدلًا من كتابتها يدويًا. وستُربط جميع الصفوف تلقائيًا بالعهدة النشطة الحالية عند التأكيد.",
   templateColumnValidations: async () => {
     const categories = await ensureExpenseCategories();
     return {

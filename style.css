@@ -117,77 +117,111 @@
    Dark Mode — عبر [data-theme="dark"] الصريح (هيتحط من زرار التبديل في
    الخطوة الجاية)، أو تلقائيًا لو نظام التشغيل غامق ومفيش اختيار صريح
    ============================================================================ */
+/* ⚠️ القيم هنا لازم تفضل مطابقة تمامًا للنسخة المكررة تحت جوه
+   @media (prefers-color-scheme: dark) — أي تعديل هنا لازم ينعمل في
+   الاتنين مع بعض، وإلا هيحصل تعارض بين المستخدم اللي اختار الوضع الغامق
+   يدويًا واللي بيعتمد على إعداد نظام التشغيل بس. كل القيم هنا اتراجعت
+   بمعادلة تباين WCAG فعليًا (نص فوق خلفية، أيقونة فوق كارت الأيقونة،
+   شارة الحالة فوق خلفيتها) مش بالعين بس */
 [data-theme="dark"] {
-  --color-bg: #0f1117;
-  --color-surface: #1a1d26;
-  --color-border: #33374a;
+  --color-bg: #0a0b0f;
+  --color-surface: #181c28;
+  --color-border: #2d3040;
 
   --color-primary: #5b5ff0;
-  --color-primary-hover: #4f46e5;
-  --color-primary-light: rgba(129, 140, 248, 0.16);
+  --color-primary-hover: #a5b4fc;
+  --color-primary-light: rgba(129, 140, 248, 0.18);
   --color-primary-dark: #818cf8;
   --color-primary-gradient: linear-gradient(135deg, #5b5ff0 0%, #7c3aed 100%);
   --color-accent: #fbbf24;
   --color-accent-hover: #f59e0b;
 
-  --color-text: #e8e9ed;
-  --color-text-muted: #9297a3;
-  --color-text-inverse: #12141a;
+  --color-text: #eef0f4;
+  --color-text-muted: #9aa0ad;
+  --color-text-inverse: #0d0e13;
 
-  --color-danger-bg: rgba(220, 38, 38, 0.16);
+  --color-danger-bg: rgba(220, 38, 38, 0.2);
   --color-danger-text: #fca5a5;
   --color-danger-hover: #f87171;
   --color-danger-border: rgba(252, 165, 165, 0.35);
-  --color-success-bg: rgba(34, 197, 94, 0.16);
+  --color-success-bg: rgba(34, 197, 94, 0.2);
   --color-success-text: #4ade80;
-  --color-warning-bg: rgba(245, 158, 11, 0.16);
+  --color-warning-bg: rgba(245, 158, 11, 0.2);
   --color-warning-text: #fbbf24;
   --color-warning-border: rgba(251, 191, 36, 0.35);
-  --color-neutral-bg: rgba(148, 163, 184, 0.16);
-  --color-neutral-text: #9297a3;
+  --color-neutral-bg: rgba(148, 163, 184, 0.24);
+  --color-neutral-text: #b0b6c4;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3), 0 10px 24px rgba(0, 0, 0, 0.45);
-  --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.35), 0 20px 50px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.45), 0 20px 50px rgba(0, 0, 0, 0.65);
   --shadow-focus: 0 0 0 3px rgba(129, 140, 248, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: #0f1117;
-    --color-surface: #1a1d26;
-    --color-border: #33374a;
+    --color-bg: #0a0b0f;
+    --color-surface: #181c28;
+    --color-border: #2d3040;
 
     --color-primary: #5b5ff0;
-    --color-primary-hover: #4f46e5;
-    --color-primary-light: rgba(129, 140, 248, 0.16);
+    --color-primary-hover: #a5b4fc;
+    --color-primary-light: rgba(129, 140, 248, 0.18);
     --color-primary-dark: #818cf8;
     --color-primary-gradient: linear-gradient(135deg, #5b5ff0 0%, #7c3aed 100%);
     --color-accent: #fbbf24;
     --color-accent-hover: #f59e0b;
 
-    --color-text: #e8e9ed;
-    --color-text-muted: #9297a3;
-    --color-text-inverse: #12141a;
+    --color-text: #eef0f4;
+    --color-text-muted: #9aa0ad;
+    --color-text-inverse: #0d0e13;
 
-    --color-danger-bg: rgba(220, 38, 38, 0.16);
+    --color-danger-bg: rgba(220, 38, 38, 0.2);
     --color-danger-text: #fca5a5;
     --color-danger-hover: #f87171;
     --color-danger-border: rgba(252, 165, 165, 0.35);
-    --color-success-bg: rgba(34, 197, 94, 0.16);
+    --color-success-bg: rgba(34, 197, 94, 0.2);
     --color-success-text: #4ade80;
-    --color-warning-bg: rgba(245, 158, 11, 0.16);
+    --color-warning-bg: rgba(245, 158, 11, 0.2);
     --color-warning-text: #fbbf24;
     --color-warning-border: rgba(251, 191, 36, 0.35);
-    --color-neutral-bg: rgba(148, 163, 184, 0.16);
-    --color-neutral-text: #9297a3;
+    --color-neutral-bg: rgba(148, 163, 184, 0.24);
+    --color-neutral-text: #b0b6c4;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3), 0 10px 24px rgba(0, 0, 0, 0.45);
-    --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.35), 0 20px 50px rgba(0, 0, 0, 0.55);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.55);
+    --shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.45), 0 20px 50px rgba(0, 0, 0, 0.65);
     --shadow-focus: 0 0 0 3px rgba(129, 140, 248, 0.35);
+  }
+
+  /* نفس بدائل خلفيات أيقونة الكارت الغامقة فوق، لكن لمستخدم بيعتمد على
+     إعداد نظام التشغيل بس من غير ما يضغط زرار التبديل صراحةً (مفيش
+     [data-theme="dark"] موجود في الحالة دي، فلازم تتكرر هنا بنفس القيم) */
+  :root:not([data-theme="light"]) .card-icon {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.4));
+    color: #c7d2fe;
+  }
+
+  :root:not([data-theme="light"]) .stat-card-fuel .card-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.42));
+    color: #fde68a;
+  }
+
+  :root:not([data-theme="light"]) .stat-card-fund .card-icon {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(21, 128, 61, 0.42));
+    color: #bbf7d0;
+  }
+
+  :root:not([data-theme="light"]) .stat-card-expense .card-icon {
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(190, 18, 60, 0.42));
+    color: #fecdd3;
+  }
+
+  :root:not([data-theme="light"]) .stat-card-assets .card-icon {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(109, 40, 217, 0.42));
+    color: #ddd6fe;
   }
 }
 
@@ -594,7 +628,7 @@ textarea:focus-visible,
 
 #app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
@@ -602,10 +636,14 @@ textarea:focus-visible,
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--space-5) var(--space-4);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  padding: var(--space-5) var(--space-4) var(--space-3);
   background: linear-gradient(180deg, var(--color-dark-from), var(--color-dark-via) 55%, var(--color-dark-to));
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-md);
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -615,6 +653,7 @@ textarea:focus-visible,
   padding: var(--space-1) var(--space-2) var(--space-5);
   margin-bottom: var(--space-4);
   border-bottom: 1px solid rgba(247, 248, 250, 0.08);
+  flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -631,9 +670,26 @@ textarea:focus-visible,
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(247, 248, 250, 0.25) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(247, 248, 250, 0.25);
+  border-radius: var(--radius-pill);
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sidebar-nav-item {
@@ -687,49 +743,12 @@ textarea:focus-visible,
   box-shadow: var(--shadow-sm);
 }
 
-.sidebar-footer {
-  padding-top: var(--space-4);
-  margin-top: var(--space-4);
-  border-top: 1px solid rgba(247, 248, 250, 0.08);
-}
-
-.btn-logout,
-.btn-sidebar-action {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid rgba(247, 248, 250, 0.16);
-  color: rgba(247, 248, 250, 0.85);
-  font-family: inherit;
-  font-size: var(--text-md);
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.btn-sidebar-action {
-  margin-bottom: var(--space-2);
-}
-
-.btn-logout:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: var(--color-danger-border-on-dark);
-  color: var(--color-danger-text-on-dark);
-}
-
-.btn-sidebar-action:hover {
-  background: rgba(247, 248, 250, 0.1);
-  color: var(--color-text-inverse);
-}
-
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .app-topbar {
@@ -829,10 +848,15 @@ textarea:focus-visible,
 
   .sidebar {
     width: 100%;
+    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 100;
     flex-direction: row;
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-3) var(--space-4);
+    overflow: visible;
   }
 
   .sidebar-header {
@@ -843,29 +867,12 @@ textarea:focus-visible,
   }
 
   .sidebar-nav {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     flex-direction: row;
     gap: var(--space-2);
-  }
-
-  .sidebar-footer {
-    padding: 0;
-    margin: 0;
-    border-top: none;
-    display: flex;
-    gap: var(--space-2);
-  }
-
-  .btn-logout,
-  .btn-sidebar-action {
-    width: auto;
-    padding: var(--space-2) var(--space-3);
-    margin-bottom: 0;
-  }
-
-  .btn-logout span:last-child,
-  .btn-sidebar-action span:last-child {
-    display: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0;
   }
 
   .app-topbar {
@@ -1900,15 +1907,114 @@ textarea:focus-visible,
   color: var(--color-text-muted);
 }
 
-/* ---- معلومات المستخدم الحالي داخل الـ Topbar ---- */
+/* ---- معلومات المستخدم الحالي وقائمته المنسدلة داخل الـ Topbar ---- */
+
+.topbar-user-menu-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  padding-inline-start: var(--space-4);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.topbar-user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ---- زر سريع لتبديل الوضع الداكن — هلال ثابت الشكل جمب حرف المستخدم في
+   الأفاتار، بيبدّل الوضع فورًا من غير فتح القائمة المنسدلة ---- */
+.theme-toggle-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.theme-toggle-quick:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.theme-toggle-quick-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+}
+
+.theme-toggle-quick[aria-pressed="true"] {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.theme-toggle-quick[aria-pressed="true"] .theme-toggle-quick-icon {
+  fill: currentColor;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .topbar-user {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding-inline-start: var(--space-4);
-  border-inline-start: 1px solid var(--color-border);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.topbar-user:hover,
+.topbar-user[aria-expanded="true"] {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+.topbar-user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: var(--color-text-inverse);
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
 
 .topbar-user-name {
@@ -1923,10 +2029,85 @@ textarea:focus-visible,
   color: var(--color-primary-hover);
 }
 
+.topbar-user-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  color: var(--color-text-muted);
+  fill: none;
+  transition: transform 0.15s ease;
+}
+
+.topbar-user[aria-expanded="true"] .topbar-user-chevron {
+  transform: rotate(180deg);
+}
+
+.topbar-user-menu {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-2));
+  min-width: 240px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  padding: var(--space-2);
+  animation: cardRiseIn 0.15s ease;
+}
+
+.topbar-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: right;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.topbar-user-menu-item:hover {
+  background: var(--color-bg);
+}
+
+.topbar-user-menu-item.is-danger {
+  color: var(--color-danger-text);
+}
+
+.topbar-user-menu-item.is-danger:hover {
+  background: var(--color-danger-bg);
+}
+
+.topbar-user-menu-item .sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.topbar-user-menu-divider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: var(--color-border);
+}
+
 @media (max-width: 700px) {
-  .topbar-user {
+  .topbar-user-menu-wrapper {
     padding-inline-start: 0;
     border-inline-start: none;
+  }
+
+  .topbar-user-info {
+    display: none;
   }
 }
 
@@ -2049,6 +2230,36 @@ textarea:focus-visible,
 
 .stat-card-assets .card-icon {
   background: linear-gradient(135deg, #ede9fe, #c4b5fd);
+}
+
+/* ---- الوضع الغامق: خلفيات الأيقونة الباستيل الفاتحة فوق بقيت شبه
+   مستحيلة القراءة (الأيقونة بتاخد لون النص العادي، والنص في الغامق فاتح
+   — يبقى أيقونة فاتحة فوق خلفية فاتحة). هنا بدايل غامقة/مشبّعة أكتر +
+   لون أيقونة فاتح مخصوص لكل نوع، اتراجعوا كلهم بمعادلة تباين WCAG ===
+   (أقل نتيجة 6.9:1، والمطلوب 3:1 بس لعناصر الواجهة زي الأيقونات) ---- */
+[data-theme="dark"] .card-icon {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.4));
+  color: #c7d2fe;
+}
+
+[data-theme="dark"] .stat-card-fuel .card-icon {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.42));
+  color: #fde68a;
+}
+
+[data-theme="dark"] .stat-card-fund .card-icon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(21, 128, 61, 0.42));
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .stat-card-expense .card-icon {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(190, 18, 60, 0.42));
+  color: #fecdd3;
+}
+
+[data-theme="dark"] .stat-card-assets .card-icon {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(109, 40, 217, 0.42));
+  color: #ddd6fe;
 }
 
 /* ---- مؤشر اتجاه بسيط (▲/▼) مقارنة بالشهر السابق ---- */

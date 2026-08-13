@@ -112,19 +112,19 @@
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" /></svg>
           <span>الرئيسية</span>
         </a>
-        <a href="#" class="sidebar-nav-item" data-page="vehicles">
+        <a href="#" class="sidebar-nav-item" data-page="vehicles" id="vehicles-nav-item">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" /></svg>
           <span>السيارات</span>
         </a>
-        <a href="#" class="sidebar-nav-item" data-page="fuel">
+        <a href="#" class="sidebar-nav-item" data-page="fuel" id="fuel-nav-item">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" /><path d="M4 21h10" /><path d="M14 10h2.5A1.5 1.5 0 0 1 18 11.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5" /><path d="M7 8h4" /></svg>
           <span>الوقود</span>
         </a>
-        <a href="#" class="sidebar-nav-item" data-page="petty-cash">
+        <a href="#" class="sidebar-nav-item" data-page="petty-cash" id="petty-cash-nav-item">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
           <span>العهدة النقدية</span>
         </a>
-        <a href="#" class="sidebar-nav-item" data-page="expenses">
+        <a href="#" class="sidebar-nav-item" data-page="expenses" id="expenses-nav-item">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
           <span>المصروفات</span>
         </a>
@@ -132,7 +132,7 @@
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
           <span>أصول تقنية المعلومات</span>
         </a>
-        <a href="#" class="sidebar-nav-item" data-page="reports">
+        <a href="#" class="sidebar-nav-item" data-page="reports" id="reports-nav-item">
           <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-6" /></svg>
           <span>التقارير</span>
         </a>
@@ -150,21 +150,6 @@
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <button type="button" id="theme-toggle-button" class="btn-sidebar-action" aria-pressed="false">
-          <svg id="theme-toggle-icon-dark" class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5Z" /></svg>
-          <svg id="theme-toggle-icon-light" class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><circle cx="12" cy="12" r="4.5" /><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" /></svg>
-          <span id="theme-toggle-label">الوضع الغامق</span>
-        </button>
-        <button type="button" id="change-password-button" class="btn-sidebar-action">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="1.5" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-          <span>تغيير كلمة المرور</span>
-        </button>
-        <button type="button" id="logout-button" class="btn-logout">
-          <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-          <span>تسجيل الخروج</span>
-        </button>
-      </div>
     </aside>
 
     <main class="app-main">
@@ -182,9 +167,35 @@
           <div id="global-search-results" class="global-search-results" hidden></div>
         </div>
 
-        <div class="topbar-user">
-          <span id="topbar-user-name" class="topbar-user-name"></span>
-          <span id="topbar-user-role" class="status-badge topbar-user-role"></span>
+        <div class="topbar-user-menu-wrapper">
+          <div class="topbar-user-row">
+            <span id="topbar-user-avatar" class="topbar-user-avatar" aria-hidden="true"></span>
+
+            <button type="button" id="theme-toggle-button" class="theme-toggle-quick" aria-pressed="false" title="الوضع الداكن">
+              <svg class="theme-toggle-quick-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5Z" /></svg>
+              <span class="sr-only">الوضع الداكن</span>
+            </button>
+
+            <button type="button" id="topbar-user-trigger" class="topbar-user" aria-haspopup="true" aria-expanded="false">
+              <span class="topbar-user-info">
+                <span id="topbar-user-name" class="topbar-user-name"></span>
+                <span id="topbar-user-role" class="status-badge topbar-user-role"></span>
+              </span>
+              <svg class="topbar-user-chevron" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+
+          <div id="topbar-user-menu" class="topbar-user-menu" hidden>
+            <button type="button" id="change-password-button" class="topbar-user-menu-item">
+              <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="1.5" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+              <span>تغيير كلمة المرور</span>
+            </button>
+            <div class="topbar-user-menu-divider"></div>
+            <button type="button" id="logout-button" class="topbar-user-menu-item is-danger">
+              <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+              <span>تسجيل الخروج</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1134,7 +1145,7 @@
           <div class="page-toolbar">
             <div class="page-toolbar-filters">
               <p class="form-info-note users-add-note">
-                إنشاء الحسابات وحذفها وتوليد كلمات المرور بيتم مباشرة من هنا.
+                تُنشأ الحسابات وتُحذف وتُولَّد كلمات المرور مباشرة من هنا.
               </p>
             </div>
             <button type="button" id="add-account-button" class="btn-primary btn-inline">
@@ -1882,8 +1893,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من إلغاء هذه العهدة؟ استخدم الخيار ده بس لو العهدة
-          اتعملت بالغلط ومفيهاش أي مصروفات مسجّلة عليها. هتفضل موجودة في
+          هل أنت متأكد من إلغاء هذه العهدة؟ استخدم هذا الخيار فقط إذا أُنشئت
+          العهدة بالخطأ ولم تُسجَّل عليها أي مصروفات. ستبقى موجودة في
           السجل بحالة «ملغاة».
         </p>
         <div id="cancel-fund-error" class="error-message" role="alert" hidden></div>
@@ -2108,6 +2119,7 @@
               <select id="account-form-role" required>
                 <option value="manager">مدير</option>
                 <option value="admin">أدمن</option>
+                <option value="it_support">دعم تقني (IT Support)</option>
                 <option value="super_admin">مدير النظام</option>
               </select>
             </div>
@@ -2139,7 +2151,7 @@
 
   <!-- ==========================================================
        Modal: إضافة حساب جديد — Super Admin فقط
-       بيتم عبر RPC (admin_create_account)
+       يتم عبر RPC (admin_create_account)
        ========================================================== -->
   <div id="account-create-modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-create-title">
@@ -2173,6 +2185,7 @@
               <select id="account-create-role" required>
                 <option value="manager">مدير</option>
                 <option value="admin">أدمن</option>
+                <option value="it_support">دعم تقني (IT Support)</option>
                 <option value="super_admin">مدير النظام</option>
               </select>
             </div>
@@ -2196,7 +2209,7 @@
 
   <!-- ==========================================================
        Modal: تأكيد حذف حساب نهائيًا — Super Admin فقط
-       بيتم عبر RPC (admin_delete_account)
+       يتم عبر RPC (admin_delete_account)
        ========================================================== -->
   <div id="account-delete-modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-delete-title">
@@ -2224,7 +2237,7 @@
 
   <!-- ==========================================================
        Modal: تأكيد توليد كلمة مرور جديدة — Super Admin فقط
-       بيتم عبر RPC (admin_reset_password)
+       يتم عبر RPC (admin_reset_password)
        ========================================================== -->
   <div id="account-reset-password-modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-reset-password-title">
@@ -2449,12 +2462,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS — لقراءة ملفات Excel المرفوعة في معالجات الاستيراد -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- ExcelJS — لإنشاء قوالب الاستيراد بـ Data Validation (دروب داون ليست حقيقية)،
-       ميزة مش متاحة في SheetJS المجاني -->
+  <!-- ExcelJS — لإنشاء قوالب الاستيراد بقوائم منسدلة فعلية (Data Validation)،
+       وهي ميزة غير متاحة في مكتبة SheetJS المجانية -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <!-- Chart.js — رسوم بيانية أغنى (حركة، tooltips أنعم) بدل الرسم اليدوي بـ
-       Canvas API. البداية بلوحة الرئيسية بس؛ تشارتات مركز التقارير لسه على
-       الرسم اليدوي القديم لحد ما نوصلها في مرحلة تالية -->
+  <!-- Chart.js — رسوم بيانية أغنى (حركة، تلميحات أنعم) تُستخدم في لوحة التحكم
+       ومركز التقارير على حد سواء -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="script.js"></script>
