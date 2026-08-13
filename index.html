@@ -501,6 +501,8 @@
         <!-- ==================== أصول تقنية المعلومات (IT Assets) — مرحلة 2: الهيكل والتبويبات فقط ==================== -->
         <section id="it-assets-page" class="app-page" hidden>
 
+          <div id="it-assets-summary" class="summary-cards"></div>
+
           <div class="modal-tabs page-tabs" id="it-assets-tabs">
             <button type="button" class="modal-tab active" data-asset-tab="laptops">اللابتوبات</button>
             <button type="button" class="modal-tab" data-asset-tab="email">البريد الإلكتروني</button>
@@ -843,6 +845,7 @@
             <button type="button" class="modal-tab" data-report-tab="fuel">الوقود</button>
             <button type="button" class="modal-tab" data-report-tab="petty-cash">العهدة النقدية</button>
             <button type="button" class="modal-tab" data-report-tab="expenses">المصروفات</button>
+            <button type="button" class="modal-tab" data-report-tab="it-assets">أصول تقنية المعلومات</button>
           </div>
 
           <!-- ---- تقرير السيارات ---- -->
@@ -1027,6 +1030,59 @@
                 </table>
               </div>
               <div id="report-expenses-state" class="table-state" hidden></div>
+            </div>
+          </div>
+
+          <!-- ---- تقرير أصول تقنية المعلومات (توزيع حسب النوع والموقع) ---- -->
+          <div id="report-panel-it-assets" class="report-panel" hidden>
+            <div class="page-toolbar">
+              <div class="page-toolbar-filters">
+                <select id="report-it-assets-location-filter" class="input-select">
+                  <option value="">كل المواقع</option>
+                </select>
+              </div>
+              <button type="button" id="report-it-assets-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+            </div>
+            <div id="report-it-assets-summary" class="summary-cards"></div>
+            <p class="summary-note">
+              كتالوج اللابتوبات مش مرتبط بموظف أو موقع (مجرد جرد لأنواع
+              الأجهزة الموجودة فعليًا)، فمش داخل في توزيع الرسوم والجدول تحت.
+            </p>
+
+            <div class="chart-grid">
+              <div class="chart-card">
+                <h3 class="chart-card-title">توزيع الأصول الموزّعة حسب النوع</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-it-assets-type-chart"></canvas>
+                </div>
+                <div id="report-it-assets-type-state" class="table-state" hidden></div>
+              </div>
+              <div class="chart-card">
+                <h3 class="chart-card-title">أعلى المواقع (إجمالي كل الأنواع)</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-it-assets-location-chart"></canvas>
+                </div>
+                <div id="report-it-assets-location-state" class="table-state" hidden></div>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الموقع</th>
+                      <th>اللابتوبات</th>
+                      <th>البريد الإلكتروني</th>
+                      <th>أرقام الجوال</th>
+                      <th>الأجهزة اللوحية</th>
+                      <th>الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-it-assets-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-it-assets-state" class="table-state" hidden></div>
             </div>
           </div>
         </section>

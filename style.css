@@ -2000,6 +2000,10 @@ textarea:focus-visible,
   background: linear-gradient(180deg, #fb7185, #e11d48);
 }
 
+.stat-card-assets::before {
+  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+}
+
 /* ---- أيقونة موحّدة لكل أنواع الكروت (Dashboard / Summary / Fund) ---- */
 .card-icon {
   display: inline-flex;
@@ -2041,6 +2045,10 @@ textarea:focus-visible,
 
 .stat-card-expense .card-icon {
   background: linear-gradient(135deg, #fee2e2, #fda4af);
+}
+
+.stat-card-assets .card-icon {
+  background: linear-gradient(135deg, #ede9fe, #c4b5fd);
 }
 
 /* ---- مؤشر اتجاه بسيط (▲/▼) مقارنة بالشهر السابق ---- */

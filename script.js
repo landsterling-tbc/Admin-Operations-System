@@ -123,6 +123,10 @@ const ICON_PATHS = {
   check: '<path d="m5 12 5 5 9-11" />',
   cross: '<path d="m6 6 12 12M18 6 6 18" />',
   download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" />',
+  laptop: '<rect x="4" y="4" width="16" height="10" rx="1.2" /><path d="M2 18h20l-1.6-3H3.6L2 18Z" />',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" />',
+  phone: '<rect x="7.5" y="2" width="9" height="20" rx="2" /><path d="M11 18.2h2" />',
+  tablet: '<rect x="4.5" y="2.5" width="15" height="19" rx="2" /><path d="M11.2 18.5h1.6" />',
 };
 
 // بيبني سترينج <svg> جاهز للحقن المباشر جوه أي HTML string حالي (بدل
@@ -2138,6 +2142,7 @@ function updateLaptopPaginationControls() {
 }
 
 async function loadLaptopAssignments() {
+  loadItAssetsSummary();
   renderTableSkeleton(laptopTableBody, 6, 9);
   setLaptopState(null);
   laptopPrevPageButton.disabled = true;
@@ -2491,6 +2496,7 @@ function updateEmailPaginationControls() {
 }
 
 async function loadEmailAssignments() {
+  loadItAssetsSummary();
   renderTableSkeleton(emailTableBody, 6, 7);
   setEmailState(null);
   emailPrevPageButton.disabled = true;
@@ -2840,6 +2846,7 @@ function updateSimPaginationControls() {
 }
 
 async function loadSimAssignments() {
+  loadItAssetsSummary();
   renderTableSkeleton(simTableBody, 6, 7);
   setSimState(null);
   simPrevPageButton.disabled = true;
@@ -3182,6 +3189,7 @@ function updateTabletPaginationControls() {
 }
 
 async function loadTabletAssignments() {
+  loadItAssetsSummary();
   renderTableSkeleton(tabletTableBody, 6, 6);
   setTabletState(null);
   tabletPrevPageButton.disabled = true;
@@ -3522,6 +3530,7 @@ function updateLaptopCatalogPaginationControls() {
 }
 
 async function loadLaptopCatalog() {
+  loadItAssetsSummary();
   renderTableSkeleton(laptopCatalogTableBody, 6, 5);
   setLaptopCatalogState(null);
   laptopCatalogPrevPageButton.disabled = true;
@@ -5430,7 +5439,7 @@ async function latestMonthWithData(tableName, dateColumn) {
 }
 
 async function loadDashboardStats() {
-  dashboardStatsContainer.innerHTML = skeletonCardsHtml(4, "stat-cards-grid", "stat-card");
+  dashboardStatsContainer.innerHTML = skeletonCardsHtml(5, "stat-cards-grid", "stat-card");
 
   const currentCalendarMonthStart = currentMonthStartDate();
 
@@ -5448,7 +5457,7 @@ async function loadDashboardStats() {
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
   const thirtyDaysFromNowStr = thirtyDaysFromNow.toISOString().slice(0, 10);
 
-  const [vehiclesRes, fuelRes, expensesRes, prevFuelRes, prevExpensesRes, authExpiryRes] = await Promise.all([
+  const dashboardStatsResults = await Promise.all([
     supabaseClient.from("vehicles").select("status"),
     supabaseClient
       .from("fuel_transactions")
@@ -5484,7 +5493,26 @@ async function loadDashboardStats() {
       .select("id, license_plate, authorization_expiry_date")
       .not("authorization_expiry_date", "is", null)
       .lte("authorization_expiry_date", thirtyDaysFromNowStr),
+    // إجمالي أصول تقنية المعلومات النشطة (بيانات فعلية، مش مجرد عدد الصفوف
+    // الكلي — الأصول المستردة/الملغاة متتحسبش هنا)
+    supabaseClient.from("it_laptop_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_email_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_sim_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_tablet_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
   ]);
+
+  const [
+    vehiclesRes,
+    fuelRes,
+    expensesRes,
+    prevFuelRes,
+    prevExpensesRes,
+    authExpiryRes,
+    itLaptopsCountRes,
+    itEmailCountRes,
+    itSimCountRes,
+    itTabletsCountRes,
+  ] = dashboardStatsResults;
 
   // لازم نسجّل ونعرض أي خطأ هنا بوضوح — من غير كده لو استعلام فشل بصمت
   // كان هيظهر "0 سيارات" أو رقم غلط يتعارض مع الرقم الحقيقي في صفحة
@@ -5495,6 +5523,18 @@ async function loadDashboardStats() {
   if (prevFuelRes.error) console.error("Error loading previous month fuel stats:", prevFuelRes.error);
   if (prevExpensesRes.error) console.error("Error loading previous month expenses stats:", prevExpensesRes.error);
   if (authExpiryRes.error) console.error("Error loading vehicle authorization expiry stats:", authExpiryRes.error);
+  if (itLaptopsCountRes.error) console.error("Error loading laptops count:", itLaptopsCountRes.error);
+  if (itEmailCountRes.error) console.error("Error loading email count:", itEmailCountRes.error);
+  if (itSimCountRes.error) console.error("Error loading SIM count:", itSimCountRes.error);
+  if (itTabletsCountRes.error) console.error("Error loading tablets count:", itTabletsCountRes.error);
+
+  const itAssetsHasError =
+    itLaptopsCountRes.error || itEmailCountRes.error || itSimCountRes.error || itTabletsCountRes.error;
+  const itLaptopsCount = itLaptopsCountRes.count || 0;
+  const itEmailCount = itEmailCountRes.count || 0;
+  const itSimCount = itSimCountRes.count || 0;
+  const itTabletsCount = itTabletsCountRes.count || 0;
+  const itAssetsTotalCount = itLaptopsCount + itEmailCount + itSimCount + itTabletsCount;
 
   const prevMonthFuelCost = prevFuelRes.error
     ? 0
@@ -5596,6 +5636,16 @@ async function loadDashboardStats() {
         : trendBadgeHtml(monthExpenseTotal, prevMonthExpenseTotal, formatMonthOnly(prevExpenseMonthRange.start))) +
         (expensesRes.error ? "" : '<div class="sparkline-wrapper"><canvas id="dashboard-expenses-sparkline"></canvas></div>'),
       "expense"
+    ) +
+    statCardHtml(
+      icon("chartBar"),
+      "أصول تقنية المعلومات",
+      itAssetsHasError ? "—" : String(itAssetsTotalCount),
+      itAssetsHasError
+        ? "تعذر تحميل بيانات الأصول، حاول تحديث الصفحة"
+        : "لابتوب " + itLaptopsCount + " • إيميل " + itEmailCount + " • سيم " + itSimCount + " • تابلت " + itTabletsCount,
+      "",
+      "assets"
     );
 
   if (!fuelRes.error || !expensesRes.error) loadDashboardSparklines();
@@ -5910,6 +5960,55 @@ async function loadDashboardActivity() {
 // حقيقية في مرحلة لاحقة — loadAssetTab دلوقتي مجرد "مفتاح توجيه" فاضي.
 // ============================================================================
 
+// ---------------------------------------------------------------------------
+// شريط ملخص ثابت فوق التبويبات — بيعرض إجمالي كل نوع أصل (نشط بس) بغض
+// النظر عن التبويب المفتوح حاليًا. بيتحدّث كل ما أي تبويب يعمل تحميل
+// (فتح الصفحة / تبديل تبويب / بعد أي إضافة أو تعديل أو استرداد)
+// ---------------------------------------------------------------------------
+
+const itAssetsSummaryContainer = document.getElementById("it-assets-summary");
+
+async function loadItAssetsSummary() {
+  const [laptopsRes, emailRes, simRes, tabletsRes, catalogRes] = await Promise.all([
+    supabaseClient.from("it_laptop_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_email_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_sim_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_tablet_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_laptop_catalog").select("id", { count: "exact", head: true }).eq("status", "active"),
+  ]);
+
+  [laptopsRes, emailRes, simRes, tabletsRes, catalogRes].forEach((res, i) => {
+    if (res.error) console.error("Error loading IT assets summary (" + i + "):", res.error);
+  });
+
+  itAssetsSummaryContainer.innerHTML =
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' +
+    icon("laptop") +
+    '</span><span class="summary-card-label">اللابتوبات</span><span class="summary-card-value">' +
+    (laptopsRes.error ? "—" : laptopsRes.count || 0) +
+    "</span></div>" +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' +
+    icon("mail") +
+    '</span><span class="summary-card-label">البريد الإلكتروني</span><span class="summary-card-value">' +
+    (emailRes.error ? "—" : emailRes.count || 0) +
+    "</span></div>" +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' +
+    icon("phone") +
+    '</span><span class="summary-card-label">أرقام الجوال</span><span class="summary-card-value">' +
+    (simRes.error ? "—" : simRes.count || 0) +
+    "</span></div>" +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' +
+    icon("tablet") +
+    '</span><span class="summary-card-label">الأجهزة اللوحية</span><span class="summary-card-value">' +
+    (tabletsRes.error ? "—" : tabletsRes.count || 0) +
+    "</span></div>" +
+    '<div class="summary-card"><span class="card-icon" aria-hidden="true">' +
+    icon("archive") +
+    '</span><span class="summary-card-label">كتالوج اللابتوبات</span><span class="summary-card-value">' +
+    (catalogRes.error ? "—" : catalogRes.count || 0) +
+    "</span></div>";
+}
+
 const assetTabsContainer = document.getElementById("it-assets-tabs");
 const assetPanels = {
   laptops: document.getElementById("asset-panel-laptops"),
@@ -5969,6 +6068,7 @@ const reportPanels = {
   fuel: document.getElementById("report-panel-fuel"),
   "petty-cash": document.getElementById("report-panel-petty-cash"),
   expenses: document.getElementById("report-panel-expenses"),
+  "it-assets": document.getElementById("report-panel-it-assets"),
 };
 
 let currentReportTab = "vehicles";
@@ -5995,6 +6095,7 @@ function loadReportTab(tab) {
   else if (tab === "fuel") loadFuelReport();
   else if (tab === "petty-cash") loadPettyCashReport();
   else if (tab === "expenses") loadExpensesReport();
+  else if (tab === "it-assets") loadItAssetsReport();
 }
 
 function setReportState(el, message) {
@@ -6521,6 +6622,180 @@ reportExpensesExportButton.addEventListener("click", () => {
     "expenses-report.csv",
     ["الفئة", "إجمالي المبلغ", "عدد المصروفات", "النسبة %"],
     reportExpensesRows.map((c) => [c.name, formatNumber(c.total, 2), c.count, formatNumber(c.percentage, 1)])
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 10.4b تقرير أصول تقنية المعلومات — توزيع حسب النوع (رسم دائري) والموقع
+//       (رسم أعمدة + جدول تفصيلي)، مع فلتر موقع اختياري. كتالوج اللابتوبات
+//       مُستبعد من التوزيع (مفيهوش staff_location أصلًا)، وبيتعرض كارت
+//       ملخص مستقل بس زي ما هو موضّح في ملاحظة الصفحة نفسها
+// ---------------------------------------------------------------------------
+
+const reportItAssetsLocationFilter = document.getElementById("report-it-assets-location-filter");
+const reportItAssetsExportButton = document.getElementById("report-it-assets-export");
+const reportItAssetsSummary = document.getElementById("report-it-assets-summary");
+const reportItAssetsTypeChart = document.getElementById("report-it-assets-type-chart");
+const reportItAssetsTypeState = document.getElementById("report-it-assets-type-state");
+const reportItAssetsLocationChart = document.getElementById("report-it-assets-location-chart");
+const reportItAssetsLocationState = document.getElementById("report-it-assets-location-state");
+const reportItAssetsTableBody = document.getElementById("report-it-assets-table-body");
+const reportItAssetsState = document.getElementById("report-it-assets-state");
+
+let reportItAssetsLocationRows = []; // آخر جدول توزيع اتحسب — مستخدم في تصدير CSV
+let reportItAssetsLocationOptionsBuilt = false;
+
+const IT_ASSETS_TYPE_LABELS = {
+  laptops: "اللابتوبات",
+  email: "البريد الإلكتروني",
+  sim: "أرقام الجوال",
+  tablets: "الأجهزة اللوحية",
+};
+
+async function loadItAssetsReport() {
+  renderTableSkeleton(reportItAssetsTableBody, 5, 6);
+  setReportState(reportItAssetsState, null);
+  reportItAssetsSummary.innerHTML = "";
+
+  const [laptopsRes, emailRes, simRes, tabletsRes, catalogCountRes] = await Promise.all([
+    supabaseClient.from("it_laptop_assignments").select("staff_location").eq("status", "active"),
+    supabaseClient.from("it_email_assignments").select("staff_location").eq("status", "active"),
+    supabaseClient.from("it_sim_assignments").select("staff_location").eq("status", "active"),
+    supabaseClient.from("it_tablet_assignments").select("staff_location").eq("status", "active"),
+    supabaseClient.from("it_laptop_catalog").select("id", { count: "exact", head: true }).eq("status", "active"),
+  ]);
+
+  const anyError = laptopsRes.error || emailRes.error || simRes.error || tabletsRes.error || catalogCountRes.error;
+  if (anyError) {
+    console.error("Error loading IT assets report:", {
+      laptops: laptopsRes.error,
+      email: emailRes.error,
+      sim: simRes.error,
+      tablets: tabletsRes.error,
+      catalog: catalogCountRes.error,
+    });
+    setReportState(reportItAssetsState, "حصل خطأ أثناء تحميل التقرير.");
+    return;
+  }
+
+  const byType = {
+    laptops: laptopsRes.data || [],
+    email: emailRes.data || [],
+    sim: simRes.data || [],
+    tablets: tabletsRes.data || [],
+  };
+  const catalogCount = catalogCountRes.count || 0;
+
+  // فلتر الموقع (اختياري) — بيتطبّق على كل الأنواع الأربعة قبل أي تجميع
+  const locationFilter = reportItAssetsLocationFilter.value;
+  if (locationFilter) {
+    Object.keys(byType).forEach((key) => {
+      byType[key] = byType[key].filter((r) => (r.staff_location || "غير محدد") === locationFilter);
+    });
+  }
+
+  // بناء قائمة المواقع في الفلتر مرة واحدة بس من كل البيانات الحقيقية (قبل
+  // أي فلترة)، عشان القائمة تفضل ثابتة وميتقلبش مع تغيير الاختيار
+  if (!reportItAssetsLocationOptionsBuilt) {
+    const allLocations = new Set();
+    [laptopsRes.data || [], emailRes.data || [], simRes.data || [], tabletsRes.data || []].forEach((rows) => {
+      rows.forEach((r) => allLocations.add(r.staff_location || "غير محدد"));
+    });
+    const sortedLocations = Array.from(allLocations).sort((a, b) => a.localeCompare(b, "ar"));
+    reportItAssetsLocationFilter.innerHTML =
+      '<option value="">كل المواقع</option>' +
+      sortedLocations.map((loc) => '<option value="' + escapeHtml(loc) + '">' + escapeHtml(loc) + "</option>").join("");
+    reportItAssetsLocationFilter.value = locationFilter;
+    reportItAssetsLocationOptionsBuilt = true;
+  }
+
+  const typeCounts = {
+    laptops: byType.laptops.length,
+    email: byType.email.length,
+    sim: byType.sim.length,
+    tablets: byType.tablets.length,
+  };
+  const totalIssued = typeCounts.laptops + typeCounts.email + typeCounts.sim + typeCounts.tablets;
+
+  reportItAssetsSummary.innerHTML =
+    statCardHtml(icon("laptop"), "اللابتوبات", String(typeCounts.laptops), "") +
+    statCardHtml(icon("mail"), "البريد الإلكتروني", String(typeCounts.email), "") +
+    statCardHtml(icon("phone"), "أرقام الجوال", String(typeCounts.sim), "") +
+    statCardHtml(icon("tablet"), "الأجهزة اللوحية", String(typeCounts.tablets), "") +
+    statCardHtml(icon("archive"), "كتالوج اللابتوبات", String(catalogCount), "غير مرتبط بموقع");
+
+  // ---- رسم دائري: توزيع الأصول الموزّعة حسب النوع ----
+  if (totalIssued === 0) {
+    setReportState(reportItAssetsTypeState, "لا توجد بيانات لعرضها.");
+    destroyExistingChart(reportItAssetsTypeChart);
+  } else {
+    setReportState(reportItAssetsTypeState, null);
+    drawDonutChart(
+      reportItAssetsTypeChart,
+      Object.keys(typeCounts).map((key) => ({ label: IT_ASSETS_TYPE_LABELS[key], value: typeCounts[key] })),
+      { formatValue: (v) => formatNumber(v, 0) }
+    );
+  }
+
+  // ---- تجميع حسب الموقع (لكل الأنواع الأربعة) ----
+  const locationMap = {};
+  Object.keys(byType).forEach((typeKey) => {
+    byType[typeKey].forEach((r) => {
+      const loc = r.staff_location || "غير محدد";
+      if (!locationMap[loc]) locationMap[loc] = { location: loc, laptops: 0, email: 0, sim: 0, tablets: 0 };
+      locationMap[loc][typeKey] += 1;
+    });
+  });
+
+  const locationRows = Object.values(locationMap)
+    .map((row) => ({ ...row, total: row.laptops + row.email + row.sim + row.tablets }))
+    .sort((a, b) => b.total - a.total);
+
+  reportItAssetsLocationRows = locationRows;
+
+  // ---- رسم أعمدة أفقي: أعلى 10 مواقع حسب الإجمالي ----
+  const topLocations = locationRows.slice(0, 10);
+  if (!topLocations.length) {
+    setReportState(reportItAssetsLocationState, "لا توجد بيانات لعرضها.");
+    destroyExistingChart(reportItAssetsLocationChart);
+  } else {
+    setReportState(reportItAssetsLocationState, null);
+    drawBarChart(
+      reportItAssetsLocationChart,
+      topLocations.map((r) => r.total),
+      topLocations.map((r) => r.location),
+      { horizontal: true, formatValue: (v) => formatNumber(v, 0) }
+    );
+  }
+
+  // ---- الجدول التفصيلي ----
+  if (!locationRows.length) {
+    setReportState(reportItAssetsState, "لا توجد بيانات مطابقة للفلتر المحدد.");
+    reportItAssetsTableBody.innerHTML = "";
+    return;
+  }
+
+  setReportState(reportItAssetsState, null);
+  reportItAssetsTableBody.innerHTML = locationRows
+    .map(
+      (r) =>
+        "<tr><td>" + escapeHtml(r.location) + "</td>" +
+        "<td>" + r.laptops + "</td>" +
+        "<td>" + r.email + "</td>" +
+        "<td>" + r.sim + "</td>" +
+        "<td>" + r.tablets + "</td>" +
+        "<td><strong>" + r.total + "</strong></td></tr>"
+    )
+    .join("");
+}
+
+reportItAssetsLocationFilter.addEventListener("change", () => loadItAssetsReport());
+
+reportItAssetsExportButton.addEventListener("click", () => {
+  exportRowsToCSV(
+    "it-assets-report.csv",
+    ["الموقع", "اللابتوبات", "البريد الإلكتروني", "أرقام الجوال", "الأجهزة اللوحية", "الإجمالي"],
+    reportItAssetsLocationRows.map((r) => [r.location, r.laptops, r.email, r.sim, r.tablets, r.total])
   );
 });
 
