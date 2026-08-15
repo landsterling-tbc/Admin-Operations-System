@@ -394,7 +394,6 @@ function showAppShell(profile) {
   importVehiclesButton.hidden = !isAdminOrAbove;
   importFuelButton.hidden = !isAdminOrAbove;
   importExpensesButton.hidden = !isAdminOrAbove;
-  addEmployeeButton.hidden = !isAdminOrAbove;
   fullBackupExportButton.hidden = !isAdminOrAbove;
   addLaptopButton.hidden = !isItAssetManager;
   importLaptopsButton.hidden = !isItAssetManager;
@@ -410,10 +409,8 @@ function showAppShell(profile) {
   // صفحات/عناصر مقصورة على Super Admin بالكامل (مش بس زرار داخل الصفحة)
   const auditLogNavItem = document.getElementById("audit-log-nav-item");
   const accountsNavItem = document.getElementById("accounts-nav-item");
-  const employeesNavItem = document.getElementById("employees-nav-item");
   if (auditLogNavItem) auditLogNavItem.hidden = profile.role !== "super_admin";
   if (accountsNavItem) accountsNavItem.hidden = profile.role !== "super_admin";
-  if (employeesNavItem) employeesNavItem.hidden = !isAdminOrAbove;
 
   // دور "IT Support" مسؤول حصريًا عن أصول تقنية المعلومات — القائمة
   // الجانبية بتاعته تقتصر على الرئيسية + أصول تقنية المعلومات بس، وباقي
@@ -535,7 +532,6 @@ logoutButton.addEventListener("click", () => {
   sessionExpiresAt = null;
   fuelVehiclesCache = null;
   expenseCategoriesCache = null;
-  vehicleFormEmployeesCache = null;
   currentActiveFund = null;
   loginForm.reset();
   clearError();
@@ -690,14 +686,12 @@ const PAGE_TITLES = {
   reports: "التقارير",
   "audit-log": "سجل العمليات",
   accounts: "حسابات النظام",
-  employees: "الموظفون",
 };
 
 // صفحات مقصورة على Super Admin بالكامل (حسابات النظام + سجل العمليات) —
 // حماية إضافية على مستوى التنقل نفسه (بجانب إخفاء عنصر الـ Sidebar أصلًا).
 // الرفض الحقيقي للبيانات دايمًا من RLS في قاعدة البيانات، ده مجرد تحسين
-// تجربة استخدام. صفحة "الموظفون" متاحة لـ Admin العادي كمان (مرتبطة بشغله
-// في السيارات/العهدة)، فمش من ضمن القيود دي.
+// تجربة استخدام.
 const SUPER_ADMIN_ONLY_PAGES = ["audit-log", "accounts"];
 
 function navigateTo(pageName) {
@@ -756,10 +750,6 @@ function navigateTo(pageName) {
   if (pageName === "accounts") {
     loadAccountsList();
   }
-
-  if (pageName === "employees") {
-    loadEmployeesList();
-  }
 }
 
 navItems.forEach((item) => {
@@ -787,10 +777,6 @@ function isModalSafeToClose(modal) {
 function closeModalIfSafe(modal) {
   if (!modal || !isModalSafeToClose(modal)) return;
   modal.hidden = true;
-  if (modal.id === "employee-form-modal" && employeeQuickAddCallback) {
-    employeeQuickAddCallback = null;
-    vehicleFormModal.hidden = false;
-  }
 }
 
 document.querySelectorAll("[data-close-modal]").forEach((button) => {
@@ -902,14 +888,10 @@ const vehicleFormStatusSelect = document.getElementById("vehicle-form-status");
 const vehicleFormActualUserNameInput = document.getElementById("vehicle-form-actual-user-name");
 const vehicleFormActualUserNationalIdInput = document.getElementById("vehicle-form-actual-user-national-id");
 const vehicleFormAuthorizationExpiryInput = document.getElementById("vehicle-form-authorization-expiry");
-const vehicleFormEmployeeSelect = document.getElementById("vehicle-form-employee");
-const vehicleFormAddEmployeeButton = document.getElementById("vehicle-form-add-employee-button");
 const vehicleFormError = document.getElementById("vehicle-form-error");
 const vehicleFormSubmitButton = document.getElementById("vehicle-form-submit");
 
 let vehicleBeingViewed = null;
-let vehicleFormOriginalEmployeeId = null; // لمقارنة الموظف قبل/بعد الحفظ (لتسجيل تغيير التعيين)
-let vehicleFormEmployeesCache = null;
 
 // قائمة أسماء المستخدمين الفعليين الموجودة فعلًا على سيارات تانية — بتتعرض
 // كاقتراحات (datalist) وقت كتابة اسم المستخدم الفعلي في فورم السيارة، عشان
@@ -944,46 +926,6 @@ async function ensureActualUserNameOptions(forceRefresh) {
   return actualUserNamesCache;
 }
 
-// قائمة الموظفين النشطين لاستخدامها في select "الموظف الحالي" داخل فورم
-// السيارة — كاش بسيط زي باقي الكاشات المشابهة في النظام
-async function ensureVehicleFormEmployeeOptions(forceRefresh) {
-  if (vehicleFormEmployeesCache && !forceRefresh) return vehicleFormEmployeesCache;
-
-  const { data, error } = await supabaseClient
-    .from("employees")
-    .select("id, full_name")
-    .eq("is_active", true)
-    .order("full_name", { ascending: true });
-
-  if (error) {
-    console.error("Error loading employees for vehicle form:", error);
-    vehicleFormEmployeesCache = [];
-  } else {
-    vehicleFormEmployeesCache = data || [];
-  }
-
-  vehicleFormEmployeeSelect.innerHTML =
-    '<option value="">بدون موظف</option>' +
-    vehicleFormEmployeesCache
-      .map((e) => '<option value="' + e.id + '">' + escapeHtml(e.full_name) + "</option>")
-      .join("");
-
-  return vehicleFormEmployeesCache;
-}
-
-// إضافة موظف جديد بسرعة من داخل فورم السيارة نفسه، من غير الحاجة للذهاب
-// لصفحة "المستخدمون" — بيفتح نفس Modal إضافة الموظف الموجود، وبيرجّع
-// المُعرَّف الجديد عشان يتحط تلقائيًا في select السيارة بعد الحفظ
-vehicleFormAddEmployeeButton.addEventListener("click", () => {
-  vehicleFormModal.hidden = true;
-  openEmployeeForm(null, (newEmployee) => {
-    ensureVehicleFormEmployeeOptions(true).then(() => {
-      vehicleFormEmployeeSelect.value = newEmployee.id;
-      vehicleFormModal.hidden = false;
-    });
-  });
-});
-
 // ---------------------------------------------------------------------------
 // 4.1 جلب وعرض القائمة (بحث + فلتر + Pagination فعليًا من Supabase)
 // ---------------------------------------------------------------------------
@@ -1007,7 +949,6 @@ function renderVehiclesRows(vehicles) {
     tr.className = "clickable-row";
 
     const statusLabel = VEHICLE_STATUS_LABELS[vehicle.status] || vehicle.status;
-    const employeeName = vehicle.current_employee ? vehicle.current_employee.full_name : null;
 
     tr.innerHTML =
       "<td>" + escapeHtml(vehicle.license_plate) + "</td>" +
@@ -1015,7 +956,6 @@ function renderVehiclesRows(vehicles) {
       "<td>" + (vehicle.manufacturing_year || "—") + "</td>" +
       "<td>" + escapeHtml(vehicleActualUserDisplay(vehicle)) + "</td>" +
       "<td>" + vehicleAuthorizationBadgeHtml(vehicle) + "</td>" +
-      "<td>" + escapeHtml(employeeName || "—") + "</td>" +
       "<td><span class=\"status-badge status-" + vehicle.status + "\">" + escapeHtml(statusLabel) + "</span></td>";
 
     tr.addEventListener("click", () => openVehicleDetails(vehicle));
@@ -1048,8 +988,8 @@ async function loadVehicles() {
     .select(
       "id, license_plate, make, manufacturing_year, " +
         "actual_user_name, actual_user_national_id, authorization_expiry_date, " +
-        "status, created_at, updated_at, current_employee_id, current_location_id, " +
-        "current_employee:employees ( full_name ), current_location:locations ( name )",
+        "status, created_at, updated_at, current_location_id, " +
+        "current_location:locations ( name )",
       { count: "exact" }
     )
     .order(vehiclesState.sortColumn, { ascending: vehiclesState.sortAscending })
@@ -1172,7 +1112,6 @@ function openVehicleDetails(vehicle) {
   }
 
   const statusLabel = VEHICLE_STATUS_LABELS[vehicle.status] || vehicle.status;
-  const employeeName = vehicle.current_employee ? vehicle.current_employee.full_name : null;
   const locationName = vehicle.current_location ? vehicle.current_location.name : null;
 
   vehicleDetailsContent.innerHTML =
@@ -1181,7 +1120,6 @@ function openVehicleDetails(vehicle) {
     detailRow("سنة الصنع", vehicle.manufacturing_year || "—") +
     detailRow("المستخدم الفعلي", escapeHtml(vehicleActualUserDisplay(vehicle))) +
     detailRow("حالة التفويض", vehicleAuthorizationBadgeHtml(vehicle)) +
-    detailRow("التخصيص الرسمي (موظف)", escapeHtml(employeeName || "—")) +
     detailRow("الموقع الحالي", escapeHtml(locationName || "—")) +
     detailRow("الحالة", "<span class=\"status-badge status-" + vehicle.status + "\">" + escapeHtml(statusLabel) + "</span>") +
     detailRow("تاريخ الإضافة", formatDateTime(vehicle.created_at)) +
@@ -1212,18 +1150,16 @@ vehicleDetailsEditButton.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4.2b تبويبات تفاصيل السيارة: ملخص الوقود / تاريخ التنقلات / سجل العمليات
+// 4.2b تبويبات تفاصيل السيارة: ملخص الوقود / سجل العمليات
 // ---------------------------------------------------------------------------
 
 const vehicleDetailsTabsContainer = document.getElementById("vehicle-details-tabs");
 const vehicleTabPanels = {
   basic: document.getElementById("vehicle-tab-basic"),
   fuel: document.getElementById("vehicle-tab-fuel"),
-  assignments: document.getElementById("vehicle-tab-assignments"),
   audit: document.getElementById("vehicle-tab-audit"),
 };
 const vehicleFuelSummaryContent = document.getElementById("vehicle-fuel-summary-content");
-const vehicleAssignmentsContent = document.getElementById("vehicle-assignments-content");
 const vehicleAuditContent = document.getElementById("vehicle-audit-content");
 
 function switchVehicleDetailsTab(tabName) {
@@ -1236,7 +1172,6 @@ function switchVehicleDetailsTab(tabName) {
   });
 
   if (tabName === "fuel") loadVehicleFuelSummaryTab();
-  if (tabName === "assignments") loadVehicleAssignmentsTab();
   if (tabName === "audit") loadVehicleAuditTab();
 }
 
@@ -1279,52 +1214,6 @@ async function loadVehicleFuelSummaryTab() {
     '<div class="summary-card"><span class="card-icon" aria-hidden="true">' + icon("chartBar") + '</span><span class="summary-card-label">متوسط تكلفة المعاملة</span>' +
     '<span class="summary-card-value">' + formatNumber(data.average_cost_per_transaction, 2) + " ر.س</span></div>" +
     "</div>";
-}
-
-async function loadVehicleAssignmentsTab() {
-  if (!vehicleBeingViewed) return;
-  vehicleAssignmentsContent.innerHTML = skeletonBlockHtml(3, 5);
-
-  const { data, error } = await supabaseClient
-    .from("vehicle_assignments")
-    .select(
-      "id, start_date, end_date, notes, " +
-        "employee:employees!employee_id ( full_name ), " +
-        "location:locations!location_id ( name )"
-    )
-    .eq("vehicle_id", vehicleBeingViewed.id)
-    .order("start_date", { ascending: false });
-
-  if (error) {
-    console.error("Error loading vehicle assignments:", error);
-    vehicleAssignmentsContent.innerHTML = '<div class="table-state">حصل خطأ أثناء تحميل تاريخ التنقلات.</div>';
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    vehicleAssignmentsContent.innerHTML =
-      '<div class="table-state">لا يوجد سجل تنقلات لهذه السيارة بعد. (موديول تغيير التخصيص هيتضاف في مرحلة قادمة)</div>';
-    return;
-  }
-
-  const rows = data
-    .map((a) => {
-      const employeeName = a.employee ? a.employee.full_name : "—";
-      const locationName = a.location ? a.location.name : "—";
-      return (
-        "<tr><td>" + formatDateOnly(a.start_date) + "</td>" +
-        "<td>" + (a.end_date ? formatDateOnly(a.end_date) : "حتى الآن") + "</td>" +
-        "<td>" + escapeHtml(employeeName) + "</td>" +
-        "<td>" + escapeHtml(locationName) + "</td>" +
-        "<td>" + escapeHtml(a.notes || "—") + "</td></tr>"
-      );
-    })
-    .join("");
-
-  vehicleAssignmentsContent.innerHTML =
-    '<div class="table-scroll"><table class="data-table"><thead><tr>' +
-    "<th>من تاريخ</th><th>إلى تاريخ</th><th>الموظف</th><th>الموقع</th><th>ملاحظات</th>" +
-    "</tr></thead><tbody>" + rows + "</tbody></table></div>";
 }
 
 async function loadVehicleAuditTab() {
@@ -1386,57 +1275,12 @@ async function openVehicleForm(vehicle) {
   vehicleFormAuthorizationExpiryInput.value =
     vehicle && vehicle.authorization_expiry_date ? vehicle.authorization_expiry_date : "";
 
-  await ensureVehicleFormEmployeeOptions();
   await ensureActualUserNameOptions();
-  vehicleFormOriginalEmployeeId = vehicle && vehicle.current_employee_id ? vehicle.current_employee_id : null;
-
-  // لو الموظف الحالي للسيارة معطّل (مش موجود في قائمة النشطين)، لازم يفضل
-  // ظاهر ومحدد في الفورم برضو — عشان الحفظ العادي (تعديل حاجة تانية في
-  // السيارة) ميمسحش تعيينه بالغلط من غير ما الأدمن ياخد قرار واعي بكده
-  if (
-    vehicleFormOriginalEmployeeId &&
-    !vehicleFormEmployeesCache.some((e) => e.id === vehicleFormOriginalEmployeeId)
-  ) {
-    const currentName = vehicle.current_employee ? vehicle.current_employee.full_name : "موظف معطّل";
-    vehicleFormEmployeeSelect.insertAdjacentHTML(
-      "beforeend",
-      '<option value="' + vehicleFormOriginalEmployeeId + '">' + escapeHtml(currentName) + " (معطّل)</option>"
-    );
-  }
-
-  vehicleFormEmployeeSelect.value = vehicleFormOriginalEmployeeId || "";
 
   vehicleFormModal.hidden = false;
 }
 
 addVehicleButton.addEventListener("click", () => openVehicleForm(null));
-
-// تسجيل تغيير تعيين السيارة (موظف جديد/إزالة الموظف) في vehicle_assignments
-// — بيقفل أي فترة تعيين مفتوحة حاليًا لنفس السيارة، وبيفتح فترة جديدة لو
-// فيه موظف جديد متحدد. عملية Best-effort غير حرجة (راجع نداءها بالأعلى)
-async function logVehicleAssignmentChange(vehicleId, previousEmployeeId, newEmployeeId) {
-  const today = new Date().toISOString().slice(0, 10);
-
-  const { error: closeError } = await supabaseClient
-    .from("vehicle_assignments")
-    .update({ end_date: today })
-    .eq("vehicle_id", vehicleId)
-    .is("end_date", null);
-
-  if (closeError) console.error("Error closing previous vehicle assignment:", closeError);
-
-  if (!newEmployeeId) return; // إزالة الموظف بس — من غير فترة تعيين جديدة
-
-  const { error: insertError } = await supabaseClient.from("vehicle_assignments").insert({
-    vehicle_id: vehicleId,
-    employee_id: newEmployeeId,
-    previous_employee_id: previousEmployeeId,
-    start_date: today,
-    assigned_by: currentAuthUser ? currentAuthUser.id : null,
-  });
-
-  if (insertError) console.error("Error logging new vehicle assignment:", insertError);
-}
 
 vehicleForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -1461,8 +1305,6 @@ vehicleForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const newEmployeeId = vehicleFormEmployeeSelect.value || null;
-
   const payload = {
     license_plate: licensePlate,
     make: vehicleFormMakeInput.value.trim() || null,
@@ -1471,7 +1313,6 @@ vehicleForm.addEventListener("submit", async (event) => {
     actual_user_name: vehicleFormActualUserNameInput.value.trim() || null,
     actual_user_national_id: actualUserNationalId || null,
     authorization_expiry_date: vehicleFormAuthorizationExpiryInput.value || null,
-    current_employee_id: newEmployeeId,
   };
 
   vehicleFormSubmitButton.disabled = true;
@@ -1480,7 +1321,6 @@ vehicleForm.addEventListener("submit", async (event) => {
   try {
     const editingId = vehicleFormIdInput.value;
     let error;
-    let savedVehicleId = editingId || null;
 
     if (editingId) {
       ({ error } = await supabaseClient.from("vehicles").update(payload).eq("id", editingId));
@@ -1488,7 +1328,6 @@ vehicleForm.addEventListener("submit", async (event) => {
       payload.created_by = currentAuthUser ? currentAuthUser.id : null;
       const insertResult = await supabaseClient.from("vehicles").insert(payload).select().single();
       error = insertResult.error;
-      if (!error && insertResult.data) savedVehicleId = insertResult.data.id;
     }
 
     if (error) {
@@ -1509,17 +1348,6 @@ vehicleForm.addEventListener("submit", async (event) => {
 
       vehicleFormError.hidden = false;
       return;
-    }
-
-    // تسجيل تغيير التعيين في سجل "تاريخ التنقلات" — عملية ثانوية غير حرجة؛
-    // فشلها (لو حصل) بيتسجل في الـ Console بس ومش بيوقف حفظ السيارة نفسها
-    // اللي خلص بنجاح أصلًا
-    if (savedVehicleId && newEmployeeId !== vehicleFormOriginalEmployeeId) {
-      try {
-        await logVehicleAssignmentChange(savedVehicleId, vehicleFormOriginalEmployeeId, newEmployeeId);
-      } catch (assignmentError) {
-        console.error("Unexpected error logging vehicle assignment:", assignmentError);
-      }
     }
 
     actualUserNamesCache = null; // عشان الاسم الجديد يظهر كاقتراح من أول مرة
@@ -7111,7 +6939,7 @@ async function exportFullBackupToExcel() {
   fullBackupExportButton.textContent = "جارٍ التجهيز...";
 
   try {
-    const [vehiclesRes, fuelRes, fundsRes, expensesRes, employeesRes] = await Promise.all([
+    const [vehiclesRes, fuelRes, fundsRes, expensesRes] = await Promise.all([
       fetchAllRowsPaged(() =>
         supabaseClient
           .from("vehicles")
@@ -7140,27 +6968,19 @@ async function exportFullBackupToExcel() {
           )
           .order("expense_date", { ascending: false })
       ),
-      fetchAllRowsPaged(() =>
-        supabaseClient
-          .from("employees")
-          .select("full_name, employee_code, phone, is_active")
-          .order("full_name", { ascending: true })
-      ),
     ]);
 
     if (
       vehiclesRes.error ||
       fuelRes.error ||
       fundsRes.error ||
-      expensesRes.error ||
-      employeesRes.error
+      expensesRes.error
     ) {
       console.error("Error exporting full backup:", {
         vehicles: vehiclesRes.error,
         fuel: fuelRes.error,
         funds: fundsRes.error,
         expenses: expensesRes.error,
-        employees: employeesRes.error,
       });
       alert("حصل خطأ أثناء تجهيز النسخة الاحتياطية. حاول تاني.");
       return;
@@ -7222,18 +7042,6 @@ async function exportFullBackupToExcel() {
         e.expense_date,
         e.description || "",
         e.status === "voided" ? "ملغاة" : "نشطة",
-      ])
-    );
-
-    addBackupSheet(
-      workbook,
-      "الموظفون",
-      ["الاسم", "الرقم الوظيفي", "الهاتف", "نشط؟"],
-      (employeesRes.data || []).map((emp) => [
-        emp.full_name,
-        emp.employee_code || "",
-        emp.phone || "",
-        emp.is_active ? "نعم" : "لا",
       ])
     );
 
@@ -7543,26 +7351,23 @@ async function runGlobalSearch(term) {
 
   const likeTerm = "%" + term + "%";
 
-  const [vehiclesRes, employeesRes, locationsRes] = await Promise.all([
+  const [vehiclesRes, locationsRes] = await Promise.all([
     supabaseClient
       .from("vehicles")
       .select("id, license_plate, make, actual_user_name")
       .or("license_plate.ilike." + likeTerm + ",actual_user_name.ilike." + likeTerm)
       .limit(5),
-    supabaseClient.from("employees").select("id, full_name").ilike("full_name", likeTerm).limit(5),
     supabaseClient.from("locations").select("id, name").ilike("name", likeTerm).limit(5),
   ]);
 
   if (vehiclesRes.error) console.error("Error searching vehicles:", vehiclesRes.error);
-  if (employeesRes.error) console.error("Error searching employees:", employeesRes.error);
   if (locationsRes.error) console.error("Error searching locations:", locationsRes.error);
 
   const vehicles = vehiclesRes.data || [];
-  const employees = employeesRes.data || [];
   const locations = locationsRes.data || [];
 
-  if (!vehicles.length && !employees.length && !locations.length) {
-    const hadError = vehiclesRes.error || employeesRes.error || locationsRes.error;
+  if (!vehicles.length && !locations.length) {
+    const hadError = vehiclesRes.error || locationsRes.error;
     globalSearchResults.innerHTML =
       '<div class="search-results-state">' +
       (hadError ? "تعذر إتمام البحث. يُرجى المحاولة مرة أخرى." : "لا توجد نتائج مطابقة.") +
@@ -7584,19 +7389,6 @@ async function runGlobalSearch(term) {
             '<span class="search-result-sub">' + escapeHtml(sub) + "</span></button>"
           );
         })
-        .join("") +
-      "</div>";
-  }
-
-  if (employees.length) {
-    html +=
-      '<div class="search-results-group"><span class="search-results-group-title">الموظفون/السائقون</span>' +
-      employees
-        .map(
-          (e) =>
-            '<button type="button" class="search-result-item" data-search-type="employee" data-search-id="' + e.id + '">' +
-            "<span>" + escapeHtml(e.full_name) + "</span></button>"
-        )
         .join("") +
       "</div>";
   }
@@ -7632,7 +7424,7 @@ async function handleSearchResultClick(type, id) {
       .select(
         "id, license_plate, make, manufacturing_year, " +
           "actual_user_name, actual_user_national_id, authorization_expiry_date, status, created_at, updated_at, " +
-          "current_employee_id, current_location_id, current_employee:employees ( full_name ), current_location:locations ( name )"
+          "current_location_id, current_location:locations ( name )"
       )
       .eq("id", id)
       .single();
@@ -7645,17 +7437,12 @@ async function handleSearchResultClick(type, id) {
     return;
   }
 
-  if (type === "employee") {
-    navigateTo("employees");
-    return;
-  }
-
   // المواقع مش عندها صفحة مخصصة لسه، فأقرب سياق فعلي ليها هو صفحة السيارات
   navigateTo("vehicles");
 }
 
 // ============================================================================
-// 13. المستخدمون والموظفون (Users & Employees) — Phase 6 — Super Admin فقط
+// 13. حسابات النظام (Accounts) — Phase 6 — Super Admin فقط
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -8044,249 +7831,6 @@ accountResetPasswordConfirmButton.addEventListener("click", async () => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// 13.2 الموظفون (employees) — عرض، إضافة/تعديل، تعطيل/تفعيل
-// ---------------------------------------------------------------------------
-
-let employeesListState = { search: "" };
-
-const employeesTableBody = document.getElementById("employees-table-body");
-const employeesStateBox = document.getElementById("employees-state");
-const employeesSearchInput = document.getElementById("employees-search");
-const addEmployeeButton = document.getElementById("add-employee-button");
-
-const employeeFormModal = document.getElementById("employee-form-modal");
-const employeeForm = document.getElementById("employee-form");
-const employeeFormTitle = document.getElementById("employee-form-title");
-const employeeFormIdInput = document.getElementById("employee-form-id");
-const employeeFormNameInput = document.getElementById("employee-form-name");
-const employeeFormCodeInput = document.getElementById("employee-form-code");
-const employeeFormPhoneInput = document.getElementById("employee-form-phone");
-const employeeFormActiveSelect = document.getElementById("employee-form-active");
-const employeeFormError = document.getElementById("employee-form-error");
-const employeeFormSubmitButton = document.getElementById("employee-form-submit");
-
-function setEmployeesState(message) {
-  employeesStateBox.classList.remove("is-rich");
-  if (!message) {
-    employeesStateBox.hidden = true;
-    employeesStateBox.textContent = "";
-    return;
-  }
-  employeesStateBox.hidden = false;
-  employeesStateBox.textContent = message;
-}
-
-async function loadEmployeesList() {
-  renderTableSkeleton(employeesTableBody, 5, 5);
-  setEmployeesState(null);
-
-  let query = supabaseClient
-    .from("employees")
-    .select("id, full_name, employee_code, phone, is_active")
-    .order("full_name", { ascending: true });
-
-  if (employeesListState.search) {
-    query = query.ilike("full_name", "%" + employeesListState.search + "%");
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error loading employees:", error);
-    setEmployeesState("تعذر تحميل الموظفين. يُرجى المحاولة مرة أخرى.");
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    if (employeesListState.search) {
-      setEmployeesState("لا توجد نتائج مطابقة.");
-    } else {
-      showRichEmptyState(
-        employeesStateBox,
-        icon("user"),
-        "لا يوجد موظفون بعد",
-        "لا يوجد أي موظف مسجّل بعد. أضف أول موظف لتتمكن من ربطه بسيارات أو عهد نقدية.",
-        '<button type="button" class="btn-primary" id="empty-add-employee-button">+ إضافة أول موظف</button>'
-      );
-      document.getElementById("empty-add-employee-button").addEventListener("click", () => addEmployeeButton.click());
-    }
-    return;
-  }
-
-  setEmployeesState(null);
-
-  employeesTableBody.innerHTML = data
-    .map((emp) => {
-      const statusBadge = emp.is_active
-        ? '<span class="status-badge status-active">مفعّل</span>'
-        : '<span class="status-badge status-voided">معطّل</span>';
-      const toggleLabel = emp.is_active ? "تعطيل" : "تفعيل";
-      const toggleClass = emp.is_active ? "btn-danger btn-sm" : "btn-secondary btn-sm";
-
-      const actionsHtml = currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin")
-        ? '<button type="button" class="btn-secondary btn-sm employee-edit-btn">تعديل</button> ' +
-          '<button type="button" class="' + toggleClass + ' employee-toggle-btn">' + toggleLabel + "</button>"
-        : '<span class="text-muted">—</span>';
-
-      return (
-        "<tr data-employee-id=\"" + emp.id + "\">" +
-        "<td>" + escapeHtml(emp.full_name) + "</td>" +
-        "<td>" + escapeHtml(emp.employee_code || "—") + "</td>" +
-        "<td>" + escapeHtml(emp.phone || "—") + "</td>" +
-        "<td>" + statusBadge + "</td>" +
-        '<td class="actions-cell">' + actionsHtml + "</td></tr>"
-      );
-    })
-    .join("");
-
-  if (currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin")) {
-    employeesTableBody.querySelectorAll(".employee-edit-btn").forEach((btn) => {
-      const tr = btn.closest("tr");
-      const emp = data.find((e) => e.id === tr.dataset.employeeId);
-      btn.addEventListener("click", () => openEmployeeForm(emp));
-    });
-
-    employeesTableBody.querySelectorAll(".employee-toggle-btn").forEach((btn) => {
-      const tr = btn.closest("tr");
-      const emp = data.find((e) => e.id === tr.dataset.employeeId);
-      btn.addEventListener("click", () => toggleEmployeeActive(emp, btn));
-    });
-  }
-}
-
-let employeesSearchDebounce;
-employeesSearchInput.addEventListener("input", () => {
-  clearTimeout(employeesSearchDebounce);
-  employeesSearchDebounce = setTimeout(() => {
-    employeesListState.search = employeesSearchInput.value.trim();
-    loadEmployeesList();
-  }, 300);
-});
-
-// employeeQuickAddCallback: لو اتحددت، معناها إن فورم الموظف اتفتح كـ
-// "إضافة سريعة" من مكان تاني (زي فورم السيارة) — بعد الحفظ الناجح بيتنادى
-// بالموظف الجديد بدل الرجوع لصفحة "المستخدمون" العادية
-let employeeQuickAddCallback = null;
-
-function openEmployeeForm(employee, onCreated) {
-  employeeFormError.hidden = true;
-  employeeFormError.textContent = "";
-  employeeQuickAddCallback = onCreated || null;
-
-  employeeFormTitle.textContent = employee ? "تعديل بيانات موظف" : "إضافة موظف";
-  employeeFormIdInput.value = employee ? employee.id : "";
-  employeeFormNameInput.value = employee ? employee.full_name : "";
-  employeeFormCodeInput.value = employee && employee.employee_code ? employee.employee_code : "";
-  employeeFormPhoneInput.value = employee && employee.phone ? employee.phone : "";
-  employeeFormActiveSelect.value = employee ? String(employee.is_active) : "true";
-
-  employeeFormModal.hidden = false;
-}
-
-addEmployeeButton.addEventListener("click", () => openEmployeeForm(null));
-
-employeeForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  employeeFormError.hidden = true;
-  employeeFormError.textContent = "";
-
-  const fullName = employeeFormNameInput.value.trim();
-  if (!fullName) {
-    employeeFormError.textContent = "اسم الموظف مطلوب.";
-    employeeFormError.hidden = false;
-    return;
-  }
-
-  const payload = {
-    full_name: fullName,
-    employee_code: employeeFormCodeInput.value.trim() || null,
-    phone: employeeFormPhoneInput.value.trim() || null,
-    is_active: employeeFormActiveSelect.value === "true",
-  };
-
-  employeeFormSubmitButton.disabled = true;
-  employeeFormSubmitButton.textContent = "جارٍ الحفظ...";
-
-  try {
-    const editingId = employeeFormIdInput.value;
-    let error;
-    let savedEmployee = null;
-
-    if (editingId) {
-      ({ error } = await supabaseClient.from("employees").update(payload).eq("id", editingId));
-    } else {
-      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
-      const insertResult = await supabaseClient.from("employees").insert(payload).select().single();
-      error = insertResult.error;
-      savedEmployee = insertResult.data;
-    }
-
-    if (error) {
-      console.error("Error saving employee:", error);
-
-      if (error.code === "23505") {
-        employeeFormError.textContent = "الكود الوظيفي مستخدم بالفعل لموظف آخر.";
-      } else if (
-        error.code === "42501" ||
-        (error.message && error.message.toLowerCase().includes("row-level security"))
-      ) {
-        employeeFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
-      } else {
-        employeeFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
-      }
-
-      employeeFormError.hidden = false;
-      return;
-    }
-
-    employeeFormModal.hidden = true;
-    vehicleFormEmployeesCache = null;
-
-    if (employeeQuickAddCallback && savedEmployee) {
-      const callback = employeeQuickAddCallback;
-      employeeQuickAddCallback = null;
-      callback(savedEmployee);
-    } else {
-      employeeQuickAddCallback = null;
-      loadEmployeesList();
-    }
-  } catch (unexpectedError) {
-    console.error("Unexpected error saving employee:", unexpectedError);
-    employeeFormError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
-    employeeFormError.hidden = false;
-  } finally {
-    employeeFormSubmitButton.disabled = false;
-    employeeFormSubmitButton.textContent = "حفظ";
-  }
-});
-
-async function toggleEmployeeActive(employee, triggerButton) {
-  const newState = !employee.is_active;
-  if (triggerButton) triggerButton.disabled = true;
-
-  try {
-    const { error } = await supabaseClient.from("employees").update({ is_active: newState }).eq("id", employee.id);
-
-    if (error) {
-      console.error("Error toggling employee state:", error);
-      alert(
-        error.code === "42501" || (error.message && error.message.toLowerCase().includes("row-level security"))
-          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء تحديث حالة الموظف: " + error.message
-      );
-      return;
-    }
-
-    vehicleFormEmployeesCache = null;
-    loadEmployeesList();
-  } catch (unexpectedError) {
-    console.error("Unexpected error toggling employee state:", unexpectedError);
-    alert("تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
-  } finally {
-    if (triggerButton) triggerButton.disabled = false;
-  }
-}
 
 // ============================================================================
 // 14. معالج استيراد Excel (Import Wizard) — مشترك بين السيارات/الوقود/

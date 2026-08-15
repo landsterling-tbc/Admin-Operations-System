@@ -153,10 +153,6 @@
             <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" /></svg>
             <span>حسابات النظام</span>
           </a>
-          <a href="#" class="sidebar-nav-item" data-page="employees" id="employees-nav-item" hidden>
-            <svg class="sidebar-nav-icon" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-            <span>الموظفون</span>
-          </a>
         </div>
       </nav>
 
@@ -290,7 +286,6 @@
                     <th>السنة</th>
                     <th>المستخدم الفعلي</th>
                     <th>التفويض</th>
-                    <th>التخصيص الرسمي</th>
                     <th class="sortable-th" data-sort="status">الحالة<span class="sort-arrow" aria-hidden="true"></span></th>
                   </tr>
                 </thead>
@@ -1337,40 +1332,6 @@
           </div>
         </section>
 
-        <!-- ==================== الموظفون (Employees) — Phase 6 — Super Admin فقط ==================== -->
-        <section id="employees-page" class="app-page" hidden>
-          <div class="page-toolbar">
-            <div class="page-toolbar-filters">
-              <input
-                type="search"
-                id="employees-search"
-                class="input-search"
-                placeholder="ابحث بالاسم..."
-              />
-            </div>
-            <button type="button" id="add-employee-button" class="btn-primary btn-inline">
-              + إضافة موظف
-            </button>
-          </div>
-          <div class="table-card">
-            <div class="table-scroll">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>الاسم</th>
-                    <th>الكود الوظيفي</th>
-                    <th>الهاتف</th>
-                    <th>الحالة</th>
-                    <th>الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody id="employees-table-body"></tbody>
-              </table>
-            </div>
-            <div id="employees-state" class="table-state" hidden></div>
-          </div>
-        </section>
-
       </div>
     </main>
   </div>
@@ -1388,7 +1349,6 @@
       <div class="modal-tabs" id="vehicle-details-tabs">
         <button type="button" class="modal-tab active" data-tab="basic">البيانات الأساسية</button>
         <button type="button" class="modal-tab" data-tab="fuel">ملخص الوقود</button>
-        <button type="button" class="modal-tab" data-tab="assignments">تاريخ التنقلات</button>
         <button type="button" class="modal-tab" data-tab="audit" id="vehicle-audit-tab-button" hidden>سجل العمليات</button>
       </div>
 
@@ -1401,10 +1361,6 @@
 
         <div id="vehicle-tab-fuel" class="vehicle-tab-panel" hidden>
           <div id="vehicle-fuel-summary-content"></div>
-        </div>
-
-        <div id="vehicle-tab-assignments" class="vehicle-tab-panel" hidden>
-          <div id="vehicle-assignments-content"></div>
         </div>
 
         <div id="vehicle-tab-audit" class="vehicle-tab-panel" hidden>
@@ -1471,15 +1427,6 @@
             <div class="form-field">
               <label for="vehicle-form-authorization-expiry">تفويض حتى (اتركه فاضي لو مستخدم فعلي بدون تاريخ محدد)</label>
               <input type="date" id="vehicle-form-authorization-expiry" />
-            </div>
-            <div class="form-field">
-              <label for="vehicle-form-employee">التخصيص الرسمي (موظف)</label>
-              <div class="input-with-action">
-                <select id="vehicle-form-employee">
-                  <option value="">بدون موظف</option>
-                </select>
-                <button type="button" id="vehicle-form-add-employee-button" class="btn-secondary btn-sm">+ موظف جديد</button>
-              </div>
             </div>
           </div>
 
@@ -2459,52 +2406,6 @@
     </div>
   </div>
 
-  <!-- ==========================================================
-       Modal: إضافة / تعديل موظف — Super Admin فقط
-       ========================================================== -->
-  <div id="employee-form-modal" class="modal-overlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="employee-form-title">
-      <div class="modal-header">
-        <h2 id="employee-form-title" class="modal-title">إضافة موظف</h2>
-        <button type="button" class="modal-close" data-close-modal="employee-form-modal" aria-label="إغلاق">×</button>
-      </div>
-
-      <form id="employee-form" novalidate>
-        <div class="modal-body">
-          <input type="hidden" id="employee-form-id" value="" />
-
-          <div class="form-grid">
-            <div class="form-field">
-              <label for="employee-form-name">الاسم *</label>
-              <input type="text" id="employee-form-name" required />
-            </div>
-            <div class="form-field">
-              <label for="employee-form-code">الكود الوظيفي</label>
-              <input type="text" id="employee-form-code" />
-            </div>
-            <div class="form-field">
-              <label for="employee-form-phone">الهاتف</label>
-              <input type="text" id="employee-form-phone" />
-            </div>
-            <div class="form-field">
-              <label for="employee-form-active">الحالة</label>
-              <select id="employee-form-active">
-                <option value="true">مفعّل</option>
-                <option value="false">معطّل</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="employee-form-error" class="error-message" role="alert" hidden></div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" id="employee-form-submit" class="btn-primary">حفظ</button>
-          <button type="button" class="btn-secondary" data-close-modal="employee-form-modal">إلغاء</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- ==========================================================
        Modal: معالج استيراد بيانات من Excel (مشترك بين السيارات/الوقود/
