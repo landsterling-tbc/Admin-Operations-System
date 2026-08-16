@@ -1,4 +1,10 @@
 <!doctype html>
+<!--
+  ⚠️ ملاحظة للغة: كل نص عربي في هذا الملف (نصوص واجهة، تعليقات) يجب أن يكون
+  بالفصحى (Modern Standard Arabic) وليس بالعامية المصرية. تجنّب: مش، ده/دي/دول،
+  اللي، بس، عشان، لازم، بيXXX/هيXXX/اتXXX، عايز/عاوز، خالص، أوي، كده، لسه،
+  دلوقتي، النهارده، حصل (استخدم "حدث")، تاني (استخدم "مرة أخرى").
+-->
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -34,8 +40,8 @@
 
   <!-- ==========================================================
        صفحة تسجيل الدخول (Login) — Split Layout
-       تبدأ hidden افتراضيًا؛ script.js هو اللي بيقرر يظهرها أو
-       يظهر #app-shell بعد التحقق من الجلسة (Session persistence).
+       تبدأ hidden افتراضيًا؛ script.js هو الذي يقرر إظهارها أو
+       إظهار #app-shell بعد التحقق من الجلسة (Session persistence).
        ========================================================== -->
   <main id="login-page" hidden>
     <div class="login-screen">
@@ -264,7 +270,7 @@
             </div>
 
             <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
-                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                 الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
             <div class="toolbar-actions">
               <button type="button" id="import-vehicles-button" class="btn-secondary btn-inline" hidden>
                 <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -337,7 +343,7 @@
             </div>
           </div>
           <p class="summary-note">
-            الأرقام أعلاه بتعكس إجمالي كل المعاملات المطابقة للفلاتر المطبّقة (مش صفحة الجدول المعروضة بس).
+            الأرقام أعلاه تعكس إجمالي كل المعاملات المطابقة للفلاتر المطبّقة (وليست صفحة الجدول المعروضة فقط).
           </p>
 
           <div class="page-toolbar">
@@ -357,7 +363,7 @@
             </div>
 
             <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
-                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                 الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
             <div class="toolbar-actions">
               <button type="button" id="import-fuel-button" class="btn-secondary btn-inline" hidden>
                 <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -413,14 +419,14 @@
               <h2 class="section-heading">العهدة الحالية</h2>
             </div>
             <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
-                 الضامن الفعلي، مش إخفاء الزرار ده -->
+                 الضامن الفعلي، وليس إخفاء الزر هذا -->
             <button type="button" id="add-fund-button" class="btn-primary btn-inline" hidden>
               + إنشاء عهدة جديدة
             </button>
           </div>
 
           <div id="current-fund-container" class="fund-card-wrapper">
-            <!-- بيتم حقن كارت العهدة الحالية (أو حالة "لا توجد عهدة نشطة") هنا -->
+            <!-- يتم حقن بطاقة العهدة الحالية (أو حالة "لا توجد عهدة نشطة") هنا -->
           </div>
 
           <h2 class="section-heading section-heading-spaced">سجل العهد السابقة</h2>
@@ -465,7 +471,7 @@
             </div>
 
             <!-- يظهر فقط لـ Super Admin — الـ RLS في قاعدة البيانات هو
-                 الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                 الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
             <div class="toolbar-actions">
               <button type="button" id="import-expenses-button" class="btn-secondary btn-inline" hidden>
                 <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -543,7 +549,7 @@
               </div>
 
               <!-- يظهر فقط لـ Super Admin/Admin — الـ RLS في قاعدة البيانات هو
-                   الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                   الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
               <div class="toolbar-actions">
                 <button type="button" id="import-laptops-button" class="btn-secondary btn-inline" hidden>
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -608,7 +614,7 @@
               </div>
 
               <!-- يظهر فقط لـ Super Admin/Admin — الـ RLS في قاعدة البيانات هو
-                   الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                   الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
               <div class="toolbar-actions">
                 <button type="button" id="import-email-button" class="btn-secondary btn-inline" hidden>
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -671,7 +677,7 @@
               </div>
 
               <!-- يظهر فقط لـ Super Admin/Admin — الـ RLS في قاعدة البيانات هو
-                   الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                   الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
               <div class="toolbar-actions">
                 <button type="button" id="import-sim-button" class="btn-secondary btn-inline" hidden>
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -734,7 +740,7 @@
               </div>
 
               <!-- يظهر فقط لـ Super Admin/Admin — الـ RLS في قاعدة البيانات هو
-                   الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                   الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
               <div class="toolbar-actions">
                 <button type="button" id="import-tablets-button" class="btn-secondary btn-inline" hidden>
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -796,7 +802,7 @@
               </div>
 
               <!-- يظهر فقط لـ Super Admin/Admin — الـ RLS في قاعدة البيانات هو
-                   الضامن الفعلي لمنع الإضافة، مش إخفاء الزرار ده -->
+                   الضامن الفعلي لمنع الإضافة، وليس إخفاء الزر هذا -->
               <div class="toolbar-actions">
                 <button type="button" id="import-laptop-catalog-button" class="btn-secondary btn-inline" hidden>
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -848,7 +854,7 @@
         <section id="reports-page" class="app-page" hidden>
 
           <!-- نسخة احتياطية كاملة — بيانات كل الجداول الأساسية في ملف Excel واحد،
-               مستقلة عن فلاتر أي تبويب. متاحة للأدمن فقط، زي باقي أزرار الإدارة -->
+               مستقلة عن فلاتر أي تبويب. متاحة للأدمن فقط، مثل باقي أزرار الإدارة -->
           <div class="page-toolbar">
             <div class="page-toolbar-filters">
               <span class="text-muted">تصدير نسخة كاملة من كل البيانات (السيارات، الوقود، العهدة، المصروفات، الموظفين) في ملف Excel واحد.</span>
@@ -902,7 +908,7 @@
             </div>
             <div id="report-fuel-summary" class="summary-cards"></div>
             <p class="summary-note">
-              كروت الملخص أعلاه بتعكس نطاق التاريخ المحدد. الجدول تحت بيعرض
+              بطاقات الملخص أعلاه تعكس نطاق التاريخ المحدد. الجدول أدناه يعرض
               إجمالي كل سيارة عبر كل الفترات (من vehicle_fuel_summary).
             </p>
 
@@ -1425,7 +1431,7 @@
               <input type="text" id="vehicle-form-actual-user-national-id" />
             </div>
             <div class="form-field">
-              <label for="vehicle-form-authorization-expiry">تفويض حتى (اتركه فاضي لو مستخدم فعلي بدون تاريخ محدد)</label>
+              <label for="vehicle-form-authorization-expiry">تفويض حتى (اتركه فارغًا إذا كان هناك مستخدم فعلي بدون تاريخ محدد)</label>
               <input type="date" id="vehicle-form-authorization-expiry" />
             </div>
           </div>
@@ -1500,8 +1506,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من إلغاء معاملة الوقود دي؟ المعاملة هتفضل موجودة في
-          السجل بحالة "ملغاة" ومش هتتحسب ضمن الإجماليات — دي عملية لا يمكن
+          هل أنت متأكد من إلغاء معاملة الوقود هذه؟ ستظل المعاملة موجودة في
+          السجل بحالة "ملغاة" ولن تُحتسب ضمن الإجماليات — هذه عملية لا يمكن
           التراجع عنها من الواجهة.
         </p>
 
@@ -1593,8 +1599,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من استرداد عهدة اللابتوب دي؟ السجل هيفضل موجود
-          بحالة "مستردة" — دي عملية لا يمكن التراجع عنها من الواجهة.
+          هل أنت متأكد من استرداد عهدة اللابتوب هذه؟ سيظل السجل موجودًا
+          بحالة "مستردة" — هذه عملية لا يمكن التراجع عنها من الواجهة.
         </p>
 
         <input type="hidden" id="laptop-void-id" value="" />
@@ -1675,8 +1681,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من استرداد عهدة البريد الإلكتروني دي؟ السجل هيفضل
-          موجود بحالة "مستردة" — دي عملية لا يمكن التراجع عنها من الواجهة.
+          هل أنت متأكد من استرداد عهدة البريد الإلكتروني هذه؟ سيظل السجل
+          موجودًا بحالة "مستردة" — هذه عملية لا يمكن التراجع عنها من الواجهة.
         </p>
 
         <input type="hidden" id="email-void-id" value="" />
@@ -1757,8 +1763,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من استرداد عهدة رقم الجوال دي؟ السجل هيفضل موجود
-          بحالة "مستردة" — دي عملية لا يمكن التراجع عنها من الواجهة.
+          هل أنت متأكد من استرداد عهدة رقم الجوال هذه؟ سيظل السجل موجودًا
+          بحالة "مستردة" — هذه عملية لا يمكن التراجع عنها من الواجهة.
         </p>
 
         <input type="hidden" id="sim-void-id" value="" />
@@ -1835,8 +1841,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من استرداد عهدة الجهاز اللوحي دي؟ السجل هيفضل موجود
-          بحالة "مستردة" — دي عملية لا يمكن التراجع عنها من الواجهة.
+          هل أنت متأكد من استرداد عهدة الجهاز اللوحي هذه؟ سيظل السجل موجودًا
+          بحالة "مستردة" — هذه عملية لا يمكن التراجع عنها من الواجهة.
         </p>
 
         <input type="hidden" id="tablet-void-id" value="" />
@@ -1909,8 +1915,8 @@
 
       <div class="modal-body">
         <p class="void-message">
-          هل أنت متأكد من استبعاد سجل الكتالوج ده؟ السجل هيفضل موجود بحالة
-          "مستبعد" — دي عملية لا يمكن التراجع عنها من الواجهة.
+          هل أنت متأكد من استبعاد سجل الكتالوج هذا؟ سيظل السجل موجودًا بحالة
+          "مستبعد" — هذه عملية لا يمكن التراجع عنها من الواجهة.
         </p>
 
         <input type="hidden" id="laptop-catalog-void-id" value="" />
@@ -1994,7 +2000,7 @@
   </div>
 
   <!-- ==========================================================
-       Modal: تأكيد إلغاء عهدة اتعملت بالغلط — يظهر لـ Admin/Super Admin فقط
+       Modal: تأكيد إلغاء عهدة أُنشئت بالخطأ — يظهر لـ Admin/Super Admin فقط
        ========================================================== -->
   <div id="cancel-fund-modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-fund-title">
@@ -2304,8 +2310,8 @@
           </div>
 
           <p class="field-hint">
-            كلمة المرور دي هتتفعّل فورًا للحساب الجديد — لازم تبلّغ بيها صاحب
-            الحساب بنفسك، مش هيوصله أي إيميل تلقائي.
+            كلمة المرور هذه ستُفعَّل فورًا للحساب الجديد — يجب أن تُبلّغ بها
+            صاحب الحساب بنفسك، فلن يصله أي بريد إلكتروني تلقائي.
           </p>
 
           <div id="account-create-error" class="error-message" role="alert" hidden></div>
@@ -2375,8 +2381,8 @@
   </div>
 
   <!-- ==========================================================
-       Modal: عرض كلمة مرور جديدة (بعد إنشاء حساب أو توليد باسورد) —
-       بتتعرض مرة واحدة بس، ولازم تتبلّغ لصاحب الحساب يدويًا
+       Modal: عرض كلمة مرور جديدة (بعد إنشاء حساب أو توليد كلمة مرور) —
+       تُعرض مرة واحدة فقط، ويجب إبلاغها لصاحب الحساب يدويًا
        ========================================================== -->
   <div id="account-credentials-modal" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-credentials-title">
@@ -2395,8 +2401,8 @@
           </div>
         </div>
         <p class="field-hint">
-          دي المرة الوحيدة اللي هتتعرض فيها كلمة المرور دي — لو قفلت النافذة
-          دي من غير ما تنسخها، هتحتاج تولّد وحدة جديدة.
+          هذه المرة الوحيدة التي ستُعرض فيها كلمة المرور هذه — إذا أغلقت
+          هذه النافذة دون نسخها، ستحتاج إلى توليد كلمة مرور جديدة.
         </p>
       </div>
 

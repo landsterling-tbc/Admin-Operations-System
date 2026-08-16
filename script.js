@@ -4,29 +4,36 @@
 // Phase 2: Vehicles Module (list, search/filter/pagination, details, add/edit)
 // لا يوجد أي بيانات وهمية أو مستخدمين تجريبيين في أي جزء من هذا الملف.
 //
-// ---- مراجعة شاملة (Full Audit) — ملخص الأخطاء اللي تم اكتشافها وإصلاحها ----
+// ⚠️ ملاحظة للغة: كل نص عربي في هذا الملف (رسائل واجهة، تعليقات كود) يجب أن
+// يكون بالفصحى (Modern Standard Arabic) وليس بالعامية المصرية. عند إضافة أو
+// تعديل أي نص عربي مستقبلاً، تجنّب كلمات مثل: مش، ده/دي/دول، اللي، بس، عشان،
+// لازم، بيXXX/هيXXX/اتXXX، عايز/عاوز، خالص، أوي، كده، لسه، دلوقتي، النهارده،
+// حصل (استخدم "حدث")، فيه (استخدم "يوجد/توجد" عند الإسناد الفعلي)، تاني
+// (استخدم "مرة أخرى"). راجع الفصحى المقابلة قبل الحفظ.
+//
+// ---- مراجعة شاملة (Full Audit) — ملخص الأخطاء التي تم اكتشافها وإصلاحها ----
 // 1) لوحة الرئيسية (loadDashboardStats): كانت الاستعلامات التلاتة الموازية
 //    (السيارات/الوقود/المصروفات) من غير أي فحص لـ error — لو أي استعلام فشل
-//    بصمت، كانت الكروت بتعرض "0" مضلّل بيتعارض مع الأرقام الحقيقية في
-//    الصفحات نفسها. اتصلح: بقى فيه console.error + رسالة "تعذر التحميل"
+//    بصمت، كانت البطاقات تعرض "0" مضلّلًا يتعارض مع الأرقام الحقيقية في
+//    الصفحات نفسها. أُصلح: أصبح هناك console.error + رسالة "تعذر التحميل"
 //    واضحة بدل الصفر الصامت.
 // 2) كل فورمات الحفظ وأزرار التأكيد (سيارة/وقود/صندوق/مصروف/موظف/إلغاء
 //    (Void)/إغلاق صندوق/تغيير دور) كانت من غير try/catch — لو الإنترنت
-//    انقطع أثناء الحفظ وحصل استثناء غير متوقع (مش خطأ Supabase عادي)، كان
-//    الزرار هيفضل عالق على "جارٍ الحفظ..." للأبد. اتصلح: كل الهاندلرز دي
-//    بقت متغلفة بـ try/catch/finally بتضمن رجوع الزرار شغّال دايمًا مع
+//    انقطع أثناء الحفظ وحصل استثناء غير متوقع (وليس خطأ Supabase عاديًا)، كان
+//    الزر يظل عالقًا على "جارٍ الحفظ..." للأبد. أُصلح: أصبحت كل هذه المعالجات
+//    مغلّفة بـ try/catch/finally تضمن رجوع الزر للعمل دائمًا مع
 //    رسالة خطأ واضحة.
-// 3) زرار تفعيل/تعطيل الموظف (toggleEmployeeActive) كان من غير تعطيل
-//    للزرار أثناء التنفيذ (Double-submit protection) — اتصلح بإضافة تعطيل
+// 3) زر تفعيل/تعطيل الموظف (toggleEmployeeActive) كان من غير تعطيل
+//    للزر أثناء التنفيذ (Double-submit protection) — أُصلح بإضافة تعطيل
 //    مؤقت + try/catch. (لاحقًا تم استبدال تدفق تغيير دور الحساب بنموذج
 //    تعديل كامل — راجع قسم 13.1b.)
 // 4) استعلامات صامتة الفشل من غير أي console.error (تقرير البيتي كاش،
 //    تفاصيل الصندوق، فلاتر سجل العمليات، البحث الشامل، فتح سيارة من نتيجة
-//    بحث) — اتضاف لها تسجيل الخطأ في الـ Console على الأقل عشان تبقى قابلة
-//    للتشخيص، وبعضها بقى بيعرض رسالة خطأ للمستخدم بدل نتيجة فاضية مضلّلة.
-// 5) الصلاحيات (RLS + UI) اتراجعت بالكامل: كل زرار إضافة/تعديل/إلغاء متأكد
-//    إنه مربوط بـ RLS حقيقي في قاعدة البيانات (مش بس إخفاء واجهة)، وصفحة
-//    المستخدمين محمية على مستوى navigateTo() نفسه مش بس إخفاء رابط
+//    بحث) — أُضيف لها تسجيل الخطأ في الـ Console على الأقل حتى تبقى قابلة
+//    للتشخيص، وبعضها بقى يعرض رسالة خطأ للمستخدم بدل نتيجة فارغة مضلّلة.
+// 5) الصلاحيات (RLS + UI) رُوجعت بالكامل: كل زر إضافة/تعديل/إلغاء متأكد
+//    إنه مربوط بـ RLS حقيقي في قاعدة البيانات (غير فقط إخفاء واجهة)، وصفحة
+//    المستخدمين محمية على مستوى navigateTo() نفسه غير فقط إخفاء رابط
 //    الـ Sidebar — لم يتم العثور على أي ثغرة صلاحيات.
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -35,11 +42,11 @@
 // حالة عامة (Global State)
 // ----------------------------------------------------------------------------
 // نظام دخول مخصص بالكامل (RPC + JWT موقّع يدويًا — راجع القسم 10 في
-// database/schema.sql)، مش Supabase Auth. currentAuthUser بشكل { id }
-// بسيط بس (بديل خفيف لكائن Supabase Auth القديم) عشان باقي الكود اللي
-// بيستخدم currentAuthUser.id (created_by/voided_by/assigned_by) يفضل شغّال
+// database/schema.sql)، غير Supabase Auth. currentAuthUser بشكل { id }
+// بسيط فقط (بديل خفيف لكائن Supabase Auth القديم) حتى باقي الكود التي
+// يُستخدم currentAuthUser.id (created_by/voided_by/assigned_by) يفضل شغّال
 // من غير أي تغيير.
-let currentAuthUser = null; // { id } بس — هوية المستخدم الحالي
+let currentAuthUser = null; // { id } فقط — هوية المستخدم الحالي
 let currentProfile = null; // صف profiles الخاص بالمستخدم (full_name, role, is_active, ...)
 let sessionToken = null; // توكن JWT الموقّع من login_attempt
 let sessionExpiresAt = null; // Date.now() timestamp (ms) لانتهاء الجلسة
@@ -102,9 +109,9 @@ function escapeHtml(value) {
 // ---------------------------------------------------------------------------
 // مكتبة أيقونات SVG داخلية — بنفس أسلوب الأيقونات الموجودة أصلًا في
 // السايدبار (Heroicons-style: viewBox 24×24، stroke-width 2، حواف
-// مدوّرة)، بدل أي مكتبة خارجية عبر CDN — كده الشكل متسق 100% مع الأيقونات
+// مدوّرة)، بدل أي مكتبة خارجية عبر CDN — هكذا الشكل متسق 100% مع الأيقونات
 // الموجودة، وما فيش أي طلب شبكة إضافي أو استدعاء init منفصل بعد كل تحديث
-// ديناميكي للـ DOM (زي ما مكتبات الأيقونات الخارجية بتحتاج عادةً).
+// ديناميكي للـ DOM (كما مكتبات الأيقونات الخارجية بتحتاج عادةً).
 // ---------------------------------------------------------------------------
 const ICON_PATHS = {
   car: '<path d="M3 13l1.6-4.5A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.5L21 13" /><rect x="3" y="13" width="18" height="5" rx="1.5" /><circle cx="7.5" cy="18.5" r="1.5" /><circle cx="16.5" cy="18.5" r="1.5" />',
@@ -133,8 +140,8 @@ const ICON_PATHS = {
   tablet: '<rect x="4.5" y="2.5" width="15" height="19" rx="2" /><path d="M11.2 18.5h1.6" />',
 };
 
-// بيبني سترينج <svg> جاهز للحقن المباشر جوه أي HTML string حالي (بدل
-// الإيموجي)، بحجم افتراضي 1em عشان يورث حجمه من font-size العنصر الأب
+// يبني سترينج <svg> جاهز للحقن المباشر داخل أي HTML string حالي (بدل
+// الإيموجي)، بحجم افتراضي 1em حتى يورث حجمه من font-size العنصر الأب
 function icon(name, extraClass) {
   const paths = ICON_PATHS[name];
   if (!paths) return "";
@@ -213,7 +220,7 @@ function formatDateTime(value) {
   });
 }
 
-// لحقول من نوع date بس (زي transaction_date) — من غير وقت، ومن غير انزياح
+// لحقول من نوع date فقط (مثل transaction_date) — من غير وقت، ومن غير انزياح
 // بسبب المنطقة الزمنية (بنجبر الـ parsing يكون بتوقيت محلي منتصف الليل)
 function formatDateOnly(value) {
   if (!value) return "—";
@@ -226,8 +233,8 @@ function formatDateOnly(value) {
   });
 }
 
-// لتاريخ معاملات الوقود بس — بيتسجل بالشهر عمليًا مش بيوم محدد، فبنعرض
-// الشهر والسنة بس (مثلاً "مايو 2026") من غير رقم اليوم
+// لتاريخ معاملات الوقود فقط — بيتسجل بالشهر عمليًا غير بيوم محدد، فبنعرض
+// الشهر والسنة فقط (مثلاً "مايو 2026") من غير رقم اليوم
 function formatMonthOnly(value) {
   if (!value) return "—";
   const date = new Date(value + "T00:00:00");
@@ -250,7 +257,7 @@ function formatNumber(value, decimals) {
 // ----------------------------------------------------------------------------
 // Skeleton Loading — مستطيلات رمادية نابضة بدل نص "جارٍ التحميل" العادي، في
 // كل جداول/كروت النظام أثناء التحميل. تحسين بصري بحت في شكل حالة التحميل؛
-// لا يغيّر أي استعلام أو منطق عمل — بس بيبدّل الـ HTML المؤقت اللي بيظهر
+// لا يغيّر أي استعلام أو منطق عمل — فقط يبدّل الـ HTML المؤقت التي بيظهر
 // لحد ما البيانات الحقيقية توصل.
 // ----------------------------------------------------------------------------
 
@@ -305,9 +312,9 @@ function skeletonFundCardHtml() {
   );
 }
 
-// حالة "فارغ تمامًا" مصمّمة بعناية (أيقونة كبيرة + عنوان + وصف + زرار فعل
-// اختياري) — بتستخدم في الجداول الرئيسية بدل نص عادي، وبس لما الجدول فاضي
-// فعليًا من غير أي فلتر مطبّق (حالة الفلتر الفاضي بتفضل نص بسيط عادي)
+// حالة "فارغ تمامًا" مصمّمة بعناية (أيقونة كبيرة + عنوان + وصف + زر فعل
+// اختياري) — تُستخدم في الجداول الرئيسية بدل نص عادي، وفقط عندما يكون الجدول فارغًا
+// فعليًا من غير أي فلتر مطبّق (حالة الفلتر الفارغ تظل نصًا بسيطًا عاديًا)
 function showRichEmptyState(box, icon, title, description, actionHtml) {
   box.hidden = false;
   box.classList.add("is-rich");
@@ -326,7 +333,7 @@ function showLoginPage() {
 }
 
 // إعادة بناء supabaseClient بتوكن الجلسة المخصص كـ Authorization header —
-// من هنا وبعد كده أي نداء (RPC أو جدول) بيتحقق كـ "authenticated" تلقائيًا
+// من هنا وبعد ذلك أي نداء (RPC أو جدول) يتحقق كـ "authenticated" تلقائيًا
 // في نظر PostgREST، من غير أي اعتماد على Supabase Auth
 function applyAuthToken(token) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -377,14 +384,14 @@ function showAppShell(profile) {
   }
 
   // إظهار/إخفاء عناصر مقصورة على Super Admin أو Admin العادي (الرفض
-  // الفعلي بييجي من RLS في قاعدة البيانات نفسها — ده بس تحسين لتجربة
-  // الاستخدام). Admin العادي يقدر يعدّل السيارات/الوقود/العهدة/المصروفات/
-  // الموظفين، لكن مش حسابات النظام ولا سجل العمليات.
+  // الفعلي يأتي من RLS في قاعدة البيانات نفسها — هذا فقط تحسين لتجربة
+  // الاستخدام). يستطيع Admin العادي تعديل السيارات/الوقود/العهدة/المصروفات،
+  // لكن ليس حسابات النظام ولا سجل العمليات.
   const isAdminOrAbove = profile.role === "super_admin" || profile.role === "admin";
 
   // أصول تقنية المعلومات بقى ليها صلاحية مستقلة: Super Admin أو IT Support
-  // بس هما اللي يقدروا يضيفوا/يعدّلوا/يستردوا — الأدمن العادي بقى يشوف
-  // الصفحة بالقراءة بس (زراير الإضافة/التعديل مختفية له)
+  // فقط هما القادران على الإضافة/التعديل/الاسترداد — أصبح الأدمن العادي يرى
+  // الصفحة بالقراءة فقط (أزرار الإضافة/التعديل مختفية له)
   const isItAssetManager = profile.role === "super_admin" || profile.role === "it_support";
 
   addVehicleButton.hidden = !isAdminOrAbove;
@@ -406,14 +413,14 @@ function showAppShell(profile) {
   addLaptopCatalogButton.hidden = !isItAssetManager;
   importLaptopCatalogButton.hidden = !isItAssetManager;
 
-  // صفحات/عناصر مقصورة على Super Admin بالكامل (مش بس زرار داخل الصفحة)
+  // صفحات/عناصر مقصورة على Super Admin بالكامل (غير فقط زر داخل الصفحة)
   const auditLogNavItem = document.getElementById("audit-log-nav-item");
   const accountsNavItem = document.getElementById("accounts-nav-item");
   if (auditLogNavItem) auditLogNavItem.hidden = profile.role !== "super_admin";
   if (accountsNavItem) accountsNavItem.hidden = profile.role !== "super_admin";
 
   // دور "IT Support" مسؤول حصريًا عن أصول تقنية المعلومات — القائمة
-  // الجانبية بتاعته تقتصر على الرئيسية + أصول تقنية المعلومات بس، وباقي
+  // الجانبية الخاصة به تقتصر على الرئيسية + أصول تقنية المعلومات فقط، وباقي
   // الصفحات التشغيلية (سيارات/وقود/عهدة/مصروفات/تقارير) بتتخفي له تمامًا
   const isItSupportOnly = profile.role === "it_support";
   const itSupportHiddenNavIds = ["vehicles-nav-item", "fuel-nav-item", "petty-cash-nav-item", "expenses-nav-item", "reports-nav-item"];
@@ -427,7 +434,7 @@ function showAppShell(profile) {
   if (profile.must_change_password) {
     changePasswordForm.reset();
     changePasswordError.hidden = true;
-    changePasswordSuccess.textContent = "كلمة المرور الحالية مؤقتة — لازم تغيّرها الآن.";
+    changePasswordSuccess.textContent = "كلمة المرور الحالية مؤقتة — يجب تغييرها الآن.";
     changePasswordSuccess.hidden = false;
     if (pendingLoginPassword) changePasswordCurrentInput.value = pendingLoginPassword;
     changePasswordModal.hidden = false;
@@ -435,14 +442,14 @@ function showAppShell(profile) {
   pendingLoginPassword = null;
 }
 
-// بيتسجّل مؤقتًا وقت تسجيل الدخول بس، عشان لو الحساب محتاج تغيير كلمة مرور
+// بيتسجّل مؤقتًا وقت تسجيل الدخول بس، حتى لو الحساب محتاج تغيير كلمة مرور
 // إجباري، نقدر نحط كلمة المرور المؤقتة تلقائيًا في حقل "كلمة المرور
-// الحالية" بدل ما يكتبها تاني بنفسه (مش بيتخزن في أي مكان دائم)
+// الحالية" بدل ما يكتبها تاني بنفسه (غير يُخزَّن في أي مكان دائم)
 let pendingLoginPassword = null;
 
 // استعادة جلسة محفوظة (بعد تحديث الصفحة) — بيعيد التحقق من الحساب حيًا من
-// قاعدة البيانات (مش بس بيثق في البيانات المحفوظة محليًا) عشان أي تعطيل أو
-// تغيير دور يتفعّل فورًا حتى لو التوكن القديم لسه صالح
+// قاعدة البيانات (غير فقط يثق في البيانات المحفوظة محليًا) حتى أي تعطيل أو
+// تغيير دور يتفعّل فورًا حتى لو التوكن القديم لا يزال صالح
 async function restoreSessionAndEnter(saved) {
   applyAuthToken(saved.token);
 
@@ -481,11 +488,11 @@ loginForm.addEventListener("submit", async (event) => {
 
   setLoading(true);
 
-  // كل الطلب اتغلف بـ try/catch عشان لو الاتصال بالإنترنت انقطع فجأة أو
-  // حصل خطأ غير متوقع، الزرار يرجع شغّال ويظهر رسالة خطأ واضحة بدل ما
+  // كل الطلب اتغلف بـ try/catch حتى لو الاتصال بالإنترنت انقطع فجأة أو
+  // حدث خطأ غير متوقع، يعود الزر للعمل ويظهر رسالة خطأ واضحة بدل ما
   // يفضل عالق على "جارٍ تسجيل الدخول..." للأبد
   try {
-    // تسجيل الدخول عبر RPC مخصص (login_attempt) — بيرجّع JWT موقّع لو
+    // تسجيل الدخول عبر RPC مخصص (login_attempt) — يُرجع JWT موقّع لو
     // البيانات صحيحة، بديل كامل لـ Supabase Auth
     const { data, error } = await supabaseClient.rpc("login_attempt", {
       p_email: email,
@@ -540,8 +547,8 @@ logoutButton.addEventListener("click", () => {
 
 // ---------------------------------------------------------------------------
 // 1.0.1 الوضع الغامق/الفاتح — data-theme على <html>، محفوظ في localStorage.
-// التطبيق الفوري عند التحميل (تفادي الوميض) بيحصل في سكريبت صغير مستقل
-// جوه index.html <head>؛ الكود هنا مسؤول بس عن زرار التبديل نفسه ومزامنة
+// التطبيق الفوري عند التحميل (تفادي الوميض) يحدث في سكريبت صغير مستقل
+// داخل index.html <head>؛ الكود هنا مسؤول فقط عن زر التبديل نفسه ومزامنة
 // شكله (أيقونة + نص) مع الحالة الحالية.
 // ---------------------------------------------------------------------------
 const themeToggleButton = document.getElementById("theme-toggle-button");
@@ -575,7 +582,7 @@ syncThemeToggleUI();
 
 // ---------------------------------------------------------------------------
 // 1.1 تغيير كلمة المرور — متاح لأي مستخدم مسجّل دخول لحسابه الشخصي فقط، عبر
-// RPC مخصص (change_own_password) بيتحقق من كلمة المرور الحالية أولًا. لا
+// RPC مخصص (change_own_password) يتحقق من كلمة المرور الحالية أولًا. لا
 // يحتاج أي مفتاح إداري سري ولا صلاحيات إضافية.
 // ---------------------------------------------------------------------------
 
@@ -647,7 +654,7 @@ changePasswordForm.addEventListener("submit", async (event) => {
       return;
     }
 
-    // تحديث الحالة المحلية + الجلسة المحفوظة عشان الرسالة الإجبارية متظهرش
+    // تحديث الحالة المحلية + الجلسة المحفوظة حتى الرسالة الإجبارية متظهرش
     // تاني قبل ما تنتهي الجلسة الحالية
     if (currentProfile) currentProfile.must_change_password = false;
     const saved = loadSavedSession();
@@ -690,7 +697,7 @@ const PAGE_TITLES = {
 
 // صفحات مقصورة على Super Admin بالكامل (حسابات النظام + سجل العمليات) —
 // حماية إضافية على مستوى التنقل نفسه (بجانب إخفاء عنصر الـ Sidebar أصلًا).
-// الرفض الحقيقي للبيانات دايمًا من RLS في قاعدة البيانات، ده مجرد تحسين
+// الرفض الحقيقي للبيانات دائمًا من RLS في قاعدة البيانات، هذا مجرد تحسين
 // تجربة استخدام.
 const SUPER_ADMIN_ONLY_PAGES = ["audit-log", "accounts"];
 
@@ -763,8 +770,8 @@ navItems.forEach((item) => {
 // 3. Modals — فتح/إغلاق عام
 // ============================================================================
 
-// معالج الاستيراد تحديدًا بيتم منع إغلاقه أثناء تنفيذ الإدخال الفعلي
-// (isProcessing) — إغلاقه في نص العملية مش هيوقف الإدخال (لسه شغّال في
+// معالج الاستيراد تحديدًا يتم منع إغلاقه أثناء تنفيذ الإدخال الفعلي
+// (isProcessing) — إغلاقه في نص العملية غير هيوقف الإدخال (لا يزال شغّال في
 // الخلفية)، فالأسلم منع الإغلاق العرضي لحد ما العملية تخلص
 function isModalSafeToClose(modal) {
   if (modal && modal.id === "import-wizard-modal" && importWizardState.isProcessing) return false;
@@ -772,7 +779,7 @@ function isModalSafeToClose(modal) {
 }
 
 // إغلاق موحّد لأي Modal — بيتعامل أيضًا مع حالة إلغاء "إضافة موظف سريعة"
-// اللي اتفتحت من فورم السيارة (يرجّع فورم السيارة يظهر تاني بدل ما يفضل
+// التي اتفتحت من فورم السيارة (يرجّع فورم السيارة يظهر تاني بدل ما يفضل
 // مقفول من غير رجوع)
 function closeModalIfSafe(modal) {
   if (!modal || !isModalSafeToClose(modal)) return;
@@ -815,8 +822,8 @@ const VEHICLE_STATUS_LABELS = {
   archived: "مؤرشفة",
 };
 
-// شارة "حالة التفويض": لو مفيش تاريخ نهاية = "مستخدم فعلي" مستمر، لو فيه
-// تاريخ وعدّى = "منتهي"، لو فيه تاريخ ولسه ساري = "مفوَّض حتى" التاريخ ده
+// شارة "حالة التفويض": إذا لا يوجد تاريخ نهاية = "مستخدم فعلي" مستمر، إذا وُجد
+// تاريخ وانقضى = "منتهٍ"، وإذا وُجد تاريخ ولا يزال ساريًا = "مفوَّض حتى" هذا التاريخ
 function vehicleAuthorizationBadgeHtml(vehicle) {
   if (!vehicle.authorization_expiry_date) {
     return vehicle.actual_user_name
@@ -864,10 +871,10 @@ const vehiclesNextPageButton = document.getElementById("vehicles-next-page");
 const vehiclesPaginationInfo = document.getElementById("vehicles-pagination-info");
 const addVehicleButton = document.getElementById("add-vehicle-button");
 
-// نحتاج زرار إضافة الوقود هنا لأن showAppShell() بيتحكم في ظهوره حسب الدور
+// نحتاج زر إضافة الوقود هنا لأن showAppShell() يتحكم في ظهوره حسب الدور
 const addFuelButton = document.getElementById("add-fuel-button");
 
-// نفس الفكرة لزراري البيتي كاش والمصروفات — showAppShell() بيتحكم فيهم حسب الدور
+// نفس الفكرة لأزرار البيتي كاش والمصروفات — showAppShell() يتحكم فيهم حسب الدور
 const addFundButton = document.getElementById("add-fund-button");
 const addExpenseButton = document.getElementById("add-expense-button");
 
@@ -894,10 +901,10 @@ const vehicleFormSubmitButton = document.getElementById("vehicle-form-submit");
 let vehicleBeingViewed = null;
 
 // قائمة أسماء المستخدمين الفعليين الموجودة فعلًا على سيارات تانية — بتتعرض
-// كاقتراحات (datalist) وقت كتابة اسم المستخدم الفعلي في فورم السيارة، عشان
-// نقلل اختلاف كتابة نفس الاسم (زي "محمد حسام" و"محمد حسام عثمان") اللي بيبوّظ
+// كاقتراحات (datalist) وقت كتابة اسم المستخدم الفعلي في فورم السيارة، حتى
+// نقلل اختلاف كتابة نفس الاسم (مثل "محمد حسام" و"محمد حسام عثمان") التي بيبوّظ
 // تقارير الاستهلاك حسب الشخص. السيارة تفضل هي الأساس والاسم مجرد حقل عليها
-// — مفيش جدول "مستخدمين" منفصل ولا ربط رسمي، الاقتراح شكلي بس
+// — لا يوجد جدول "مستخدمين" منفصل ولا ربط رسمي، الاقتراح شكلي فقط
 const actualUserNameOptionsList = document.getElementById("actual-user-name-options");
 let actualUserNamesCache = null;
 
@@ -1127,7 +1134,7 @@ function openVehicleDetails(vehicle) {
 
   vehicleDetailsEditButton.hidden = !(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
 
-  // تبويب "سجل العمليات" يعتمد على audit_logs، اللي RLS بتاعه Super Admin
+  // تبويب "سجل العمليات" يعتمد على audit_logs، التي RLS الخاص به Super Admin
   // فقط — فبنخفي التبويب نفسه لو المستخدم Manager بدل ما يجرب ويتفاجئ برفض
   const auditTabButton = document.getElementById("vehicle-audit-tab-button");
   if (auditTabButton) {
@@ -1194,7 +1201,7 @@ async function loadVehicleFuelSummaryTab() {
 
   if (error) {
     console.error("Error loading vehicle fuel summary:", error);
-    vehicleFuelSummaryContent.innerHTML = '<div class="table-state">حصل خطأ أثناء تحميل ملخص الوقود.</div>';
+    vehicleFuelSummaryContent.innerHTML = '<div class="table-state">حدث خطأ أثناء تحميل ملخص الوقود.</div>';
     return;
   }
 
@@ -1230,7 +1237,7 @@ async function loadVehicleAuditTab() {
 
   if (error) {
     console.error("Error loading vehicle audit log:", error);
-    vehicleAuditContent.innerHTML = '<div class="table-state">حصل خطأ أثناء تحميل سجل العمليات.</div>';
+    vehicleAuditContent.innerHTML = '<div class="table-state">حدث خطأ أثناء تحميل سجل العمليات.</div>';
     return;
   }
 
@@ -1296,11 +1303,11 @@ vehicleForm.addEventListener("submit", async (event) => {
   }
 
   // رقم الهوية الوطنية (للسعوديين) بيبدأ بـ 1، ورقم الإقامة (للمقيمين) بيبدأ
-  // بـ 2 — في الحالتين 10 أرقام بالظبط. الحقل اختياري، فالفحص بس لو اتكتب حاجة
+  // بـ 2 — في الحالتين 10 أرقام بالظبط. الحقل اختياري، فالفحص فقط لو اتكتب حاجة
   const actualUserNationalId = vehicleFormActualUserNationalIdInput.value.trim();
   if (actualUserNationalId && !/^[12]\d{9}$/.test(actualUserNationalId)) {
     vehicleFormError.textContent =
-      "رقم الهوية/الإقامة لازم يكون 10 أرقام بالظبط، ويبدأ بـ 1 (هوية وطنية) أو 2 (إقامة).";
+      "رقم الهوية/الإقامة يجب أن يكون 10 أرقام بالضبط، ويبدأ بـ 1 (هوية وطنية) أو 2 (إقامة).";
     vehicleFormError.hidden = false;
     return;
   }
@@ -1340,17 +1347,17 @@ vehicleForm.addEventListener("submit", async (event) => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
       ) {
-        // الرفض جاي من RLS في قاعدة البيانات نفسها، مش بس من الواجهة
+        // الرفض جاي من RLS في قاعدة البيانات نفسها، غير فقط من الواجهة
         vehicleFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else {
-        vehicleFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        vehicleFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       vehicleFormError.hidden = false;
       return;
     }
 
-    actualUserNamesCache = null; // عشان الاسم الجديد يظهر كاقتراح من أول مرة
+    actualUserNamesCache = null; // حتى الاسم الجديد يظهر كاقتراح من أول مرة
     vehicleFormModal.hidden = true;
     loadVehicles();
   } catch (unexpectedError) {
@@ -1441,8 +1448,8 @@ async function ensureFuelVehicleOptions() {
     '<option value="">اختر السيارة</option>' +
     fuelVehiclesCache
       .map((v) => {
-        // بيظهر باسم المستخدم الفعلي مع رقم اللوحة عشان يكون سهل تعرف
-        // السيارة بتاعت مين وانت بتختار من القائمة، مش رقم اللوحة بس
+        // بيظهر باسم المستخدم الفعلي مع رقم اللوحة حتى يكون سهل تعرف
+        // السيارة الخاصة بـ مين وانت بتختار من القائمة، غير رقم اللوحة فقط
         const label = v.actual_user_name
           ? v.actual_user_name + " — " + v.license_plate
           : v.license_plate;
@@ -1478,8 +1485,8 @@ function updateFuelSummary(rows) {
 }
 
 // بيجيب إجمالي كل المعاملات المطابقة للفلاتر الحالية (بحث/تاريخ/إظهار
-// الملغاة)، مش بس صفحة الجدول المعروضة — عشان كروت الملخص فوق تعكس
-// الفلتر كله زي ما هو متوقع، مش الـ٢٠ صف بس
+// الملغاة)، غير فقط صفحة الجدول المعروضة — حتى كروت الملخص فوق تعكس
+// الفلتر كله كما هو متوقع، غير الـ٢٠ صف فقط
 async function fetchFuelSummaryTotals() {
   const buildQuery = () => {
     let q = supabaseClient
@@ -1565,8 +1572,8 @@ async function loadFuelTransactions() {
   const from = (fuelState.page - 1) * FUEL_PAGE_SIZE;
   const to = from + FUEL_PAGE_SIZE - 1;
 
-  // vehicle_id مطلوب دائمًا (not null) فاستخدام !inner هنا آمن ومش بيستبعد
-  // أي صف فعلي، وبيسمح لنا نفلتر على vehicle.license_plate لما نحتاج
+  // vehicle_id مطلوب دائمًا (not null) فاستخدام !inner هنا آمن ولا يستبعد
+  // أي صف فعلي، ويسمح لنا بالفلترة على vehicle.license_plate عند الحاجة
   let query = supabaseClient
     .from("fuel_transactions")
     .select(
@@ -1636,8 +1643,8 @@ async function loadFuelTransactions() {
 
   setFuelState(null);
 
-  // اسم "المُدخل" اتشال من الجدول ده — موجود بالتفصيل في سجل العمليات
-  // (Audit Log) أصلًا، فمفيش داعي نكرره هنا
+  // اسم "المُدخل" اتشال من الجدول هذا — موجود بالتفصيل في سجل العمليات
+  // (Audit Log) أصلًا، فلا داعي لتكراره هنا
   renderFuelRows(data);
   updateFuelPaginationControls();
 }
@@ -1653,8 +1660,8 @@ fuelVehicleSearchInput.addEventListener("input", () => {
 });
 
 // حقول الفلتر بقت من نوع "شهر" (نفس طبيعة عرض التاريخ في الجدول)، فبنحول
-// قيمة "YYYY-MM" لأول/آخر يوم في الشهر عشان نستخدمها في فلترة عمود
-// transaction_date اللي لسه من نوع date في القاعدة
+// قيمة "YYYY-MM" لأول/آخر يوم في الشهر حتى نستخدمها في فلترة عمود
+// transaction_date التي لا يزال من نوع date في القاعدة
 function monthValueToStartDate(monthValue) {
   return monthValue ? monthValue + "-01" : "";
 }
@@ -1722,9 +1729,9 @@ async function openFuelForm(tx) {
 addFuelButton.addEventListener("click", () => openFuelForm(null));
 
 // ---------------------------------------------------------------------------
-// تنبيه لو الكمية/التكلفة المدخلة أعلى بكتير من متوسط السيارة دي — بيمسك
-// أخطاء الكتابة بدري (زي زيادة صفر بالغلط). تحذير بس، مش منع، والمستخدم
-// يقدر يأكّد ويكمل عادي لو الرقم صح فعلًا
+// تنبيه إذا كانت الكمية/التكلفة المدخلة أعلى بكثير من متوسط السيارة هذه — يرصد
+// أخطاء الكتابة المبكرة (مثل زيادة صفر بالخطأ). تحذير فقط، وليس منعًا، والمستخدم
+// يستطيع التأكيد والمتابعة بشكل طبيعي إذا كان الرقم صحيحًا فعلًا
 // ---------------------------------------------------------------------------
 
 const FUEL_ANOMALY_MULTIPLIER = 2.5;
@@ -1743,7 +1750,7 @@ async function confirmFuelAmountIfAnomalous(vehicleId, liters, amount, excludeTr
   let totalLiters = Number(data.total_liters || 0);
   let totalCost = Number(data.total_cost || 0);
 
-  // لو بنعدّل معاملة موجودة، نشيلها من المتوسط عشان القيمة ميتقارنش بنفسها
+  // لو نعدّل معاملة موجودة، نشيلها من المتوسط حتى القيمة لا تُقارَن بنفسها
   if (excludeTransactionId) {
     const { data: existingTx } = await supabaseClient
       .from("fuel_transactions")
@@ -1758,7 +1765,7 @@ async function confirmFuelAmountIfAnomalous(vehicleId, liters, amount, excludeTr
     }
   }
 
-  // مفيش تاريخ كفاية للسيارة دي عشان نقارن بثقة
+  // لا يوجد تاريخ كفاية للسيارة هذه حتى نقارن بثقة
   if (count < FUEL_ANOMALY_MIN_HISTORY) return true;
 
   const avgLiters = totalLiters / count;
@@ -1805,12 +1812,12 @@ fuelForm.addEventListener("submit", async (event) => {
     return;
   }
   if (!litersRaw || Number.isNaN(liters) || liters <= 0) {
-    fuelFormError.textContent = "اللترات لازم تكون رقم أكبر من صفر.";
+    fuelFormError.textContent = "اللترات يجب أن تكون رقمًا أكبر من صفر.";
     fuelFormError.hidden = false;
     return;
   }
   if (!amountRaw || Number.isNaN(amount) || amount < 0) {
-    fuelFormError.textContent = "التكلفة لازم تكون رقم ولا تكون سالبة.";
+    fuelFormError.textContent = "التكلفة يجب أن تكون رقمًا ولا تكون سالبة.";
     fuelFormError.hidden = false;
     return;
   }
@@ -1853,14 +1860,14 @@ fuelForm.addEventListener("submit", async (event) => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
       ) {
-        // الرفض جاي من RLS في قاعدة البيانات نفسها، مش بس من الواجهة
+        // الرفض جاي من RLS في قاعدة البيانات نفسها، غير فقط من الواجهة
         fuelFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else if (error.code === "23503") {
         fuelFormError.textContent = "السيارة المختارة غير موجودة فعليًا.";
       } else if (error.code === "23514") {
         fuelFormError.textContent = "البيانات المدخلة لا تحقق شروط الصحة (تأكد من اللترات والتكلفة).";
       } else {
-        fuelFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        fuelFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       fuelFormError.hidden = false;
@@ -1915,7 +1922,7 @@ fuelVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الإلغاء: " + error.message;
+          : "حدث خطأ أثناء الإلغاء: " + error.message;
       fuelVoidError.hidden = false;
       return;
     }
@@ -2220,7 +2227,7 @@ laptopForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23505") {
         laptopFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لجهاز نشط آخر.";
       } else {
-        laptopFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        laptopFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       laptopFormError.hidden = false;
@@ -2275,7 +2282,7 @@ laptopVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الاسترداد: " + error.message;
+          : "حدث خطأ أثناء الاسترداد: " + error.message;
       laptopVoidError.hidden = false;
       return;
     }
@@ -2570,7 +2577,7 @@ emailForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23505") {
         emailFormError.textContent = "هذا البريد الإلكتروني مسجَّل بالفعل لموظف نشط آخر.";
       } else {
-        emailFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        emailFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       emailFormError.hidden = false;
@@ -2625,7 +2632,7 @@ emailVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الاسترداد: " + error.message;
+          : "حدث خطأ أثناء الاسترداد: " + error.message;
       emailVoidError.hidden = false;
       return;
     }
@@ -2915,7 +2922,7 @@ simForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23505") {
         simFormError.textContent = "هذا الرقم مسجَّل بالفعل لموظف نشط آخر.";
       } else {
-        simFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        simFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       simFormError.hidden = false;
@@ -2970,7 +2977,7 @@ simVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الاسترداد: " + error.message;
+          : "حدث خطأ أثناء الاسترداد: " + error.message;
       simVoidError.hidden = false;
       return;
     }
@@ -3256,7 +3263,7 @@ tabletForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23505") {
         tabletFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لجهاز نشط آخر.";
       } else {
-        tabletFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        tabletFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       tabletFormError.hidden = false;
@@ -3311,7 +3318,7 @@ tabletVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الاسترداد: " + error.message;
+          : "حدث خطأ أثناء الاسترداد: " + error.message;
       tabletVoidError.hidden = false;
       return;
     }
@@ -3591,7 +3598,7 @@ laptopCatalogForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23505") {
         laptopCatalogFormError.textContent = "هذا الرقم التسلسلي مسجَّل بالفعل لسجل نشط آخر.";
       } else {
-        laptopCatalogFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        laptopCatalogFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       laptopCatalogFormError.hidden = false;
@@ -3646,7 +3653,7 @@ laptopCatalogVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الاستبعاد: " + error.message;
+          : "حدث خطأ أثناء الاستبعاد: " + error.message;
       laptopCatalogVoidError.hidden = false;
       return;
     }
@@ -3721,7 +3728,7 @@ const FUND_STATUS_CLASSES = {
 };
 
 // نسبة التنبيه المبكر لانخفاض رصيد العهدة (تنبيه قبل ما توصل صفر بالظبط) —
-// عدّل الرقم ده لو عاوز نسبة تنبيه مختلفة
+// عدّل الرقم هذا لو يريد نسبة تنبيه مختلفة
 const PETTY_CASH_LOW_BALANCE_THRESHOLD = 0.15;
 
 function generateFundCode(fundedAtDate) {
@@ -3938,7 +3945,7 @@ fundForm.addEventListener("submit", async (event) => {
     return;
   }
   if (!fundFormAmountInput.value || Number.isNaN(openingAmount) || openingAmount <= 0) {
-    fundFormError.textContent = "المبلغ الافتتاحي لازم يكون رقم أكبر من صفر.";
+    fundFormError.textContent = "المبلغ الافتتاحي يجب أن يكون رقمًا أكبر من صفر.";
     fundFormError.hidden = false;
     return;
   }
@@ -3948,8 +3955,8 @@ fundForm.addEventListener("submit", async (event) => {
 
   try {
     // تحقق مسبق (تجربة استخدام أفضل) — القيد الحقيقي المانع للتكرار موجود في
-    // قاعدة البيانات (partial unique index: عهدة نشطة واحدة بس للنظام كله)،
-    // وده مجرد فحص استباقي للمستخدم
+    // قاعدة البيانات (partial unique index: عهدة نشطة واحدة فقط للنظام كله)،
+    // وهذا مجرد فحص استباقي للمستخدم
     const { data: existingActive, error: existingError } = await supabaseClient
       .from("petty_cash_funds")
       .select("id")
@@ -3959,7 +3966,7 @@ fundForm.addEventListener("submit", async (event) => {
     if (existingError) {
       console.error("Error checking existing active fund:", existingError);
     } else if (existingActive) {
-      fundFormError.textContent = "فيه عهدة نشطة بالفعل. يجب إغلاقها أولًا (استنفادًا أو إغلاقًا) قبل إنشاء عهدة جديدة.";
+      fundFormError.textContent = "توجد عهدة نشطة بالفعل. يجب إغلاقها أولًا (استنفادًا أو إغلاقًا) قبل إنشاء عهدة جديدة.";
       fundFormError.hidden = false;
       return;
     }
@@ -3978,8 +3985,8 @@ fundForm.addEventListener("submit", async (event) => {
       console.error("Error creating fund:", error);
 
       if (error.code === "23505" && error.message && error.message.includes("one_active_global")) {
-        // Race condition: اتعمل عهدة نشطة بين الفحص المسبق والإدخال
-        fundFormError.textContent = "فيه عهدة نشطة بالفعل. يجب إغلاقها أولًا قبل إنشاء عهدة جديدة.";
+        // Race condition: أُنشئ عهدة نشطة بين الفحص المسبق والإدخال
+        fundFormError.textContent = "توجد عهدة نشطة بالفعل. يجب إغلاقها أولًا قبل إنشاء عهدة جديدة.";
       } else if (error.code === "23505") {
         fundFormError.textContent = "حدث تعارض بسيط في البيانات. يُرجى المحاولة مرة أخرى.";
       } else if (
@@ -3988,7 +3995,7 @@ fundForm.addEventListener("submit", async (event) => {
       ) {
         fundFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
       } else {
-        fundFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        fundFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       fundFormError.hidden = false;
@@ -4034,7 +4041,7 @@ closeFundConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الإغلاق: " + error.message;
+          : "حدث خطأ أثناء الإغلاق: " + error.message;
       closeFundError.hidden = false;
       return;
     }
@@ -4066,7 +4073,7 @@ topupFundForm.addEventListener("submit", async (event) => {
 
   const addedAmount = Number(topupFundAmountInput.value);
   if (!topupFundAmountInput.value || Number.isNaN(addedAmount) || addedAmount <= 0) {
-    topupFundError.textContent = "المبلغ المضاف لازم يكون رقم أكبر من صفر.";
+    topupFundError.textContent = "المبلغ المضاف يجب أن يكون رقمًا أكبر من صفر.";
     topupFundError.hidden = false;
     return;
   }
@@ -4088,7 +4095,7 @@ topupFundForm.addEventListener("submit", async (event) => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الإضافة: " + error.message;
+          : "حدث خطأ أثناء الإضافة: " + error.message;
       topupFundError.hidden = false;
       return;
     }
@@ -4107,8 +4114,8 @@ topupFundForm.addEventListener("submit", async (event) => {
 });
 
 // ---------------------------------------------------------------------------
-// 6.4c إلغاء عهدة اتعملت بالغلط — متاح بس لو مفيش مصروفات مسجّلة عليها
-//      (لو فيه مصروفات، لازم "إغلاق" عادي بدل الإلغاء عشان نحافظ على السجل)
+// 6.4c إلغاء عهدة أُنشئت بالخطأ — متاح فقط إذا لا توجد مصروفات مسجّلة عليها
+//      (إذا وُجدت مصروفات، يجب استخدام "إغلاق" عادي بدل الإلغاء حتى نحافظ على السجل)
 // ---------------------------------------------------------------------------
 
 cancelFundConfirmButton.addEventListener("click", async () => {
@@ -4135,7 +4142,7 @@ cancelFundConfirmButton.addEventListener("click", async () => {
           : error.code === "42501" ||
             (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الإلغاء: " + error.message;
+          : "حدث خطأ أثناء الإلغاء: " + error.message;
       cancelFundError.hidden = false;
       return;
     }
@@ -4277,7 +4284,7 @@ async function openFundDetails(fund) {
     return;
   }
 
-  // توزيع المصروفات حسب الفئة — محسوب من نفس النتائج اللي جبناها فوق،
+  // توزيع المصروفات حسب الفئة — محسوب من نفس النتائج التي جبناها فوق،
   // من غير أي استعلام إضافي على قاعدة البيانات
   const activeExpenses = expenses.filter((e) => e.status === "active");
   const categoryTotals = {};
@@ -4641,7 +4648,7 @@ addExpenseButton.addEventListener("click", async () => {
 
   await ensureExpenseCategories();
 
-  // نجيب أحدث بيانات للصندوق النشط وقت فتح الفورم (مش من الكاش القديم)
+  // نجيب أحدث بيانات للصندوق النشط وقت فتح الفورم (غير من الكاش القديم)
   await loadCurrentFund();
   expenseFormActiveFund = currentActiveFund;
 
@@ -4764,7 +4771,7 @@ expenseForm.addEventListener("submit", async (event) => {
       } else if (error.code === "23514") {
         expenseFormError.textContent = "البيانات المدخلة لا تحقق شروط الصحة (تأكد من المبلغ).";
       } else {
-        expenseFormError.textContent = "حصل خطأ أثناء الحفظ: " + error.message;
+        expenseFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
       }
 
       expenseFormError.hidden = false;
@@ -4820,7 +4827,7 @@ expenseVoidConfirmButton.addEventListener("click", async () => {
         error.code === "42501" ||
         (error.message && error.message.toLowerCase().includes("row-level security"))
           ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
-          : "حصل خطأ أثناء الإلغاء: " + error.message;
+          : "حدث خطأ أثناء الإلغاء: " + error.message;
       expenseVoidError.hidden = false;
       return;
     }
@@ -4872,8 +4879,8 @@ function exportRowsToCSV(filename, headers, rows) {
 // ============================================================================
 // 8b. أداة رسم بياني — Chart.js (بدل الرسم اليدوي بـ Canvas API القديم).
 //     نفس أسماء وتوقيعات الدوال (drawLineChart/drawBarChart/drawDonutChart)
-//     محفوظة زي ما هي، فكل نداءاتها في التقارير ولوحة الرئيسية شغالة من غير
-//     أي تعديل — التغيير في التنفيذ الداخلي بس. بتدّي حركة دخول أنعم وtooltip
+//     محفوظة كما هي، فكل نداءاتها في التقارير ولوحة الرئيسية شغالة من غير
+//     أي تعديل — التغيير في التنفيذ الداخلي فقط. تعطي حركة دخول أنعم وtooltip
 //     جاهز من غير منطق hover يدوي. هذا كود عرض بصري بحت (Presentation) ولا
 //     يغيّر أي منطق أعمال — البيانات المُغذّية له من نفس الاستعلامات الموجودة.
 // ============================================================================
@@ -4883,13 +4890,13 @@ function cssVar(name) {
 }
 
 // بيحوّل لون hex لنفس اللون بشفافية (لتعبئة متدرجة تحت خط الرسم) — بيدعم
-// صيغة #rrggbb بس (وهو الشكل اللي كل ألوان النظام معرّفة بيه في :root)
+// صيغة #rrggbb فقط (وهو الشكل التي كل ألوان النظام معرّفة بيه في :root)
 function hexWithAlpha(hex, alphaHex) {
   return /^#[0-9a-fA-F]{6}$/.test(hex) ? hex + alphaHex : hex;
 }
 
-// لو الكانفاس ده كان عليه Chart.js instance قديم (إعادة تحميل نفس التقرير)،
-// لازم نتخلص منه الأول قبل ما ننشئ واحد جديد على نفس العنصر
+// لو الكانفاس هذا كان عليه Chart.js instance قديم (إعادة تحميل نفس التقرير)،
+// يجب أن نتخلص منه الأول قبل ما ننشئ واحد جديد على نفس العنصر
 function destroyExistingChart(canvas) {
   if (typeof Chart === "undefined") return;
   const existing = Chart.getChart(canvas);
@@ -4898,10 +4905,10 @@ function destroyExistingChart(canvas) {
 
 const ENGLISH_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// تجميع مجموع قيمة (زي liters/amount) حسب الشهر من صفوف فيها حقل تاريخ —
-// مستخدمة في رسوم اتجاه الوقود والمصروفات الشهرية. بترجع مصفوفتين متوازيتين
-// (تسميات + قيم) مرتبة زمنيًا تصاعديًا، من غير أي بيانات وهمية — لو مفيش
-// صفوف، بترجع مصفوفات فاضية والدالة المستدعية بتتعامل مع الحالة دي.
+// تجميع مجموع قيمة (مثل liters/amount) حسب الشهر من صفوف فيها حقل تاريخ —
+// مستخدمة في رسوم اتجاه الوقود والمصروفات الشهرية. تُرجع مصفوفتين متوازيتين
+// (تسميات + قيم) مرتبة زمنيًا تصاعديًا، من غير أي بيانات وهمية — لو لا يوجد
+// صفوف، تُرجع مصفوفات فارغة والدالة المستدعية تتعامل مع الحالة هذه.
 function groupSumByMonth(rows, dateField, valueField) {
   const totals = {};
   rows.forEach((r) => {
@@ -4921,8 +4928,8 @@ function groupSumByMonth(rows, dateField, valueField) {
 
 // ---------------------------------------------------------------------------
 // جلب كل الصفوف المطابقة لاستعلام مهما كان عددها، بدل الاكتفاء بأول 1000
-// صف (الحد الافتراضي لـ PostgREST). لازم ندي دالة بتبني استعلام جديد في كل
-// مرة (من غير .range()) لأن نفس الـ query object مايتعادش استخدامه.
+// صف (الحد الافتراضي لـ PostgREST). لذا يجب تمرير دالة تبني استعلامًا جديدًا في كل
+// مرة (بدون .range()) لأن نفس الـ query object لا يمكن إعادة استخدامه.
 // ---------------------------------------------------------------------------
 
 async function fetchAllRowsPaged(buildQuery, pageSize) {
@@ -4943,9 +4950,9 @@ async function fetchAllRowsPaged(buildQuery, pageSize) {
   return { data: allRows, error: null };
 }
 
-// دالة (مش const ثابت) عشان تتقرأ من جديد كل مرة الرسم يترسم — لو كانت
+// دالة (غير const ثابت) حتى تتقرأ من جديد كل مرة الرسم يترسم — لو كانت
 // const عادي، الألوان كانت هتتجمد على أول ثيم كان شغال وقت تحميل الصفحة،
-// ومش هتتحدث لما المستخدم يبدّل الوضع الغامق/الفاتح من غير ريفريش
+// ولن تتحدث عندما يبدّل المستخدم الوضع الغامق/الفاتح دون تحديث الصفحة
 function getChartPalette() {
   return [
     cssVar("--color-primary"),
@@ -5056,7 +5063,7 @@ function drawBarChart(canvas, values, labels, options) {
       callback: function (value) {
         const label = this.getLabelForValue(value);
         // للأسماء (رسوم أفقية) بنسمح بطول أكبر قبل الاختصار، وللتسميات
-        // القصيرة زي الشهور (رسوم رأسية) مفيش داعي للاختصار أصلًا
+        // القصيرة مثل الشهور (رسوم رأسية) لا يوجد داعي للاختصار أصلًا
         const maxLen = horizontal ? 22 : 14;
         return label && label.length > maxLen ? label.slice(0, maxLen - 1) + "…" : label;
       },
@@ -5100,7 +5107,7 @@ function drawBarChart(canvas, values, labels, options) {
 }
 
 // ---------------------------------------------------------------------------
-// رسم دائري/Donut — لأكثر من قطاع (توزيع فئات) أو قطاعين بس (نسبة صرف)
+// رسم دائري/Donut — لأكثر من قطاع (توزيع فئات) أو قطاعين فقط (نسبة صرف)
 // segments: [{ label, value, color? }]
 // ---------------------------------------------------------------------------
 function drawDonutChart(canvas, segments, options) {
@@ -5182,13 +5189,13 @@ function goToVehiclesWithStatusFilter(status) {
 }
 
 // variant اختياري بيضيف لون/تدرج مخصص للكارت (primary/fuel/fund/expense) —
-// من غير ما نبعته بيفضل الشكل الافتراضي القديم زي ما هو (مستخدم برضو في
-// كروت الملخص بتاعت التقارير والصفحات التانية، مش بس Dashboard)
+// من غير ما نبعته يظل الشكل الافتراضي القديم كما هو (مستخدم برضو في
+// بطاقات الملخص الخاصة بالتقارير والصفحات الأخرى، وليس فقط Dashboard)
 function statCardHtml(icon, label, value, hint, extraHtml, variant) {
   const variantClass = variant ? " stat-card-" + variant : "";
-  // القيمة عادة رقم قصير (زي "150" أو "22,889.2 لتر")، لكن أحيانًا بتكون
-  // رسالة نصية كاملة لما مفيش بيانات (زي "لا توجد عهدة نشطة") — في الحالة
-  // دي بنستخدم خط أصغر بدل ما نفرض نفس حجم الأرقام الكبير على جملة كاملة
+  // القيمة عادة رقم قصير (مثل "150" أو "22,889.2 لتر")، لكن أحيانًا بتكون
+  // رسالة نصية كاملة لما لا يوجد بيانات (مثل "لا توجد عهدة نشطة") — في الحالة
+  // هذه بنستخدم خط أصغر بدل ما نفرض نفس حجم الأرقام الكبير على جملة كاملة
   const plainValueLength = String(value).replace(/<[^>]*>/g, "").trim().length;
   const valueClass = "stat-card-value" + (plainValueLength > 14 ? " is-compact" : "");
   return (
@@ -5203,8 +5210,8 @@ function statCardHtml(icon, label, value, hint, extraHtml, variant) {
 }
 
 // مؤشر اتجاه بسيط (▲/▼) بمقارنة القيمة الحالية بالشهر السابق — بيانات
-// حقيقية فقط من قاعدة البيانات؛ لو مفيش بيانات كافية للشهر السابق
-// (صفر أو غير موجودة)، بيتم تجاهل المؤشر تمامًا بدل اختلاق نسبة
+// حقيقية فقط من قاعدة البيانات؛ لو لا يوجد بيانات كافية للشهر السابق
+// (صفر أو غير موجودة)، يتم تجاهل المؤشر تمامًا بدل اختلاق نسبة
 function trendBadgeHtml(current, previous, previousMonthLabel) {
   if (!previous || previous <= 0) return "";
   const monthSuffix = previousMonthLabel ? " عن " + previousMonthLabel : " عن الشهر السابق";
@@ -5219,8 +5226,8 @@ function trendBadgeHtml(current, previous, previousMonthLabel) {
   const arrow = isUp ? "▲" : "▼";
 
   // لو الشهر السابق بيانته قليلة جدًا، النسبة المئوية بتطلع رقم ضخم ومضلل
-  // (زي 30,688%) — بدل ما نعرضه كرقم، بنوضح إن المقارنة مش دقيقة بسبب قلة
-  // بيانات الشهر السابق نفسه، مش خطأ في الحساب
+  // (مثل 30,688%) — بدل ما نعرضه كرقم، بنوضح إن المقارنة غير دقيقة بسبب قلة
+  // بيانات الشهر السابق نفسه، غير خطأ في الحساب
   if (Math.abs(change) > 300) {
     return (
       '<span class="trend-badge ' + cls + '">' + arrow + " " +
@@ -5234,8 +5241,8 @@ function trendBadgeHtml(current, previous, previousMonthLabel) {
   );
 }
 
-// خط اتجاه مصغّر (Sparkline) لآخر 7 أيام — بيانات حقيقية فقط، ولو مفيش أي
-// نشاط فعلي خلال الفترة بيتم إخفاء الـ Sparkline بدل رسم خط مسطح على صفر
+// خط اتجاه مصغّر (Sparkline) لآخر 7 أيام — بيانات حقيقية فقط، ولو لا يوجد أي
+// نشاط فعلي خلال الفترة يتم إخفاء الـ Sparkline بدل رسم خط مسطح على صفر
 async function loadDashboardSparklines() {
   const today = new Date();
   const sevenDaysAgo = new Date(today);
@@ -5312,8 +5319,8 @@ function currentMonthStartDate() {
   return year + "-" + month + "-01";
 }
 
-// بيبني حدود الشهر (بداية + بداية الشهر اللي بعده كـ"سقف مستبعد") من أي
-// تاريخ داخل الشهر ده، وبيرجع كمان تاريخ "أول يوم في الشهر" كـ Date عشان
+// يبني حدود الشهر (بداية + بداية الشهر الذي يليه كـ"سقف مستبعد") من أي
+// تاريخ داخل الشهر ده، وبيرجع كمان تاريخ "أول يوم في الشهر" كـ Date حتى
 // نقدر نجيب اسم الشهر بـ formatMonthOnly لما نحتاج نعرضه في عنوان الكارت
 function monthRangeFromDateString(dateStr) {
   const [year, month] = dateStr.slice(0, 7).split("-").map(Number);
@@ -5330,11 +5337,11 @@ function monthRangeBefore(range) {
   return monthRangeFromDateString(prevYear + "-" + String(prevMonth).padStart(2, "0") + "-01");
 }
 
-// الوقود والمصروفات عادةً بتتسجل دفعة واحدة شهريًا (بيان من الشركة/المورّد)
-// مش يوميًا، فلو استخدمنا "الشهر الحالي بالتقويم" حرفيًا، الكارت هيفضل
-// صفر لحد ما بيان الشهر ده يوصل ويتسجّل حتى لو البيانات كلها سليمة. الحل:
-// نجيب آخر شهر فيه بيانات فعليًا لكل جدول لوحده، ونستخدمه بدل الشهر الحالي
-// حرفيًا — ولو مفيش بيانات خالص، بنرجع للشهر الحالي بالتقويم كافتراضي
+// الوقود والمصروفات عادةً تُسجَّل دفعة واحدة شهريًا (بيان من الشركة/المورّد)
+// وليس يوميًا، فإذا استخدمنا "الشهر الحالي بالتقويم" حرفيًا، ستظل البطاقة
+// تعرض صفرًا إلى أن يصل بيان الشهر هذا ويُسجَّل حتى لو البيانات كلها سليمة. الحل:
+// نحضر آخر شهر توجد فيه بيانات فعليًا لكل جدول على حدة، ونستخدمه بدل الشهر الحالي
+// حرفيًا — وإذا لم توجد بيانات إطلاقًا، نعود إلى الشهر الحالي بالتقويم كافتراضي
 async function latestMonthWithData(tableName, dateColumn) {
   const { data, error } = await supabaseClient
     .from(tableName)
@@ -5381,9 +5388,9 @@ async function loadDashboardStats() {
       .eq("status", "active")
       .gte("expense_date", expenseMonthRange.start)
       .lt("expense_date", expenseMonthRange.endExclusive),
-    // بيانات الشهر اللي قبل الشهر المعروض (مش بالضرورة الشهر الحالي
+    // بيانات الشهر التي قبل الشهر المعروض (غير بالضرورة الشهر الحالي
     // بالتقويم) — تُستخدم فقط لحساب مؤشر الاتجاه (▲/▼)، ولو فشل الاستعلام
-    // أو كانت النتيجة صفر بيتم تجاهل المؤشر تمامًا
+    // أو كانت النتيجة صفر يتم تجاهل المؤشر تمامًا
     supabaseClient
       .from("fuel_transactions")
       .select("amount")
@@ -5396,14 +5403,14 @@ async function loadDashboardStats() {
       .eq("status", "active")
       .gte("expense_date", prevExpenseMonthRange.start)
       .lt("expense_date", prevExpenseMonthRange.endExclusive),
-    // سيارات عليها تفويض قيادة منتهي أو هينتهي خلال 30 يوم — لعرضها في
+    // سيارات عليها تفويض قيادة منتهٍ أو سينتهي خلال 30 يومًا — لعرضها في
     // "الأشياء التي تحتاج الانتباه" تحت
     supabaseClient
       .from("vehicles")
       .select("id, license_plate, authorization_expiry_date")
       .not("authorization_expiry_date", "is", null)
       .lte("authorization_expiry_date", thirtyDaysFromNowStr),
-    // إجمالي أصول تقنية المعلومات النشطة (بيانات فعلية، مش مجرد عدد الصفوف
+    // إجمالي أصول تقنية المعلومات النشطة (بيانات فعلية، غير مجرد عدد الصفوف
     // الكلي — الأصول المستردة/الملغاة متتحسبش هنا)
     supabaseClient.from("it_laptop_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabaseClient.from("it_email_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -5424,9 +5431,9 @@ async function loadDashboardStats() {
     itTabletsCountRes,
   ] = dashboardStatsResults;
 
-  // لازم نسجّل ونعرض أي خطأ هنا بوضوح — من غير كده لو استعلام فشل بصمت
-  // كان هيظهر "0 سيارات" أو رقم غلط يتعارض مع الرقم الحقيقي في صفحة
-  // السيارات نفسها، من غير ما المستخدم يعرف إن فيه مشكلة أصلًا
+  // يجب أن نسجّل ونعرض أي خطأ هنا بوضوح — لولا ذلك لو استعلام فشل بصمت
+  // كان سيظهر "0 سيارات" أو رقم غلط يتعارض مع الرقم الحقيقي في صفحة
+  // السيارات نفسها، دون أن يعرف المستخدم أن هناك مشكلة أصلًا
   if (vehiclesRes.error) console.error("Error loading vehicles stats:", vehiclesRes.error);
   if (fuelRes.error) console.error("Error loading fuel stats:", fuelRes.error);
   if (expensesRes.error) console.error("Error loading expenses stats:", expensesRes.error);
@@ -5460,7 +5467,7 @@ async function loadDashboardStats() {
   const assignedCount = vehicles.filter((v) => v.status === "assigned").length;
   const maintenanceCount = vehicles.filter((v) => v.status === "under_maintenance").length;
 
-  // تفويض القيادة: منتهي فعلاً (قبل النهارده) مقابل هينتهي خلال 30 يوم
+  // تفويض القيادة: منتهٍ فعلاً (قبل اليوم) مقابل سينتهي خلال 30 يومًا
   const todayStr = new Date().toISOString().slice(0, 10);
   const authExpiryRows = authExpiryRes.data || [];
   const expiredAuthVehicles = authExpiryRows.filter((v) => v.authorization_expiry_date < todayStr);
@@ -5471,7 +5478,7 @@ async function loadDashboardStats() {
   const monthFuelCost = fuelRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
   // أعلى سيارة تكلفة وقود هذا الشهر — بيانات حقيقية فقط من المعاملات
-  // المحمّلة أصلًا لكروت لوحة الرئيسية، من غير أي استعلام إضافي
+  // المحمّلة أصلًا لبطاقات لوحة الرئيسية، دون أي استعلام إضافي
   const vehicleFuelTotals = {};
   fuelRows.forEach((r) => {
     const number = r.vehicle ? r.vehicle.license_plate : null;
@@ -5489,10 +5496,10 @@ async function loadDashboardStats() {
   });
   const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
-  // عنوان الكارت بيفضل "هذا الشهر" طول ما الشهر المعروض هو فعلاً الشهر
-  // الحالي بالتقويم. لو رجعنا لآخر شهر فيه بيانات (لأن بيانات الشهر
-  // الحالي لسه ما وصلتش/اتسجلتش)، بنوضح اسم الشهر المعروض صراحةً بدل ما
-  // نضلل إن ده "الشهر الحالي" وهو مش كده
+  // عنوان البطاقة يظل "هذا الشهر" طالما الشهر المعروض هو فعلاً الشهر
+  // الحالي بالتقويم. إذا عدنا لآخر شهر توجد فيه بيانات (لأن بيانات الشهر
+  // الحالي لم تصل/تُسجَّل بعد)، نوضح اسم الشهر المعروض صراحةً حتى لا
+  // نوهم بأن هذا هو "الشهر الحالي" وهو ليس كذلك
   const fuelCardTitle =
     fuelMonthRange.start === currentCalendarMonthStart
       ? "الوقود هذا الشهر"
@@ -5585,7 +5592,7 @@ async function loadDashboardStats() {
 
 // ---------------------------------------------------------------------------
 // 9.1 الأشياء التي تحتاج الانتباه — تُبنى فقط من حالات حقيقية محسوبة من
-// البيانات المحمّلة أصلًا لهذه الصفحة؛ لو مفيش أي حالة تستدعي انتباهًا
+// البيانات المحمّلة أصلًا لهذه الصفحة؛ لو لا يوجد أي حالة تستدعي انتباهًا
 // بيُعرض تأكيد إيجابي بسيط بدل اختلاق مؤشر
 // ---------------------------------------------------------------------------
 function renderDashboardAttention({
@@ -5626,8 +5633,8 @@ function renderDashboardAttention({
       type: "info",
       text:
         expiringSoonAuthVehicles.length === 1
-          ? "تفويض قيادة سيارة واحدة (" + expiringSoonAuthVehicles[0].license_plate + ") هينتهي خلال 30 يوم."
-          : "تفويض قيادة " + expiringSoonAuthVehicles.length + " سيارات هينتهي خلال 30 يوم.",
+          ? "تفويض قيادة سيارة واحدة (" + expiringSoonAuthVehicles[0].license_plate + ") سينتهي خلال 30 يومًا."
+          : "تفويض قيادة " + expiringSoonAuthVehicles.length + " سيارات سينتهي خلال 30 يومًا.",
       actionLabel: "عرض السيارات",
       action: () => navigateTo("vehicles"),
     });
@@ -5758,7 +5765,7 @@ function renderDashboardSmartSummary({
 
 // العنصر المرتبط بعملية سجل العمليات — مبني فقط على الحقول الموجودة
 // فعليًا داخل بيانات الصف نفسه (new_data أولاً، وإلا old_data)، من غير أي
-// استعلام إضافي أو بيانات مختلقة؛ لو الحقل غير متوفر بيرجّع فاضي
+// استعلام إضافي أو بيانات مختلقة؛ لو الحقل غير متوفر يُرجع فارغ
 function dashboardActivityRelatedLabel(row) {
   const data = row.new_data || row.old_data;
   if (!data) return "";
@@ -5791,7 +5798,7 @@ async function loadDashboardActivity() {
 
     if (error) {
       console.error("Error loading dashboard activity:", error);
-      dashboardActivityState.textContent = "حصل خطأ أثناء تحميل آخر العمليات.";
+      dashboardActivityState.textContent = "حدث خطأ أثناء تحميل آخر العمليات.";
       return;
     }
 
@@ -5817,7 +5824,7 @@ async function loadDashboardActivity() {
     return;
   }
 
-  // Manager: مفيش صلاحية على audit_logs، فبنعرض ملخص عام من بيانات هو
+  // Manager: لا يوجد صلاحية على audit_logs، فبنعرض ملخص عام من بيانات هو
   // أصلاً مصرّح له يشوفها (آخر معاملات وقود ومصروفات)
   const [fuelRes, expensesRes] = await Promise.all([
     supabaseClient
@@ -5867,11 +5874,11 @@ async function loadDashboardActivity() {
 // ============================================================================
 // 9b. أصول تقنية المعلومات (IT Assets) — مرحلة 2: تبديل التبويبات فقط
 // (نفس آلية تبويبات مركز التقارير بالظبط). كل تبويب هيتفعّل بمنطقه ببيانات
-// حقيقية في مرحلة لاحقة — loadAssetTab دلوقتي مجرد "مفتاح توجيه" فاضي.
+// حقيقية في مرحلة لاحقة — loadAssetTab حاليًا مجرد "مفتاح توجيه" فارغ.
 // ============================================================================
 
 // ---------------------------------------------------------------------------
-// شريط ملخص ثابت فوق التبويبات — بيعرض إجمالي كل نوع أصل (نشط بس) بغض
+// شريط ملخص ثابت فوق التبويبات — يعرض إجمالي كل نوع أصل (نشط فقط) بغض
 // النظر عن التبويب المفتوح حاليًا. بيتحدّث كل ما أي تبويب يعمل تحميل
 // (فتح الصفحة / تبديل تبويب / بعد أي إضافة أو تعديل أو استرداد)
 // ---------------------------------------------------------------------------
@@ -6045,7 +6052,7 @@ async function loadVehiclesReport() {
 
   if (error) {
     console.error("Error loading vehicles report:", error);
-    setReportState(reportVehiclesState, "حصل خطأ أثناء تحميل التقرير.");
+    setReportState(reportVehiclesState, "حدث خطأ أثناء تحميل التقرير.");
     reportVehiclesSummary.innerHTML = "";
     return;
   }
@@ -6211,7 +6218,7 @@ async function loadFuelReport() {
 
   if (summaryError) {
     console.error("Error loading vehicle_fuel_summary:", summaryError);
-    setReportState(reportFuelState, "حصل خطأ أثناء تحميل جدول الوقود.");
+    setReportState(reportFuelState, "حدث خطأ أثناء تحميل جدول الوقود.");
     setReportState(reportFuelTopVehiclesState, "تعذر تحميل بيانات أعلى السيارات استهلاكًا.");
     return;
   }
@@ -6339,7 +6346,7 @@ async function loadPettyCashReport() {
 
   if (error) {
     console.error("Error loading petty cash report:", error);
-    setReportState(reportPettyCashState, "حصل خطأ أثناء تحميل التقرير.");
+    setReportState(reportPettyCashState, "حدث خطأ أثناء تحميل التقرير.");
     reportPettyCashSummary.innerHTML = "";
     return;
   }
@@ -6451,7 +6458,7 @@ async function loadExpensesReport() {
 
   if (error) {
     console.error("Error loading expenses report:", error);
-    setReportState(reportExpensesState, "حصل خطأ أثناء تحميل التقرير.");
+    setReportState(reportExpensesState, "حدث خطأ أثناء تحميل التقرير.");
     reportExpensesSummary.innerHTML = "";
     setReportState(reportExpensesCategoryState, "تعذر تحميل بيانات التوزيع.");
     setReportState(reportExpensesTrendState, "تعذر تحميل بيانات الاتجاه.");
@@ -6540,7 +6547,7 @@ reportExpensesExportButton.addEventListener("click", () => {
 // 10.4b تقرير أصول تقنية المعلومات — توزيع حسب النوع (رسم دائري) والموقع
 //       (رسم أعمدة + جدول تفصيلي)، مع فلتر موقع اختياري. كتالوج اللابتوبات
 //       مُستبعد من التوزيع (مفيهوش staff_location أصلًا)، وبيتعرض كارت
-//       ملخص مستقل بس زي ما هو موضّح في ملاحظة الصفحة نفسها
+//       ملخص مستقل فقط كما هو موضّح في ملاحظة الصفحة نفسها
 // ---------------------------------------------------------------------------
 
 const reportItAssetsLocationFilter = document.getElementById("report-it-assets-location-filter");
@@ -6585,7 +6592,7 @@ async function loadItAssetsReport() {
       tablets: tabletsRes.error,
       catalog: catalogCountRes.error,
     });
-    setReportState(reportItAssetsState, "حصل خطأ أثناء تحميل التقرير.");
+    setReportState(reportItAssetsState, "حدث خطأ أثناء تحميل التقرير.");
     return;
   }
 
@@ -6605,8 +6612,8 @@ async function loadItAssetsReport() {
     });
   }
 
-  // بناء قائمة المواقع في الفلتر مرة واحدة بس من كل البيانات الحقيقية (قبل
-  // أي فلترة)، عشان القائمة تفضل ثابتة وميتقلبش مع تغيير الاختيار
+  // بناء قائمة المواقع في الفلتر مرة واحدة فقط من كل البيانات الحقيقية (قبل
+  // أي فلترة)، حتى القائمة تفضل ثابتة وميتقلبش مع تغيير الاختيار
   if (!reportItAssetsLocationOptionsBuilt) {
     const allLocations = new Set();
     [laptopsRes.data || [], emailRes.data || [], simRes.data || [], tabletsRes.data || []].forEach((rows) => {
@@ -6712,7 +6719,7 @@ reportItAssetsExportButton.addEventListener("click", () => {
 
 // ---------------------------------------------------------------------------
 // 10.4c تبويبات مستقلة لكل نوع أصل داخل تقرير أصول تقنية المعلومات — كل
-//       تبويب بيوضّح إجمالي النوع ده وحده، وعدد النشط/المتاح مقابل
+//       تبويب بيوضّح إجمالي النوع هذا وحده، وعدد النشط/المتاح مقابل
 //       المسترد/المستبعد، مع توزيع حسب الموقع (أو نوع اللابتوب لكتالوج
 //       اللابتوبات تحديدًا لأنه غير مرتبط بموقع أصلًا)
 // ---------------------------------------------------------------------------
@@ -6823,7 +6830,7 @@ async function loadItAssetTypeReport(cfg) {
   const { data, error } = await supabaseClient.from(cfg.table).select("status, " + cfg.groupField);
   if (error) {
     console.error("Error loading IT asset type report (" + cfg.key + "):", error);
-    setReportState(stateEl, "حصل خطأ أثناء تحميل التقرير.");
+    setReportState(stateEl, "حدث خطأ أثناء تحميل التقرير.");
     return;
   }
 
@@ -6919,8 +6926,8 @@ document.querySelectorAll("[data-it-report-export]").forEach((btn) => {
 
 // ---------------------------------------------------------------------------
 // 10.5 نسخة احتياطية كاملة (Excel) — كل الجداول الأساسية في ملف واحد بعدة
-// شيتات، مستقلة عن أي فلتر تاريخ في التبويبات فوق. بتستخدم fetchAllRowsPaged
-// عشان محدش جدول يتقطع عند أول 1000 صف زي ما حصل قبل كده في التقارير
+// شيتات، مستقلة عن أي فلتر تاريخ في التبويبات فوق. تُستخدم fetchAllRowsPaged
+// حتى لا أحد جدول يتقطع عند أول 1000 صف كما حصل سابقًا في التقارير
 // ---------------------------------------------------------------------------
 
 const fullBackupExportButton = document.getElementById("full-backup-export-button");
@@ -6982,7 +6989,7 @@ async function exportFullBackupToExcel() {
         funds: fundsRes.error,
         expenses: expensesRes.error,
       });
-      alert("حصل خطأ أثناء تجهيز النسخة الاحتياطية. حاول تاني.");
+      alert("حدث خطأ أثناء تجهيز النسخة الاحتياطية. حاول مرة أخرى.");
       return;
     }
 
@@ -7059,7 +7066,7 @@ async function exportFullBackupToExcel() {
     URL.revokeObjectURL(url);
   } catch (unexpectedError) {
     console.error("Unexpected error exporting full backup:", unexpectedError);
-    alert("حصل خطأ أثناء تجهيز النسخة الاحتياطية. حاول تاني.");
+    alert("حدث خطأ أثناء تجهيز النسخة الاحتياطية. حاول مرة أخرى.");
   } finally {
     fullBackupExportButton.disabled = false;
     fullBackupExportButton.textContent = originalLabel;
@@ -7437,7 +7444,7 @@ async function handleSearchResultClick(type, id) {
     return;
   }
 
-  // المواقع مش عندها صفحة مخصصة لسه، فأقرب سياق فعلي ليها هو صفحة السيارات
+  // لا توجد صفحة مخصصة للمواقع بعد، فأقرب سياق فعلي لها هو صفحة السيارات
   navigateTo("vehicles");
 }
 
@@ -7494,10 +7501,10 @@ const accountCredentialsCopyButton = document.getElementById("account-credential
 
 // استدعاء موحّد لـ RPC functions إدارة الحسابات (admin_create_account /
 // admin_update_account / admin_reset_password / admin_delete_account) —
-// بيرجع دايمًا { success, error? , ...data } سواء نجحت العملية أو لأ، عشان
-// الاستدعاءات تتعامل مع الأخطاء بنفس الطريقة في كل مكان. كل دالة من دول
-// بتتحقق من إن المستخدم الحالي Super Admin بنفسها جوا قاعدة البيانات — مش
-// بس اعتمادًا على إخفاء الزرار في الواجهة.
+// يرجع دائمًا { success, error? , ...data } سواء نجحت العملية أو لأ، حتى
+// الاستدعاءات تتعامل مع الأخطاء بنفس الطريقة في كل مكان. كل دالة من هؤلاء
+// بتتحقق من إن المستخدم الحالي Super Admin بنفسها جوا قاعدة البيانات — غير
+// فقط اعتمادًا على إخفاء الزر في الواجهة.
 async function callAccountRpc(fnName, params) {
   try {
     const { data, error } = await supabaseClient.rpc(fnName, params);
@@ -7567,7 +7574,7 @@ async function loadAccountsList() {
       accountsStateBox,
       icon("users"),
       "لا توجد حسابات بعد",
-      "الحساب الحالي المفروض يكون موجود دايمًا هنا — لو الجدول فاضي فعليًا، جرّب تحديث الصفحة.",
+      "الحساب الحالي من المفترض أن يكون موجودًا دائمًا هنا — إذا كان الجدول فارغًا فعليًا، جرّب تحديث الصفحة.",
       ""
     );
     return;
@@ -7635,7 +7642,7 @@ async function loadAccountsList() {
 // ---------------------------------------------------------------------------
 // 13.1b تعديل بيانات الحساب (الاسم / الدور / الحالة) — Super Admin فقط
 // الإيميل للقراءة فقط: تعديله من الواجهة يحتاج Admin API غير متاح بأمان
-// بالـ anon key، فمُقصود إن ده مش قابل للتعديل من هنا نهائيًا
+// بالـ anon key، فمُقصود إن هذا غير قابل للتعديل من هنا نهائيًا
 // ---------------------------------------------------------------------------
 
 function openAccountForm(account, isSelf) {
@@ -7736,7 +7743,7 @@ accountCreateForm.addEventListener("submit", async (event) => {
   const role = accountCreateRoleSelect.value;
 
   if (!fullName || !email || !password) {
-    accountCreateError.textContent = "كل الحقول المطلوبة لازم تتملى.";
+    accountCreateError.textContent = "يجب ملء كل الحقول المطلوبة.";
     accountCreateError.hidden = false;
     return;
   }
@@ -7803,7 +7810,7 @@ accountDeleteConfirmButton.addEventListener("click", async () => {
 
 // ---------------------------------------------------------------------------
 // 13.1e توليد كلمة مرور جديدة لحساب — Super Admin فقط، عبر RPC
-// (admin_reset_password) — التوليد نفسه بيحصل جوا قاعدة البيانات، مش هنا
+// (admin_reset_password) — التوليد نفسه يحدث جوا قاعدة البيانات، غير هنا
 // ---------------------------------------------------------------------------
 
 accountResetPasswordConfirmButton.addEventListener("click", async () => {
@@ -7835,8 +7842,8 @@ accountResetPasswordConfirmButton.addEventListener("click", async () => {
 // ============================================================================
 // 14. معالج استيراد Excel (Import Wizard) — مشترك بين السيارات/الوقود/
 //     المصروفات. قراءة الملف المرفوع بـ SheetJS، وإنشاء القالب القابل
-//     للتحميل بـ ExcelJS (عشان يدعم Data Validation/دروب داون ليست حقيقية
-//     جوه الخلية، ميزة مش متاحة في SheetJS المجاني). كل كيان (Entity)
+//     للتحميل بـ ExcelJS (حتى يدعم Data Validation/دروب داون ليست حقيقية
+//     داخل الخلية، ميزة غير متاحة في SheetJS المجاني). كل كيان (Entity)
 //     بيضيف تعريفه في IMPORT_CONFIGS (قالب + تحقق + إدخال)، والمعالج نفسه
 //     (الخطوات الثلاث/المعاينة/التقرير) كود مشترك واحد.
 // ============================================================================
@@ -7906,8 +7913,8 @@ function parseExcelFile(file) {
   });
 }
 
-// إنشاء قالب Excel بـ ExcelJS (بدل SheetJS) عشان نقدر نضيف Data Validation
-// حقيقية (دروب داون ليست فعلي جوه الخلية) — ميزة مش متاحة في SheetJS
+// إنشاء قالب Excel بـ ExcelJS (بدل SheetJS) حتى نقدر نضيف Data Validation
+// حقيقية (دروب داون ليست فعلي داخل الخلية) — ميزة غير متاحة في SheetJS
 // المجاني. columnValidations اختياري: { "اسم العمود": ["قيمة1", "قيمة2", ...] }
 async function downloadExcelTemplate(headers, filename, columnValidations) {
   columnValidations = columnValidations || {};
@@ -7929,7 +7936,7 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
     let validation = null;
 
     if (Array.isArray(options)) {
-      // دروب داون ليست (قائمة قيم مسموحة، زي "الحالة" أو "الفئة")
+      // دروب داون ليست (قائمة قيم مسموحة، مثل "الحالة" أو "الفئة")
       if (!options.length) return;
       validation = {
         type: "list",
@@ -7942,7 +7949,7 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
       };
     } else if (options.type === "date") {
       // خلية تاريخ: تنسيق عرض بصيغة تاريخ + تحقق إن القيمة تاريخ صحيح
-      // (اختياري تمامًا، مفيش رفض لو الخلية فاضية)
+      // (اختياري تمامًا، لا يوجد رفض لو الخلية فارغة)
       worksheet.getColumn(index + 1).numFmt = "yyyy-mm-dd";
       validation = {
         type: "date",
@@ -7980,7 +7987,7 @@ async function downloadExcelTemplate(headers, filename, columnValidations) {
 }
 
 // تحويل قيمة تاريخ (Date حقيقي من Excel، أو نص) لصيغة YYYY-MM-DD المطلوبة
-// لأعمدة date في قاعدة البيانات — بترجع "" لو التاريخ مش قابل للتحويل
+// لأعمدة date في قاعدة البيانات — تُرجع "" لو التاريخ غير قابل للتحويل
 function excelDateToIsoString(value) {
   if (!value) return "";
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -8117,7 +8124,7 @@ importFileInput.addEventListener("change", async () => {
     console.error("Error parsing/validating import file:", err);
     importPreviewState.hidden = false;
     importPreviewState.textContent =
-      err && err.message ? err.message : "حصل خطأ أثناء قراءة الملف. تأكد إنه ملف Excel صالح (.xlsx/.xls).";
+      err && err.message ? err.message : "حدث خطأ أثناء قراءة الملف. تأكد إنه ملف Excel صالح (.xlsx/.xls).";
     importWizardState.validatedRows = [];
   }
 });
@@ -8324,7 +8331,7 @@ async function validateVehiclesImportRows(rawRows) {
       manufacturingYear = Number(yearRaw);
       const maxYear = new Date().getFullYear() + 1;
       if (Number.isNaN(manufacturingYear) || manufacturingYear < 1950 || manufacturingYear > maxYear) {
-        return { rowNumber, raw, status: "error", reason: "سنة الصنع غير صالحة (لازم تكون بين 1950 و" + maxYear + ")." };
+        return { rowNumber, raw, status: "error", reason: "سنة الصنع غير صالحة (يجب أن تكون بين 1950 و" + maxYear + ")." };
       }
     }
 
@@ -8334,13 +8341,13 @@ async function validateVehiclesImportRows(rawRows) {
         rowNumber,
         raw,
         status: "error",
-        reason: "رقم هوية المستخدم الفعلي لازم يكون 10 أرقام بالظبط ويبدأ بـ 1 أو 2.",
+        reason: "رقم هوية المستخدم الفعلي يجب أن يكون 10 أرقام بالضبط ويبدأ بـ 1 أو 2.",
       };
     }
 
-    // لو مفيش "الحالة" متحددة صراحةً: لو فيه اسم مستخدم فعلي، السيارة واضح
-    // إنها مستخدمة فعليًا فمنطقيًا مش "متاحة" — الافتراضي بقى "نشطة" بدل
-    // "متاحة". لو مفيش اسم أصلاً، تفضل "متاحة" زي ما كانت (بدون حد عليها)
+    // إذا لم تكن "الحالة" محددة صراحةً: إذا وُجد اسم مستخدم فعلي، فمن الواضح
+    // أن السيارة مستخدمة فعليًا فمنطقيًا ليست "متاحة" — يصبح الافتراضي "نشطة" بدل
+    // "متاحة". إذا لم يوجد اسم أصلاً، تظل "متاحة" كما كانت (بدون تغيير)
     let status = actualUserName ? "active" : "available";
     if (statusLabelRaw) {
       const mapped =
@@ -8352,7 +8359,7 @@ async function validateVehiclesImportRows(rawRows) {
       status = mapped;
     }
 
-    // تاريخ التفويض اختياري تمامًا — لو فاضي أو غير قابل للفهم بيتسجل
+    // تاريخ التفويض اختياري تمامًا — لو فارغ أو غير قابل للفهم بيتسجل
     // "بدون تاريخ محدد" (يعني مستخدم فعلي مستمر)، من غير ما يرفض الصف
     const authorizationExpiryDate = excelDateToIsoString(authorizationExpiryRaw) || null;
 
@@ -8445,12 +8452,12 @@ async function validateFuelImportRows(rawRows) {
 
     const liters = Number(litersRaw);
     if (litersRaw === "" || litersRaw === null || litersRaw === undefined || Number.isNaN(liters) || liters <= 0) {
-      return { rowNumber, raw, status: "error", reason: "اللترات لازم تكون رقم أكبر من صفر." };
+      return { rowNumber, raw, status: "error", reason: "اللترات يجب أن تكون رقمًا أكبر من صفر." };
     }
 
     const amount = Number(amountRaw);
     if (amountRaw === "" || amountRaw === null || amountRaw === undefined || Number.isNaN(amount) || amount < 0) {
-      return { rowNumber, raw, status: "error", reason: "التكلفة لازم تكون رقم ولا تكون سالبة." };
+      return { rowNumber, raw, status: "error", reason: "التكلفة يجب أن تكون رقمًا ولا تكون سالبة." };
     }
 
     return {
@@ -8673,7 +8680,7 @@ importEmailButton.addEventListener("click", () => openImportWizard("email"));
 
 function normalizeSaudiMobileNumber(raw) {
   let digits = String(raw || "").trim();
-  // إكسل بيرجّع الأرقام كـ float أحيانًا (مثلاً "557215469.0")
+  // إكسل يُرجع الأرقام كـ float أحيانًا (مثلاً "557215469.0")
   digits = digits.replace(/\.0$/, "").replace(/\D/g, "");
   if (digits.length === 9 && digits[0] !== "0") {
     digits = "0" + digits;
@@ -8897,9 +8904,9 @@ importLaptopCatalogButton.addEventListener("click", () => openImportWizard("lapt
 
 // ---------------------------------------------------------------------------
 // 14.3 استيراد المصروفات — تحقق من مطابقة اسم الفئة، وصحة المبلغ/التاريخ،
-//      بالإضافة لفحص حرج: إجمالي الصفوف الصالحة لازم لا يتجاوز الرصيد
+//      بالإضافة لفحص حرج: إجمالي الصفوف الصالحة يجب أن لا يتجاوز الرصيد
 //      المتاح في الصندوق النشط الحالي — نفس قاعدة نموذج الإضافة اليدوية
-//      اللي بترفض أي رصيد سالب تمامًا (مفيش إدخال جزئي يكسر القاعدة دي)
+//      التي بترفض أي رصيد سالب تمامًا (لا يوجد إدخال جزئي يكسر القاعدة هذه)
 // ---------------------------------------------------------------------------
 
 async function validateExpensesImportRows(rawRows) {
@@ -8929,7 +8936,7 @@ async function validateExpensesImportRows(rawRows) {
 
     const amount = Number(amountRaw);
     if (amountRaw === "" || amountRaw === null || amountRaw === undefined || Number.isNaN(amount) || amount <= 0) {
-      return { rowNumber, raw, status: "error", reason: "المبلغ لازم يكون رقم أكبر من صفر." };
+      return { rowNumber, raw, status: "error", reason: "المبلغ يجب أن يكون رقمًا أكبر من صفر." };
     }
 
     const expenseDate = excelDateToIsoString(dateRaw);
@@ -8949,7 +8956,7 @@ async function validateExpensesImportRows(rawRows) {
         description: description || null,
         created_by: currentAuthUser ? currentAuthUser.id : null,
         // petty_cash_fund_id بيتحدد في preConfirmCheck تحت وقت التأكيد
-        // الفعلي، عشان نستخدم أحدث صندوق نشط وأحدث رصيد وقت الحفظ فعليًا
+        // الفعلي، حتى نستخدم أحدث صندوق نشط وأحدث رصيد وقت الحفظ فعليًا
       },
     };
   });
@@ -9034,9 +9041,9 @@ importExpensesButton.addEventListener("click", () => openImportWizard("expenses"
 // ============================================================================
 // 15. استعادة الجلسة عند فتح الصفحة (Session persistence)
 // ============================================================================
-// #login-page و #app-shell الاتنين بيبدأوا hidden في الـ HTML؛ الكود ده هو
-// اللي بيقرر يظهر أيهما فور تحميل الصفحة، من غير ما تفلاش صفحة الدخول لو
-// المستخدم أصلاً عنده جلسة سليمة.
+// #login-page و #app-shell كلاهما يبدآن hidden في الـ HTML؛ الكود هذا هو
+// الذي يقرر إظهار أيهما فور تحميل الصفحة، دون أن تومض صفحة الدخول إذا كان
+// المستخدم أصلاً لديه جلسة سليمة.
 
 (async function init() {
   const saved = loadSavedSession();
@@ -9053,8 +9060,8 @@ importExpensesButton.addEventListener("click", () => openImportWizard("expenses"
 // ============================================================================
 // 16. شريط تنقّل يمين/يسار فوق كل الجداول (لما الجدول يبقى أعرض من الشاشة)
 // ============================================================================
-// بيتحط تلقائيًا فوق كل .table-scroll في الصفحة، وبيظهر بس لما الجدول فعلًا
-// قابل للتمرير أفقيًا (بيتابع الحجم بـ ResizeObserver عشان يتحدّث الظهور
+// بيتحط تلقائيًا فوق كل .table-scroll في الصفحة، وبيظهر فقط لما الجدول فعلًا
+// قابل للتمرير أفقيًا (يتابع الحجم بـ ResizeObserver حتى يتحدّث الظهور
 // والتعطيل تلقائيًا حتى لو الصفوف اتغيرت بعدين — فلترة، صفحات، إلخ)
 
 function initTableScrollControls() {
