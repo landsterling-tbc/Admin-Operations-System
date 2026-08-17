@@ -1024,7 +1024,21 @@ async function loadVehicles() {
 
   if (!data || data.length === 0) {
     if (vehiclesState.search || vehiclesState.status) {
-      setVehiclesState("لا توجد نتائج مطابقة لبحثك أو الفلتر المحدد.");
+      showRichEmptyState(
+        vehiclesStateBox,
+        icon("car"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سيارة تطابق كلمة البحث أو الحالة المحددة حاليًا.",
+        '<button type="button" class="btn-secondary btn-sm" id="vehicles-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("vehicles-clear-filters-button").addEventListener("click", () => {
+        vehiclesSearchInput.value = "";
+        vehiclesStatusFilter.value = "";
+        vehiclesState.search = "";
+        vehiclesState.status = "";
+        vehiclesState.page = 1;
+        loadVehicles();
+      });
     } else {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
@@ -1621,7 +1635,23 @@ async function loadFuelTransactions() {
 
   if (!data || data.length === 0) {
     if (fuelState.vehicleSearch || fuelState.dateFrom || fuelState.dateTo) {
-      setFuelState("لا توجد نتائج مطابقة للفلاتر المحددة.");
+      showRichEmptyState(
+        fuelStateBox,
+        icon("fuel"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد معاملة وقود تطابق البحث أو الفترة الزمنية المحددة حاليًا.",
+        '<button type="button" class="btn-secondary btn-sm" id="fuel-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("fuel-clear-filters-button").addEventListener("click", () => {
+        fuelVehicleSearchInput.value = "";
+        fuelDateFromInput.value = "";
+        fuelDateToInput.value = "";
+        fuelState.vehicleSearch = "";
+        fuelState.dateFrom = "";
+        fuelState.dateTo = "";
+        fuelState.page = 1;
+        loadFuelTransactions();
+      });
     } else {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
@@ -2093,7 +2123,19 @@ async function loadLaptopAssignments() {
 
   if (!data || data.length === 0) {
     if (laptopState.search) {
-      setLaptopState("لا توجد نتائج مطابقة للبحث.");
+      showRichEmptyState(
+        laptopStateBox,
+        icon("chartBar"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="laptop-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("laptop-clear-filters-button").addEventListener("click", () => {
+        laptopSearchInput.value = "";
+        laptopState.search = "";
+        laptopState.page = 1;
+        loadLaptopAssignments();
+      });
     } else {
       const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
@@ -2442,7 +2484,19 @@ async function loadEmailAssignments() {
 
   if (!data || data.length === 0) {
     if (emailState.search) {
-      setEmailState("لا توجد نتائج مطابقة للبحث.");
+      showRichEmptyState(
+        emailStateBox,
+        icon("chartBar"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="email-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("email-clear-filters-button").addEventListener("click", () => {
+        emailSearchInput.value = "";
+        emailState.search = "";
+        emailState.page = 1;
+        loadEmailAssignments();
+      });
     } else {
       const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
@@ -2792,7 +2846,19 @@ async function loadSimAssignments() {
 
   if (!data || data.length === 0) {
     if (simState.search) {
-      setSimState("لا توجد نتائج مطابقة للبحث.");
+      showRichEmptyState(
+        simStateBox,
+        icon("chartBar"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="sim-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("sim-clear-filters-button").addEventListener("click", () => {
+        simSearchInput.value = "";
+        simState.search = "";
+        simState.page = 1;
+        loadSimAssignments();
+      });
     } else {
       const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
@@ -3135,7 +3201,19 @@ async function loadTabletAssignments() {
 
   if (!data || data.length === 0) {
     if (tabletState.search) {
-      setTabletState("لا توجد نتائج مطابقة للبحث.");
+      showRichEmptyState(
+        tabletStateBox,
+        icon("chartBar"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="tablet-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("tablet-clear-filters-button").addEventListener("click", () => {
+        tabletSearchInput.value = "";
+        tabletState.search = "";
+        tabletState.page = 1;
+        loadTabletAssignments();
+      });
     } else {
       const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
@@ -3476,7 +3554,19 @@ async function loadLaptopCatalog() {
 
   if (!data || data.length === 0) {
     if (laptopCatalogState.search) {
-      setLaptopCatalogState("لا توجد نتائج مطابقة للبحث.");
+      showRichEmptyState(
+        laptopCatalogStateBox,
+        icon("chartBar"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="laptop-catalog-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("laptop-catalog-clear-filters-button").addEventListener("click", () => {
+        laptopCatalogSearchInput.value = "";
+        laptopCatalogState.search = "";
+        laptopCatalogState.page = 1;
+        loadLaptopCatalog();
+      });
     } else {
       const isAdminOrAbove = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "it_support"));
       showRichEmptyState(
@@ -4572,7 +4662,25 @@ async function loadExpenses() {
 
   if (!data || data.length === 0) {
     if (expensesState.categoryId || expensesState.dateFrom || expensesState.dateTo || expensesState.status !== "active") {
-      setExpensesState("لا توجد نتائج مطابقة للفلاتر المحددة.");
+      showRichEmptyState(
+        expensesStateBox,
+        icon("receipt"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="expenses-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("expenses-clear-filters-button").addEventListener("click", () => {
+        expensesCategoryFilter.value = "";
+        expensesDateFromInput.value = "";
+        expensesDateToInput.value = "";
+        expensesStatusFilter.value = "active";
+        expensesState.categoryId = "";
+        expensesState.dateFrom = "";
+        expensesState.dateTo = "";
+        expensesState.status = "active";
+        expensesState.page = 1;
+        loadExpenses();
+      });
     } else {
       const isSuperAdmin = !!(currentProfile && (currentProfile.role === "super_admin" || currentProfile.role === "admin"));
       showRichEmptyState(
@@ -4966,7 +5074,7 @@ function getChartPalette() {
 }
 
 // ---------------------------------------------------------------------------
-// رسم خطي (Line Chart) — للاتجاهات الزمنية، وبيُستخدم كذلك كـ Sparkline
+// رسم خطي (Line Chart) — للاتجاهات الزمنية، ويُستخدم كذلك كـ Sparkline
 // مصغّر عند تمرير sparkline:true (بدون شبكة/تسميات/حواف)
 // ---------------------------------------------------------------------------
 function drawLineChart(canvas, values, labels, options) {
@@ -5291,7 +5399,7 @@ async function loadDashboardSparklines() {
     if (fuelValues.some((v) => v > 0)) {
       drawLineChart(fuelCanvas, fuelValues, null, {
         sparkline: true,
-        color: "#ea580c",
+        color: "#d97706",
         formatValue: (v) => formatNumber(v, 1) + " لتر",
       });
     } else {
@@ -5303,7 +5411,7 @@ async function loadDashboardSparklines() {
     if (expValues.some((v) => v > 0)) {
       drawLineChart(expCanvas, expValues, null, {
         sparkline: true,
-        color: "#e11d48",
+        color: "#a24462",
         formatValue: (v) => formatNumber(v, 2) + " ر.س",
       });
     } else {
@@ -5754,13 +5862,33 @@ function renderDashboardSmartSummary({
   }
 
   dashboardSmartSummaryList.innerHTML = lines
-    .map(
-      (line) =>
-        '<li class="smart-summary-item' + (line.startsWith("لا تتوفر") ? " is-empty" : "") + '">' +
-        escapeHtml(line) +
+    .map((line) => {
+      const isEmpty = line.startsWith("لا تتوفر");
+      return (
+        '<li class="smart-summary-item' + (isEmpty ? " is-empty" : "") + '">' +
+        '<span class="smart-summary-bullet" aria-hidden="true"></span>' +
+        '<span class="smart-summary-text">' + escapeHtml(line) + "</span>" +
         "</li>"
-    )
+      );
+    })
     .join("");
+}
+
+// أيقونة صغيرة موحّدة لعنصر النشاط في لوحة الرئيسية — بصرية فقط، لا تعتمد
+// على أي منطق عمل، مجرد تمييز شكلي بين نوع الكيان المرتبط بالعملية
+const DASHBOARD_ACTIVITY_ICON =
+  '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M13 3 4 14h6l-1 7 9-11h-6z"/></svg>';
+
+function dashboardActivityItemHtml(titleHtml, metaText) {
+  return (
+    '<div class="activity-item">' +
+    '<span class="activity-item-icon" aria-hidden="true">' + DASHBOARD_ACTIVITY_ICON + "</span>" +
+    '<div class="activity-item-content">' +
+    '<span class="activity-item-title">' + titleHtml + "</span>" +
+    '<span class="activity-item-meta">' + escapeHtml(metaText) + "</span>" +
+    "</div>" +
+    "</div>"
+  );
 }
 
 // العنصر المرتبط بعملية سجل العمليات — مبني فقط على الحقول الموجودة
@@ -5812,12 +5940,12 @@ async function loadDashboardActivity() {
     dashboardActivityList.innerHTML = data
       .map((row) => {
         const relatedLabel = dashboardActivityRelatedLabel(row);
-        return (
-          '<div class="activity-item">' +
-          '<span class="activity-item-title">' + escapeHtml(AUDIT_ACTION_LABELS[row.action] || row.action) +
-          (relatedLabel ? " — " + escapeHtml(relatedLabel) : "") + "</span>" +
-          '<span class="activity-item-meta">' + escapeHtml(creatorMap[row.user_id] || "—") + " — " + formatDateTime(row.created_at) + "</span>" +
-          "</div>"
+        const titleHtml =
+          escapeHtml(AUDIT_ACTION_LABELS[row.action] || row.action) +
+          (relatedLabel ? " — " + escapeHtml(relatedLabel) : "");
+        return dashboardActivityItemHtml(
+          titleHtml,
+          (creatorMap[row.user_id] || "—") + " — " + formatDateTime(row.created_at)
         );
       })
       .join("");
@@ -5861,13 +5989,7 @@ async function loadDashboardActivity() {
 
   dashboardActivityState.hidden = true;
   dashboardActivityList.innerHTML = items
-    .map(
-      (item) =>
-        '<div class="activity-item">' +
-        '<span class="activity-item-title">' + escapeHtml(item.title) + "</span>" +
-        '<span class="activity-item-meta">' + formatDateTime(item.time) + "</span>" +
-        "</div>"
-    )
+    .map((item) => dashboardActivityItemHtml(escapeHtml(item.title), formatDateTime(item.time)))
     .join("");
 }
 
@@ -7196,7 +7318,25 @@ async function loadAuditLog() {
 
   if (!data || data.length === 0) {
     if (auditState.action || auditState.userId || auditState.dateFrom || auditState.dateTo) {
-      setAuditState("لا توجد نتائج مطابقة للفلاتر المحددة.");
+      showRichEmptyState(
+        auditStateBox,
+        icon("clock"),
+        "لا توجد نتائج مطابقة",
+        "لا توجد سجلات تطابق الفلاتر الحالية.",
+        '<button type="button" class="btn-secondary btn-sm" id="audit-clear-filters-button">مسح الفلاتر</button>'
+      );
+      document.getElementById("audit-clear-filters-button").addEventListener("click", () => {
+        auditActionFilter.value = "";
+        auditUserFilter.value = "";
+        auditDateFromInput.value = "";
+        auditDateToInput.value = "";
+        auditState.action = "";
+        auditState.userId = "";
+        auditState.dateFrom = "";
+        auditState.dateTo = "";
+        auditState.page = 1;
+        loadAuditLog();
+      });
     } else {
       showRichEmptyState(
         auditStateBox,
@@ -7349,6 +7489,41 @@ document.addEventListener("keydown", (event) => {
 topbarUserMenu.addEventListener("click", (event) => {
   if (event.target.closest("#theme-toggle-button, #change-password-button, #logout-button")) {
     closeTopbarUserMenu();
+  }
+});
+
+// ---- القائمة الجانبية على الموبايل (Drawer عائم + غطاء خلفي) ----
+
+const appSidebar = document.getElementById("app-sidebar");
+const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+const sidebarOpenButton = document.getElementById("sidebar-open-button");
+const sidebarCloseButton = document.getElementById("sidebar-close-button");
+
+function openMobileSidebar() {
+  appSidebar.classList.add("is-open");
+  sidebarBackdrop.classList.add("is-visible");
+}
+
+function closeMobileSidebar() {
+  appSidebar.classList.remove("is-open");
+  sidebarBackdrop.classList.remove("is-visible");
+}
+
+sidebarOpenButton.addEventListener("click", openMobileSidebar);
+sidebarCloseButton.addEventListener("click", closeMobileSidebar);
+sidebarBackdrop.addEventListener("click", closeMobileSidebar);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeMobileSidebar();
+  }
+});
+
+// إغلاق القائمة تلقائيًا بعد اختيار صفحة على الموبايل (تجربة استخدام
+// طبيعية — لا داعي أن تبقى القائمة مفتوحة فوق المحتوى بعد اختيار الوجهة)
+appSidebar.addEventListener("click", (event) => {
+  if (event.target.closest(".sidebar-nav-item")) {
+    closeMobileSidebar();
   }
 });
 
