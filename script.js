@@ -402,6 +402,9 @@ function showAppShell(profile) {
   importFuelButton.hidden = !isAdminOrAbove;
   importExpensesButton.hidden = !isAdminOrAbove;
   fullBackupExportButton.hidden = !isAdminOrAbove;
+  // تقرير المستلمين داخلي بالكامل — يعرض "الموظف اللي استلم المبلغ فعليًا"،
+  // فمقصور على أدمن/مدير النظام فقط، نفس نطاق من يقدر يضيف مصروف أصلًا
+  if (reportExpensesRecipientsExportButton) reportExpensesRecipientsExportButton.hidden = !isAdminOrAbove;
   addLaptopButton.hidden = !isItAssetManager;
   importLaptopsButton.hidden = !isItAssetManager;
   addEmailButton.hidden = !isItAssetManager;
@@ -430,6 +433,7 @@ function showAppShell(profile) {
   });
 
   navigateTo("dashboard");
+  runDailyAutoDownloads(profile);
 
   if (profile.must_change_password) {
     changePasswordForm.reset();
@@ -446,6 +450,71 @@ function showAppShell(profile) {
 // إجباري، نقدر نحط كلمة المرور المؤقتة تلقائيًا في حقل "كلمة المرور
 // الحالية" بدل ما يكتبها تاني بنفسه (غير يُخزَّن في أي مكان دائم)
 let pendingLoginPassword = null;
+
+// ---------------------------------------------------------------------------
+// تحميل تلقائي يومي حسب الدور — يعمل مرة واحدة فقط أول دخول في اليوم (سواء
+// بتسجيل دخول جديد أو باستعادة جلسة محفوظة عند فتح الموقع مباشرة)، بدون أي
+// تدخل من المستخدم:
+//   - مدير النظام / أدمن: نسخة احتياطية كاملة + تقرير العهدة (MEEM) + تقرير
+//     المستلمين الداخلي — كل ما يديره الأدمن، وعلى الأخص تقريري المصروفات
+//   - دعم تقني: تقرير أصول تقنية المعلومات فقط (بدون أي بيانات بيتي كاش)
+//   - مدير: لا شيء
+// نتتبع آخر يوم تحميل بـ localStorage لكل مستخدم على حدة (بمعرّفه) حتى لا
+// يتكرر التحميل لو فتح المستخدم الموقع أكثر من مرة في نفس اليوم
+// ---------------------------------------------------------------------------
+function autoDownloadStorageKey(userId) {
+  return "autoDownloadDate_" + userId;
+}
+
+function hasRunAutoDownloadToday(userId) {
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return localStorage.getItem(autoDownloadStorageKey(userId)) === todayStr;
+  } catch (storageError) {
+    return false;
+  }
+}
+
+function markAutoDownloadRanToday(userId) {
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(autoDownloadStorageKey(userId), todayStr);
+  } catch (storageError) {
+    // تجاهل — لو localStorage غير متاح، أقصى أثر إنه هيحاول التحميل تاني
+    // المرة الجاية، مش خطأ حرج
+  }
+}
+
+// فاصل زمني بسيط بين كل تحميل والتالي لتقليل احتمالية حجب المتصفح لعدة
+// تنزيلات متتالية دفعة واحدة
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runDailyAutoDownloads(profile) {
+  if (!profile || !profile.id) return;
+  if (hasRunAutoDownloadToday(profile.id)) return;
+
+  // نسجّل إنه اتشغّل النهارده فورًا (قبل انتظار نتيجة التحميلات) حتى لو
+  // المستخدم قفل الصفحة بسرعة أو حصل خطأ في تحميل واحد، لا يتكرر المحاولة
+  // الكاملة عدة مرات في نفس اليوم
+  markAutoDownloadRanToday(profile.id);
+
+  try {
+    if (profile.role === "super_admin" || profile.role === "admin") {
+      await exportFullBackupToExcel();
+      await delay(700);
+      await exportMeemPettyCashExcel();
+      await delay(700);
+      await exportExpenseRecipientsExcel();
+    } else if (profile.role === "it_support") {
+      await exportItAssetsExcel();
+    }
+    // "manager": لا شيء — لا تحميل تلقائي إطلاقًا لهذا الدور
+  } catch (autoDownloadError) {
+    console.error("Error running daily auto-downloads:", autoDownloadError);
+  }
+}
 
 // استعادة جلسة محفوظة (بعد تحديث الصفحة) — بيعيد التحقق من الحساب حيًا من
 // قاعدة البيانات (غير فقط يثق في البيانات المحفوظة محليًا) حتى أي تعطيل أو
@@ -4353,7 +4422,7 @@ async function openFundDetails(fund) {
   const { data: expenses, error: expensesError } = await supabaseClient
     .from("expenses")
     .select(
-      "id, expense_date, amount, description, status, created_by, " +
+      "id, expense_date, amount, description, supplier_name, invoice_number, status, created_by, " +
         "category:expense_categories ( name, name_ar )"
     )
     .eq("petty_cash_fund_id", fund.id)
@@ -4454,10 +4523,26 @@ const expensesPaginationInfo = document.getElementById("expenses-pagination-info
 // عناصر Modal إضافة مصروف
 const expenseFormModal = document.getElementById("expense-form-modal");
 const expenseForm = document.getElementById("expense-form");
+const expenseFormTitle = document.getElementById("expense-form-title");
 const expenseFormFundInfo = document.getElementById("expense-form-fund-info");
+const expenseFormFundSelect = document.getElementById("expense-form-fund");
+let expenseFormFundsList = []; // كل العهدات (نشطة/مستنفدة/مغلقة) مع أرصدتها — لاختيار العهدة يدويًا وقت تسجيل مصروف
 const expenseFormCategorySelect = document.getElementById("expense-form-category");
+const expenseCategoryCombo = document.getElementById("expense-category-combo");
+const expenseCategoryDropdown = document.getElementById("expense-category-dropdown");
+let expenseCategoryNameToId = {}; // اسم فئة مُطبَّع (lowercase/trim) → id — يُبنى في ensureExpenseCategories
+let expenseCategoryActiveList = []; // قائمة الفئات الفعّالة (id + الاسم المعروض) لبناء القائمة المنسدلة
+let expenseCategorySelectedId = null; // id الفئة المختارة فعليًا من القائمة (يُصفَّر عند الكتابة)
+let expenseCategoryHighlightIndex = -1; // مؤشر العنصر المُظلَّل حاليًا للتنقل بلوحة المفاتيح
+let expenseOtherCategoryId = null; // id فئة "أخرى" — لو اتخيّرت يظهر حقل اسم فئة جديد
+const expenseFormNewCategoryField = document.getElementById("expense-form-new-category-field");
+const expenseFormNewCategoryInput = document.getElementById("expense-form-new-category");
 const expenseFormAmountInput = document.getElementById("expense-form-amount");
 const expenseFormDateInput = document.getElementById("expense-form-date");
+const expenseFormSupplierInput = document.getElementById("expense-form-supplier");
+const expenseFormInvoiceInput = document.getElementById("expense-form-invoice");
+const expenseFormRecipientInput = document.getElementById("expense-form-recipient");
+const expenseRecipientOptionsList = document.getElementById("expense-recipient-options");
 const expenseFormDescriptionInput = document.getElementById("expense-form-description");
 const expenseFormError = document.getElementById("expense-form-error");
 const expenseFormSubmitButton = document.getElementById("expense-form-submit");
@@ -4469,7 +4554,39 @@ const expenseVoidError = document.getElementById("expense-void-error");
 const expenseVoidConfirmButton = document.getElementById("expense-void-confirm");
 
 let expenseBeingVoided = null;
-let expenseFormActiveFund = null; // الصندوق النشط وقت فتح فورم إضافة المصروف
+let expenseBeingEdited = null; // المصروف الجاري تعديله فعليًا (null يعني الفورم في وضع "إضافة") — يشمل البيانات الكاملة بما فيها الموظف المستلم
+let expenseFormActiveFund = null; // العهدة المختارة فعليًا داخل فورم إضافة المصروف (مش بالضرورة العهدة النشطة — ممكن يختار المستخدم عهدة قديمة مغلقة لتسجيل مصروف قديم عليها)
+
+// اقتراحات "الموظف المستلم للمبلغ" — نفس منطق اقتراح اسم المستخدم الفعلي
+// بالسيارات: قيم سابقة فعلية فقط، بلا جدول موظفين رسمي ولا ربط. الحقل داخلي
+// بالكامل (أدمن فقط)، فالاستعلام هنا يقرأ عمود recipient_employee_name الذي
+// لا يظهر في أي مكان آخر بالواجهة
+let expenseRecipientNamesCache = null;
+
+async function ensureExpenseRecipientOptions(forceRefresh) {
+  if (expenseRecipientNamesCache && !forceRefresh) return expenseRecipientNamesCache;
+
+  const { data, error } = await supabaseClient
+    .from("expenses")
+    .select("recipient_employee_name")
+    .not("recipient_employee_name", "is", null);
+
+  if (error) {
+    console.error("Error loading expense recipient suggestions:", error);
+    return expenseRecipientNamesCache || [];
+  }
+
+  const names = [...new Set((data || []).map((e) => e.recipient_employee_name).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "ar")
+  );
+
+  expenseRecipientNamesCache = names;
+  expenseRecipientOptionsList.innerHTML = names
+    .map((name) => '<option value="' + escapeHtml(name) + '"></option>')
+    .join("");
+
+  return expenseRecipientNamesCache;
+}
 
 // ---------------------------------------------------------------------------
 // 7.1 دالة مشتركة: جلب أسماء "من أدخل" عبر profile_public (متاحة لكل الأدوار)
@@ -4522,14 +4639,145 @@ async function ensureExpenseCategories() {
     .join("");
   expensesCategoryFilter.innerHTML = '<option value="">كل الفئات</option>' + filterOptions;
 
-  const activeOptions = expenseCategoriesCache
-    .filter((c) => c.is_active)
-    .map((c) => '<option value="' + c.id + '">' + escapeHtml(c.name_ar || c.name) + "</option>")
-    .join("");
-  expenseFormCategorySelect.innerHTML = '<option value="">اختر الفئة</option>' + activeOptions;
+  // حقل الفئة في فورم الإضافة بقى قائمة منسدلة مخصّصة (Combobox) تعرض كل
+  // الفئات فور الفتح وتفلتر أثناء الكتابة — أوثق من datalist المتصفح
+  // الافتراضية اللي سلوكها بيختلف بين المتصفحات. نبني هنا القائمة الأساسية
+  // وخريطة (اسم مُطبَّع → id) لحلّ القيمة المكتوبة فعليًا وقت الحفظ
+  const activeCategories = expenseCategoriesCache.filter((c) => c.is_active);
+  expenseCategoryActiveList = activeCategories.map((c) => ({
+    id: c.id,
+    label: c.name_ar || c.name,
+  }));
+
+  expenseCategoryNameToId = {};
+  activeCategories.forEach((c) => {
+    if (c.name_ar) expenseCategoryNameToId[normalizeImportKey(c.name_ar)] = c.id;
+    if (c.name) expenseCategoryNameToId[normalizeImportKey(c.name)] = c.id;
+  });
+
+  // فئة "أخرى" — لو المستخدم اختارها لازم يكتب اسم فئة فعلي بدالها بدل
+  // ما تفضل مصروفات كتير متجمّعة تحت اسم عام مالوش معنى
+  const otherCategory = activeCategories.find(
+    (c) => normalizeImportKey(c.name) === "other" || normalizeImportKey(c.name_ar || "") === normalizeImportKey("أخرى")
+  );
+  expenseOtherCategoryId = otherCategory ? otherCategory.id : null;
 
   return expenseCategoriesCache;
 }
+
+// ---------------------------------------------------------------------------
+// 7.2ب Combobox الفئة — يعرض كل الفئات عند الفتح، ويفلتر أثناء الكتابة
+// ---------------------------------------------------------------------------
+
+function renderExpenseCategoryDropdown(filterText) {
+  const normalizedFilter = normalizeImportKey(filterText || "");
+  const matches = normalizedFilter
+    ? expenseCategoryActiveList.filter((c) => normalizeImportKey(c.label).includes(normalizedFilter))
+    : expenseCategoryActiveList;
+
+  expenseCategoryHighlightIndex = -1;
+
+  if (matches.length === 0) {
+    expenseCategoryDropdown.innerHTML = '<li class="combo-option-empty">لا توجد فئة مطابقة</li>';
+  } else {
+    expenseCategoryDropdown.innerHTML = matches
+      .map(
+        (c) =>
+          '<li class="combo-option" role="option" data-id="' +
+          c.id +
+          '" data-label="' +
+          escapeHtml(c.label) +
+          '">' +
+          escapeHtml(c.label) +
+          "</li>"
+      )
+      .join("");
+  }
+
+  expenseCategoryDropdown.hidden = false;
+}
+
+function openExpenseCategoryDropdown() {
+  renderExpenseCategoryDropdown(expenseFormCategorySelect.value);
+}
+
+function closeExpenseCategoryDropdown() {
+  expenseCategoryDropdown.hidden = true;
+  expenseCategoryHighlightIndex = -1;
+}
+
+function highlightExpenseCategoryOption(index) {
+  const options = expenseCategoryDropdown.querySelectorAll(".combo-option");
+  options.forEach((el) => el.classList.remove("combo-option-active"));
+  if (index >= 0 && index < options.length) {
+    options[index].classList.add("combo-option-active");
+    options[index].scrollIntoView({ block: "nearest" });
+  }
+  expenseCategoryHighlightIndex = index;
+}
+
+function selectExpenseCategoryOption(id, label) {
+  expenseFormCategorySelect.value = label;
+  expenseCategorySelectedId = id;
+  closeExpenseCategoryDropdown();
+  updateExpenseNewCategoryFieldVisibility();
+}
+
+// لازم تكون في فئة فعلية دايمًا؛ لو المُختارة هي "أخرى" نظهر حقل لكتابة
+// اسم الفئة الجديدة الفعلي (هيتحوّل لفئة حقيقية جديدة وقت الحفظ)
+function updateExpenseNewCategoryFieldVisibility() {
+  const resolvedId = expenseCategorySelectedId || expenseCategoryNameToId[normalizeImportKey(expenseFormCategorySelect.value.trim())];
+  const isOther = Boolean(expenseOtherCategoryId) && resolvedId === expenseOtherCategoryId;
+  expenseFormNewCategoryField.hidden = !isOther;
+  if (!isOther) expenseFormNewCategoryInput.value = "";
+}
+
+expenseFormCategorySelect.addEventListener("focus", openExpenseCategoryDropdown);
+expenseFormCategorySelect.addEventListener("click", openExpenseCategoryDropdown);
+
+expenseFormCategorySelect.addEventListener("input", () => {
+  expenseCategorySelectedId = null; // الكتابة اليدوية تُلغي أي اختيار سابق لحد ما يتطابق نص جديد
+  renderExpenseCategoryDropdown(expenseFormCategorySelect.value);
+  updateExpenseNewCategoryFieldVisibility();
+});
+
+expenseFormCategorySelect.addEventListener("keydown", (event) => {
+  const options = expenseCategoryDropdown.querySelectorAll(".combo-option");
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (expenseCategoryDropdown.hidden) {
+      openExpenseCategoryDropdown();
+      return;
+    }
+    if (options.length === 0) return;
+    highlightExpenseCategoryOption((expenseCategoryHighlightIndex + 1) % options.length);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (options.length === 0) return;
+    highlightExpenseCategoryOption((expenseCategoryHighlightIndex - 1 + options.length) % options.length);
+  } else if (event.key === "Enter") {
+    if (!expenseCategoryDropdown.hidden && expenseCategoryHighlightIndex >= 0 && options[expenseCategoryHighlightIndex]) {
+      event.preventDefault();
+      const el = options[expenseCategoryHighlightIndex];
+      selectExpenseCategoryOption(el.dataset.id, el.dataset.label);
+    }
+  } else if (event.key === "Escape") {
+    closeExpenseCategoryDropdown();
+  }
+});
+
+expenseCategoryDropdown.addEventListener("click", (event) => {
+  const option = event.target.closest(".combo-option");
+  if (!option || !option.dataset.id) return;
+  selectExpenseCategoryOption(option.dataset.id, option.dataset.label);
+});
+
+document.addEventListener("click", (event) => {
+  if (!expenseCategoryCombo.contains(event.target)) {
+    closeExpenseCategoryDropdown();
+  }
+});
 
 // ---------------------------------------------------------------------------
 // 7.3 عرض صفوف المصروفات — دالة مشتركة بين قائمة المصروفات الرئيسية
@@ -4561,7 +4809,9 @@ function renderExpenseRows(tbody, rows, creatorMap, options) {
       "<td>" + formatDateOnly(expense.expense_date) + "</td>" +
       "<td>" + formatNumber(expense.amount, 2) + " ر.س</td>" +
       "<td>" + escapeHtml(categoryName) + "</td>" +
-      "<td>" + escapeHtml(expense.description || "—") + "</td>";
+      "<td>" + escapeHtml(expense.supplier_name || "—") + "</td>" +
+      "<td>" + escapeHtml(expense.description || "—") + "</td>" +
+      "<td>" + escapeHtml(expense.invoice_number || "—") + "</td>";
 
     if (showFund) {
       cells += "<td>" + escapeHtml(fundCode) + "</td>";
@@ -4574,7 +4824,9 @@ function renderExpenseRows(tbody, rows, creatorMap, options) {
     if (showActions) {
       let actionsHtml = '<span class="text-muted">—</span>';
       if (isSuperAdmin && !isVoided) {
-        actionsHtml = '<button type="button" class="btn-danger btn-sm expense-void-btn">إلغاء</button>';
+        actionsHtml =
+          '<button type="button" class="btn-secondary btn-sm expense-edit-btn">تعديل</button> ' +
+          '<button type="button" class="btn-danger btn-sm expense-void-btn">إلغاء</button>';
       }
       cells += '<td class="actions-cell">' + actionsHtml + "</td>";
     }
@@ -4582,6 +4834,7 @@ function renderExpenseRows(tbody, rows, creatorMap, options) {
     tr.innerHTML = cells;
 
     if (showActions && isSuperAdmin && !isVoided) {
+      tr.querySelector(".expense-edit-btn").addEventListener("click", () => openExpenseEditForm(expense));
       tr.querySelector(".expense-void-btn").addEventListener("click", () => openExpenseVoidConfirm(expense));
     }
 
@@ -4629,7 +4882,7 @@ async function loadExpenses() {
   let query = supabaseClient
     .from("expenses")
     .select(
-      "id, expense_date, amount, description, status, created_by, category_id, petty_cash_fund_id, " +
+      "id, expense_date, amount, description, supplier_name, invoice_number, status, created_by, category_id, petty_cash_fund_id, " +
         "category:expense_categories ( name, name_ar ), fund:petty_cash_funds ( fund_code )",
       { count: "exact" }
     )
@@ -4746,34 +4999,187 @@ expensesNextPageButton.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7.5 إضافة مصروف — Super Admin فقط، مربوط تلقائيًا بالصندوق النشط الحالي
+// 7.5 إضافة مصروف — Super Admin/Admin؛ العهدة تُختار يدويًا من كل العهدات
+// (نشطة/مستنفدة/مغلقة) بدل الربط التلقائي بالعهدة النشطة فقط — عشان لو في
+// مصروف قديم لازم يتخصم من عهدة قديمة بعينها بدل ما يتحط غلط على العهدة
+// الحالية، وبتفتراضيًا بتختار العهدة النشطة لو موجودة توفيرًا للوقت
 // ---------------------------------------------------------------------------
 
+// يجيب كل العهدات مع أرصدتها الحقيقية (view واحد يغطي الكل) ويملأ القائمة
+// المنسدلة؛ بيرجع العهدة اللي المفروض تتحدد افتراضيًا (النشطة لو موجودة،
+// وإلا أحدث عهدة موجودة أصلًا)
+async function loadExpenseFormFundsOptions() {
+  expenseFormFundSelect.innerHTML = '<option value="">جارٍ التحميل...</option>';
+  expenseFormFundSelect.disabled = true;
+
+  const { data, error } = await supabaseClient
+    .from("petty_cash_fund_balances")
+    .select("fund_id, fund_code, status, opening_amount, current_balance, funded_at")
+    .order("funded_at", { ascending: false });
+
+  if (error) {
+    console.error("Error loading funds for expense form:", error);
+    expenseFormFundsList = [];
+    expenseFormFundSelect.innerHTML = '<option value="">تعذر تحميل العهدات</option>';
+    expenseFormFundSelect.disabled = true;
+    return null;
+  }
+
+  expenseFormFundsList = data || [];
+
+  if (expenseFormFundsList.length === 0) {
+    expenseFormFundSelect.innerHTML = '<option value="">لا توجد أي عهدة نقدية بعد</option>';
+    expenseFormFundSelect.disabled = true;
+    return null;
+  }
+
+  expenseFormFundSelect.disabled = false;
+  expenseFormFundSelect.innerHTML = expenseFormFundsList
+    .map((f) => {
+      const statusLabel = FUND_STATUS_LABELS[f.status] || f.status;
+      return (
+        '<option value="' +
+        f.fund_id +
+        '">' +
+        escapeHtml(f.fund_code) +
+        " — " +
+        statusLabel +
+        " (الرصيد: " +
+        formatNumber(f.current_balance, 2) +
+        " ر.س)</option>"
+      );
+    })
+    .join("");
+
+  const defaultFund = expenseFormFundsList.find((f) => f.status === "active") || expenseFormFundsList[0];
+  expenseFormFundSelect.value = defaultFund.fund_id;
+  return defaultFund;
+}
+
+function getSelectedExpenseFormFund() {
+  return expenseFormFundsList.find((f) => f.fund_id === expenseFormFundSelect.value) || null;
+}
+
+function updateExpenseFormForSelectedFund() {
+  const selectedFund = getSelectedExpenseFormFund();
+  expenseFormActiveFund = selectedFund
+    ? {
+        id: selectedFund.fund_id,
+        fund_code: selectedFund.fund_code,
+        status: selectedFund.status,
+        opening_amount: selectedFund.opening_amount,
+        current_balance: selectedFund.current_balance,
+      }
+    : null;
+
+  if (!expenseFormActiveFund) {
+    expenseFormFundInfo.hidden = true;
+    expenseFormSubmitButton.disabled = true;
+    return;
+  }
+
+  expenseFormFundInfo.hidden = false;
+  expenseFormSubmitButton.disabled = false;
+  updateExpenseBalancePreview();
+}
+
+expenseFormFundSelect.addEventListener("change", updateExpenseFormForSelectedFund);
+
 addExpenseButton.addEventListener("click", async () => {
+  expenseBeingEdited = null; // وضع "إضافة" صريح — أي جلسة تعديل سابقة اتلغت
+  expenseFormTitle.textContent = "إضافة مصروف";
+  expenseFormSubmitButton.textContent = "حفظ";
   expenseFormError.hidden = true;
   expenseFormError.textContent = "";
   expenseForm.reset();
+  expenseCategorySelectedId = null;
+  closeExpenseCategoryDropdown();
+  expenseFormNewCategoryField.hidden = true;
+  expenseFormNewCategoryInput.value = "";
 
   await ensureExpenseCategories();
+  ensureExpenseRecipientOptions();
 
-  // نجيب أحدث بيانات للصندوق النشط وقت فتح الفورم (غير من الكاش القديم)
-  await loadCurrentFund();
-  expenseFormActiveFund = currentActiveFund;
+  // نجيب كل العهدات بأرصدتها الحقيقية (غير من الكاش القديم) ونحدد افتراضيًا
+  // العهدة النشطة لو موجودة، مع إتاحة اختيار عهدة تانية يدويًا
+  const defaultFund = await loadExpenseFormFundsOptions();
 
-  if (!expenseFormActiveFund) {
+  if (!defaultFund) {
     expenseFormFundInfo.textContent = "";
     expenseFormFundInfo.hidden = true;
-    expenseFormError.textContent = "لا توجد عهدة نقدية نشطة لتسجيل مصروف عليها.";
+    expenseFormError.textContent = "لا توجد أي عهدة نقدية لتسجيل مصروف عليها.";
     expenseFormError.hidden = false;
     expenseFormSubmitButton.disabled = true;
   } else {
-    expenseFormFundInfo.hidden = false;
-    expenseFormSubmitButton.disabled = false;
-    updateExpenseBalancePreview();
+    updateExpenseFormForSelectedFund();
   }
 
   expenseFormModal.hidden = false;
 });
+
+// ---------------------------------------------------------------------------
+// 7.5ب تعديل مصروف موجود — بيفتح نفس الفورم في وضع "تعديل"، معبّأ بالبيانات
+// الحالية كاملة (بما فيها الموظف المستلم الداخلي)، ومحدّد عليه العهدة
+// الأصلية للمصروف (حتى لو مش نشطة حاليًا) قابلة للتغيير لو لزم الأمر
+// ---------------------------------------------------------------------------
+
+async function openExpenseEditForm(expenseRow) {
+  expenseFormError.hidden = true;
+  expenseFormError.textContent = "";
+  expenseForm.reset();
+  expenseCategorySelectedId = null;
+  closeExpenseCategoryDropdown();
+  expenseFormNewCategoryField.hidden = true;
+  expenseFormNewCategoryInput.value = "";
+  expenseFormSubmitButton.disabled = true;
+  expenseFormModal.hidden = false;
+  expenseFormTitle.textContent = "جارٍ التحميل...";
+
+  // نجيب أحدث نسخة من الصف كامل (بما فيه الموظف المستلم اللي متعمّد إخفاؤه
+  // من استعلام القائمة الرئيسية) — تجنّبًا لتعديل ببيانات قديمة
+  const { data: freshExpense, error } = await supabaseClient
+    .from("expenses")
+    .select("id, category_id, amount, expense_date, description, supplier_name, invoice_number, recipient_employee_name, petty_cash_fund_id")
+    .eq("id", expenseRow.id)
+    .single();
+
+  if (error || !freshExpense) {
+    console.error("Error loading expense for edit:", error);
+    expenseFormModal.hidden = true;
+    showToast("تعذر تحميل بيانات المصروف للتعديل. حاول مرة أخرى.", "error");
+    return;
+  }
+
+  expenseBeingEdited = freshExpense;
+  expenseFormTitle.textContent = "تعديل مصروف";
+  expenseFormSubmitButton.textContent = "حفظ التعديلات";
+
+  await ensureExpenseCategories();
+  ensureExpenseRecipientOptions();
+
+  const categoryObj = expenseCategoriesCache.find((c) => c.id === freshExpense.category_id);
+  if (categoryObj) {
+    expenseFormCategorySelect.value = categoryObj.name_ar || categoryObj.name;
+    expenseCategorySelectedId = categoryObj.id;
+  }
+  updateExpenseNewCategoryFieldVisibility();
+
+  expenseFormAmountInput.value = freshExpense.amount;
+  expenseFormDateInput.value = freshExpense.expense_date;
+  expenseFormSupplierInput.value = freshExpense.supplier_name || "";
+  expenseFormInvoiceInput.value = freshExpense.invoice_number || "";
+  expenseFormRecipientInput.value = freshExpense.recipient_employee_name || "";
+  expenseFormDescriptionInput.value = freshExpense.description || "";
+
+  // نجيب كل العهدات ونحدد العهدة الأصلية بتاعة المصروف ده تحديدًا (حتى لو
+  // مغلقة/مستنفدة حاليًا)، مع إتاحة تغييرها يدويًا لو المستخدم عايز ينقل
+  // المصروف لعهدة تانية
+  await loadExpenseFormFundsOptions();
+  if (expenseFormFundsList.some((f) => f.fund_id === freshExpense.petty_cash_fund_id)) {
+    expenseFormFundSelect.value = freshExpense.petty_cash_fund_id;
+  }
+  updateExpenseFormForSelectedFund();
+}
 
 // معاينة حيّة للرصيد قبل/بعد العملية أثناء كتابة المبلغ — بيانات حقيقية
 // فقط من رصيد العهدة النشطة المحمّل أصلًا عند فتح الفورم؛ لا يستبدل الفحص
@@ -4788,6 +5194,8 @@ function updateExpenseBalancePreview() {
   const afterBalance = hasValidAmount ? currentBalance - amount : currentBalance;
   const isInsufficient = hasValidAmount && afterBalance < 0;
 
+  const isInactiveFund = expenseFormActiveFund.status && expenseFormActiveFund.status !== "active";
+
   expenseFormFundInfo.innerHTML =
     '<span>سيتم تسجيل هذا المصروف على العهدة: <strong>' + escapeHtml(expenseFormActiveFund.fund_code) + "</strong></span><br>" +
     '<span>الرصيد الحالي: ' + formatNumber(currentBalance, 2) + " ر.س</span>" +
@@ -4795,6 +5203,11 @@ function updateExpenseBalancePreview() {
       ? "<br><span>المصروف: " + formatNumber(amount, 2) + " ر.س</span>" +
         '<br><span' + (isInsufficient ? ' style="color: var(--color-danger-text); font-weight: 700;"' : "") + '>الرصيد بعد العملية: ' +
         formatNumber(afterBalance, 2) + " ر.س</span>"
+      : "") +
+    (isInactiveFund
+      ? '<br><span style="color: var(--color-warning-text); font-weight: 700;">تنبيه: هذه العهدة ' +
+        (FUND_STATUS_LABELS[expenseFormActiveFund.status] || expenseFormActiveFund.status) +
+        " حاليًا وليست نشطة — تأكد إنك اخترتها عن قصد (مثلًا لتسجيل مصروف قديم فاتك تسجيله وقتها).</span>"
       : "");
 }
 
@@ -4806,18 +5219,36 @@ expenseForm.addEventListener("submit", async (event) => {
   expenseFormError.textContent = "";
 
   if (!expenseFormActiveFund) {
-    expenseFormError.textContent = "لا توجد عهدة نقدية نشطة لتسجيل مصروف عليها.";
+    expenseFormError.textContent = "اختر العهدة المطلوب تسجيل المصروف عليها.";
     expenseFormError.hidden = false;
     return;
   }
 
-  const categoryId = expenseFormCategorySelect.value;
+  // حقل الفئة بقى Combobox مخصّص (مش Select عادي)؛ لو المستخدم اختار من
+  // القائمة بيبقى عندنا id جاهز (expenseCategorySelectedId)، وإلا بنحاول
+  // نحل النص المكتوب يدويًا عبر خريطة الأسماء المبنية في ensureExpenseCategories
+  const categoryText = expenseFormCategorySelect.value.trim();
+  const categoryId = expenseCategorySelectedId || expenseCategoryNameToId[normalizeImportKey(categoryText)];
   const amount = Number(expenseFormAmountInput.value);
   const date = expenseFormDateInput.value;
   const description = expenseFormDescriptionInput.value.trim();
 
-  if (!categoryId) {
+  if (!categoryText) {
     expenseFormError.textContent = "الفئة مطلوبة.";
+    expenseFormError.hidden = false;
+    return;
+  }
+  if (!categoryId) {
+    expenseFormError.textContent = 'الفئة "' + categoryText + '" غير موجودة — اختر فئة من القائمة المقترحة.';
+    expenseFormError.hidden = false;
+    return;
+  }
+  // لازم تكون في فئة فعلية دايمًا؛ لو الفئة المختارة هي "أخرى" فحقل اسم
+  // الفئة الجديدة إجباري — هيتحوّل لفئة حقيقية جديدة بدل "أخرى" وقت الحفظ
+  const isOtherCategory = Boolean(expenseOtherCategoryId) && categoryId === expenseOtherCategoryId;
+  const newCategoryName = expenseFormNewCategoryInput.value.trim();
+  if (isOtherCategory && !newCategoryName) {
+    expenseFormError.textContent = 'اكتب اسم الفئة الجديدة بدل "أخرى" — لازم يكون في فئة محدّدة.';
     expenseFormError.hidden = false;
     return;
   }
@@ -4837,7 +5268,10 @@ expenseForm.addEventListener("submit", async (event) => {
 
   try {
     // تحقق أخير من كفاية الرصيد بأرقام حديثة قبل الإرسال مباشرة (تقليل فرصة
-    // الرصيد يبقى سالب في حالة تعديلات متزامنة)
+    // الرصيد يبقى سالب في حالة تعديلات متزامنة). في وضع التعديل: لو العهدة
+    // المختارة هي نفس العهدة الأصلية للمصروف، لازم نرجّع مبلغه القديم للرصيد
+    // المتاح الأول (لأن current_balance أصلًا مخصوم منه المبلغ القديم ده)،
+    // وإلا (نقل لعهدة تانية) الرصيد المتاح يفضل زي ما هو من غير أي تعديل
     const { data: freshBalance, error: freshBalanceError } = await supabaseClient
       .from("petty_cash_fund_balances")
       .select("current_balance")
@@ -4846,40 +5280,88 @@ expenseForm.addEventListener("submit", async (event) => {
 
     if (freshBalanceError) {
       console.error("Error re-checking fund balance:", freshBalanceError);
-    } else if (amount > Number(freshBalance.current_balance)) {
-      expenseFormError.textContent =
-        "المبلغ المطلوب أكبر من الرصيد المتاح في العهدة (" +
-        formatNumber(freshBalance.current_balance, 2) +
-        " ر.س). لا يمكن أن يكون الرصيد الناتج سالبًا.";
-      expenseFormError.hidden = false;
-      return;
+    } else {
+      let availableBalance = Number(freshBalance.current_balance);
+      if (expenseBeingEdited && expenseBeingEdited.petty_cash_fund_id === expenseFormActiveFund.id) {
+        availableBalance += Number(expenseBeingEdited.amount);
+      }
+      if (amount > availableBalance) {
+        expenseFormError.textContent =
+          "المبلغ المطلوب أكبر من الرصيد المتاح في العهدة (" +
+          formatNumber(availableBalance, 2) +
+          " ر.س). لا يمكن أن يكون الرصيد الناتج سالبًا.";
+        expenseFormError.hidden = false;
+        return;
+      }
+    }
+
+    // لو المستخدم اختار "أخرى" وكتب اسم فئة جديد، نتأكد الأول إن مفيش فئة
+    // بنفس الاسم أصلًا (تجنّبًا لتكرارها)، وإلا ننشئها فعليًا ونستخدم id
+    // بتاعها بدل "أخرى" — كل مصروف لازم مربوط بفئة حقيقية ومحدّدة
+    let finalCategoryId = categoryId;
+    if (isOtherCategory) {
+      const existingId = expenseCategoryNameToId[normalizeImportKey(newCategoryName)];
+      if (existingId) {
+        finalCategoryId = existingId;
+      } else {
+        const { data: newCategoryRow, error: newCategoryError } = await supabaseClient
+          .from("expense_categories")
+          .insert({ name: newCategoryName, name_ar: newCategoryName, is_active: true })
+          .select("id")
+          .single();
+
+        if (newCategoryError) {
+          console.error("Error creating new expense category:", newCategoryError);
+          expenseFormError.textContent =
+            newCategoryError.code === "23505"
+              ? 'يوجد فئة بنفس الاسم "' + newCategoryName + '" بالفعل — جرّب تبحث عنها في حقل الفئة.'
+              : "تعذّر إنشاء الفئة الجديدة: " + newCategoryError.message;
+          expenseFormError.hidden = false;
+          return;
+        }
+
+        finalCategoryId = newCategoryRow.id;
+        expenseCategoriesCache = null; // نفضّي الكاش عشان الفئة الجديدة تظهر في القائمة من المرة الجاية
+      }
     }
 
     const payload = {
       petty_cash_fund_id: expenseFormActiveFund.id,
-      category_id: categoryId,
+      category_id: finalCategoryId,
       amount: amount,
       expense_date: date,
       description: description || null,
-      created_by: currentAuthUser ? currentAuthUser.id : null,
+      supplier_name: expenseFormSupplierInput.value.trim() || null,
+      invoice_number: expenseFormInvoiceInput.value.trim() || null,
+      recipient_employee_name: expenseFormRecipientInput.value.trim() || null,
     };
 
-    const { error } = await supabaseClient.from("expenses").insert(payload);
+    let saveError;
+    if (expenseBeingEdited) {
+      // تعديل: منسيبش created_by و created_at زي ما هما، ومنلمسش حالة
+      // المصروف (نشط/ملغى) — التعديل ده لتصحيح بيانات مصروف موجود بس
+      const { error } = await supabaseClient.from("expenses").update(payload).eq("id", expenseBeingEdited.id);
+      saveError = error;
+    } else {
+      payload.created_by = currentAuthUser ? currentAuthUser.id : null;
+      const { error } = await supabaseClient.from("expenses").insert(payload);
+      saveError = error;
+    }
 
-    if (error) {
-      console.error("Error saving expense:", error);
+    if (saveError) {
+      console.error("Error saving expense:", saveError);
 
       if (
-        error.code === "42501" ||
-        (error.message && error.message.toLowerCase().includes("row-level security"))
+        saveError.code === "42501" ||
+        (saveError.message && saveError.message.toLowerCase().includes("row-level security"))
       ) {
         expenseFormError.textContent = "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك).";
-      } else if (error.code === "23503") {
+      } else if (saveError.code === "23503") {
         expenseFormError.textContent = "الفئة أو العهدة المرتبطة غير موجودة فعليًا.";
-      } else if (error.code === "23514") {
+      } else if (saveError.code === "23514") {
         expenseFormError.textContent = "البيانات المدخلة لا تحقق شروط الصحة (تأكد من المبلغ).";
       } else {
-        expenseFormError.textContent = "حدث خطأ أثناء الحفظ: " + error.message;
+        expenseFormError.textContent = "حدث خطأ أثناء الحفظ: " + saveError.message;
       }
 
       expenseFormError.hidden = false;
@@ -4887,6 +5369,7 @@ expenseForm.addEventListener("submit", async (event) => {
     }
 
     expenseFormModal.hidden = true;
+    expenseBeingEdited = null;
     loadExpenses();
     loadCurrentFund();
   } catch (unexpectedError) {
@@ -4895,7 +5378,7 @@ expenseForm.addEventListener("submit", async (event) => {
     expenseFormError.hidden = false;
   } finally {
     expenseFormSubmitButton.disabled = false;
-    expenseFormSubmitButton.textContent = "حفظ";
+    expenseFormSubmitButton.textContent = expenseBeingEdited ? "حفظ التعديلات" : "حفظ";
   }
 });
 
@@ -5011,6 +5494,49 @@ function destroyExistingChart(canvas) {
   if (existing) existing.destroy();
 }
 
+// ---------------------------------------------------------------------------
+// زرّ تحميل الرسم البياني كصورة PNG — يُضاف تلقائيًا بجانب عنوان كل بطاقة
+// ---------------------------------------------------------------------------
+function injectChartDownloadBtn(canvas) {
+  if (!canvas) return;
+  var card = canvas.closest(".chart-card");
+  if (!card) return;
+  if (card.querySelector(".chart-download-btn")) return;
+  var titleEl = card.querySelector(".chart-card-title");
+  if (!titleEl) return;
+
+  var header = card.querySelector(".chart-card-header");
+  if (!header) {
+    header = document.createElement("div");
+    header.className = "chart-card-header";
+    titleEl.parentNode.insertBefore(header, titleEl);
+    header.appendChild(titleEl);
+  }
+
+  var btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "chart-download-btn";
+  btn.title = "تحميل كصورة";
+  btn.setAttribute("aria-label", "تحميل الرسم البياني كصورة");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  btn.addEventListener("click", function () {
+    downloadChartAsPNG(canvas, titleEl.textContent.trim());
+  });
+  header.appendChild(btn);
+}
+
+function downloadChartAsPNG(canvas, title) {
+  if (!canvas) return;
+  try {
+    var link = document.createElement("a");
+    link.download = (title || "chart").replace(/[^a-zA-Z0-9؀-ۿ _-]/g, "") + ".png";
+    link.href = canvas.toDataURL("image/png", 1.0);
+    link.click();
+  } catch (e) {
+    console.warn("Chart download failed:", e);
+  }
+}
+
 const ENGLISH_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // تجميع مجموع قيمة (مثل liters/amount) حسب الشهر من صفوف فيها حقل تاريخ —
@@ -5087,6 +5613,31 @@ function drawLineChart(canvas, values, labels, options) {
   destroyExistingChart(canvas);
   if (!values.length) return;
 
+  // إضافة مكوّن رسم تسميات البيانات فوق النقاط عند الطلب
+  var showLabels = !sparkline && !!opts.showDataLabels;
+  var dataLabelsPlugin = showLabels
+    ? {
+        id: "inlineDataLabels",
+        afterDatasetsDraw: function (chart) {
+          var ctx2 = chart.ctx;
+          chart.data.datasets.forEach(function (dataset, di) {
+            var meta = chart.getDatasetMeta(di);
+            meta.data.forEach(function (point, idx) {
+              var val = dataset.data[idx];
+              if (val == null) return;
+              ctx2.save();
+              ctx2.font = "600 10px " + cssVar("--font-body");
+              ctx2.fillStyle = cssVar("--color-text");
+              ctx2.textAlign = "center";
+              ctx2.textBaseline = "bottom";
+              ctx2.fillText(formatNumber(val, opts.labelDecimals != null ? opts.labelDecimals : 0) + (opts.labelSuffix || ""), point.x, point.y - 6);
+              ctx2.restore();
+            });
+          });
+        },
+      }
+    : null;
+
   new Chart(canvas, {
     type: "line",
     data: {
@@ -5140,7 +5691,9 @@ function drawLineChart(canvas, values, labels, options) {
         },
       },
     },
+    plugins: dataLabelsPlugin ? [dataLabelsPlugin] : [],
   });
+  if (!sparkline) injectChartDownloadBtn(canvas);
 }
 
 // ---------------------------------------------------------------------------
@@ -5212,6 +5765,113 @@ function drawBarChart(canvas, values, labels, options) {
       },
     },
   });
+  injectChartDownloadBtn(canvas);
+}
+
+// ---------------------------------------------------------------------------
+// رسم خطّي مزدوج المحاور — محور أيسر (اللترات) + محور أيمن (التكلفة)
+// يُستخدم لعرض اتجاه استهلاك الوقود الشهري بالوحدتين معًا
+// ---------------------------------------------------------------------------
+function drawDualLineChart(canvas, litersData, costData) {
+  if (!canvas || typeof Chart === "undefined") return;
+  destroyExistingChart(canvas);
+  if (!litersData.values.length) return;
+
+  var literColor = cssVar("--color-turquoise");
+  var costColor = cssVar("--color-rose");
+
+  new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: litersData.labels,
+      datasets: [
+        {
+          label: "اللترات",
+          data: litersData.values,
+          borderColor: literColor,
+          backgroundColor: hexWithAlpha(literColor, "18"),
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: literColor,
+          tension: 0.3,
+          fill: true,
+          yAxisID: "yLiters",
+        },
+        {
+          label: "التكلفة (ر.س)",
+          data: costData.values,
+          borderColor: costColor,
+          backgroundColor: hexWithAlpha(costColor, "18"),
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: costColor,
+          tension: 0.3,
+          fill: true,
+          yAxisID: "yCost",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 650, easing: "easeOutQuart" },
+      interaction: { intersect: false, mode: "index" },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: cssVar("--color-text-muted"), font: { size: 11 } },
+        },
+        yLiters: {
+          position: "right",
+          beginAtZero: true,
+          grid: { color: cssVar("--color-border") },
+          ticks: {
+            color: literColor,
+            font: { size: 11 },
+            callback: function (v) { return formatNumber(v, 0) + " لتر"; },
+          },
+        },
+        yCost: {
+          position: "left",
+          beginAtZero: true,
+          grid: { display: false },
+          ticks: {
+            color: costColor,
+            font: { size: 11 },
+            callback: function (v) { return formatNumber(v, 0) + " ر.س"; },
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "top",
+          align: "start",
+          labels: {
+            color: cssVar("--color-text"),
+            font: { size: 12, weight: "600" },
+            usePointStyle: true,
+            pointStyle: "circle",
+            padding: 16,
+          },
+        },
+        tooltip: {
+          enabled: true,
+          displayColors: true,
+          callbacks: {
+            label: function (ctx) {
+              if (ctx.datasetIndex === 0)
+                return "اللترات: " + formatNumber(ctx.parsed.y, 1) + " لتر";
+              return "التكلفة: " + formatNumber(ctx.parsed.y, 2) + " ر.س";
+            },
+          },
+        },
+      },
+    },
+  });
+  injectChartDownloadBtn(canvas);
 }
 
 // ---------------------------------------------------------------------------
@@ -5260,6 +5920,7 @@ function drawDonutChart(canvas, segments, options) {
       },
     },
   });
+  injectChartDownloadBtn(canvas);
 }
 
 function renderChartLegend(container, items) {
@@ -5281,10 +5942,8 @@ function renderChartLegend(container, items) {
 // ============================================================================
 
 const dashboardStatsContainer = document.getElementById("dashboard-stats");
-const dashboardActivityList = document.getElementById("dashboard-activity-list");
-const dashboardActivityState = document.getElementById("dashboard-activity-state");
 const dashboardAttentionContainer = document.getElementById("dashboard-attention");
-const dashboardSmartSummaryList = document.getElementById("dashboard-smart-summary");
+const dashboardOverviewGrid = document.getElementById("dashboard-overview-grid");
 
 // الانتقال لصفحة السيارات مع تطبيق فلتر حالة معيّن مباشرة — تُستخدم من
 // أزرار "الأشياء التي تحتاج الانتباه" في لوحة الرئيسية
@@ -5463,7 +6122,62 @@ async function latestMonthWithData(tableName, dateColumn) {
   return monthRangeFromDateString(data[dateColumn]);
 }
 
+// ---------------------------------------------------------------------------
+// 9.0 نسخة مخصّصة من لوحة الرئيسية لدور "دعم تقني" — لا تستعلم إطلاقًا عن
+// السيارات/الوقود/العهدة النقدية/المصروفات (بيتي كاش)، فلا تظهر بياناتها
+// أبدًا لهذا الدور، لا في الكروت العلوية ولا في قسم "نظرة عامة"
+// ---------------------------------------------------------------------------
+async function loadDashboardStatsForItSupport() {
+  dashboardStatsContainer.innerHTML = skeletonCardsHtml(1, "stat-cards-grid", "stat-card");
+  dashboardAttentionContainer.hidden = true;
+
+  const [itLaptopsCountRes, itEmailCountRes, itSimCountRes, itTabletsCountRes] = await Promise.all([
+    supabaseClient.from("it_laptop_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_email_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_sim_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabaseClient.from("it_tablet_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+  ]);
+
+  if (itLaptopsCountRes.error) console.error("Error loading laptops count:", itLaptopsCountRes.error);
+  if (itEmailCountRes.error) console.error("Error loading email count:", itEmailCountRes.error);
+  if (itSimCountRes.error) console.error("Error loading SIM count:", itSimCountRes.error);
+  if (itTabletsCountRes.error) console.error("Error loading tablets count:", itTabletsCountRes.error);
+
+  const itAssetsHasError =
+    itLaptopsCountRes.error || itEmailCountRes.error || itSimCountRes.error || itTabletsCountRes.error;
+  const itLaptopsCount = itLaptopsCountRes.count || 0;
+  const itEmailCount = itEmailCountRes.count || 0;
+  const itSimCount = itSimCountRes.count || 0;
+  const itTabletsCount = itTabletsCountRes.count || 0;
+  const itAssetsTotalCount = itLaptopsCount + itEmailCount + itSimCount + itTabletsCount;
+
+  dashboardStatsContainer.innerHTML = statCardHtml(
+    icon("chartBar"),
+    "أصول تقنية المعلومات",
+    itAssetsHasError ? "—" : String(itAssetsTotalCount),
+    itAssetsHasError
+      ? "تعذر تحميل بيانات الأصول، حاول تحديث الصفحة"
+      : "لابتوب " + itLaptopsCount + " • إيميل " + itEmailCount + " • سيم " + itSimCount + " • تابلت " + itTabletsCount,
+    "",
+    "assets"
+  );
+
+  renderDashboardOverview({
+    itLaptopsCount,
+    itEmailCount,
+    itSimCount,
+    itTabletsCount,
+    itAssetsOk: !itAssetsHasError,
+    itOnly: true,
+  });
+}
+
 async function loadDashboardStats() {
+  if (currentProfile && currentProfile.role === "it_support") {
+    await loadDashboardStatsForItSupport();
+    return;
+  }
+
   dashboardStatsContainer.innerHTML = skeletonCardsHtml(5, "stat-cards-grid", "stat-card");
 
   const currentCalendarMonthStart = currentMonthStartDate();
@@ -5683,19 +6397,35 @@ async function loadDashboardStats() {
     authExpiryOk: !authExpiryRes.error,
   });
 
-  renderDashboardSmartSummary({
-    expensesOk: !expensesRes.error,
-    monthExpenseTotal,
-    prevMonthExpenseTotal,
-    topVehicleFuelEntry,
+  renderDashboardOverview({
+    vehicles,
+    vehiclesOk: !vehiclesRes.error,
+    assignedCount,
+    maintenanceCount,
+    monthLiters,
+    monthFuelCost,
+    fuelTxCount: fuelRows.length,
     fuelOk: !fuelRes.error,
-    expenseMonthLabel:
-      expenseMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : "في " + formatMonthOnly(expenseMonthRange.start),
     fuelMonthLabel:
-      fuelMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : "في " + formatMonthOnly(fuelMonthRange.start),
+      fuelMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : formatMonthOnly(fuelMonthRange.start),
+    monthExpenseTotal,
+    expenseTxCount: expenseRows.length,
+    topCategoryEntry,
+    expensesOk: !expensesRes.error,
+    expenseMonthLabel:
+      expenseMonthRange.start === currentCalendarMonthStart ? "هذا الشهر" : formatMonthOnly(expenseMonthRange.start),
+    fundOk: !!currentActiveFund,
+    fundBalance: currentActiveFund ? Number(currentActiveFund.current_balance || 0) : 0,
+    fundCode: currentActiveFund ? currentActiveFund.fund_code : "",
+    fundUsagePercent: currentActiveFund && currentActiveFund.opening_amount > 0
+      ? (Number(currentActiveFund.total_expenses || 0) / Number(currentActiveFund.opening_amount)) * 100
+      : 0,
+    itLaptopsCount,
+    itEmailCount,
+    itSimCount,
+    itTabletsCount,
+    itAssetsOk: !itAssetsHasError,
   });
-
-  loadDashboardActivity();
 }
 
 // ---------------------------------------------------------------------------
@@ -5804,193 +6534,124 @@ function renderDashboardAttention({
 }
 
 // ---------------------------------------------------------------------------
-// 9.2 ملخص ذكي — جمل نصية مبنية فقط على بيانات حقيقية محمّلة أصلًا؛ أي
-// مؤشر غير متوفر بيانات كافية له بيُعرض بنص صريح بدل رقم مختلق
+// 9.2 نظرة عامة شاملة — كروت مختصرة لكل أقسام النظام تُعرض في الرئيسية
+// بدلاً من الملخص الذكي وآخر العمليات. كل كرت يحوي عنوان القسم، أرقام
+// أساسية، وزر سريع للانتقال إلى الصفحة المعنية
 // ---------------------------------------------------------------------------
-function renderDashboardSmartSummary({
-  expensesOk,
-  monthExpenseTotal,
-  prevMonthExpenseTotal,
-  topVehicleFuelEntry,
-  fuelOk,
-  expenseMonthLabel,
-  fuelMonthLabel,
-}) {
-  const lines = [];
-  const expenseLabel = expenseMonthLabel || "هذا الشهر";
-  const fuelLabel = fuelMonthLabel || "هذا الشهر";
-
-  lines.push(
-    expensesOk
-      ? monthExpenseTotal > 0
-        ? "بلغ إجمالي المصروفات " + expenseLabel + " " + formatNumber(monthExpenseTotal, 2) + " ر.س."
-        : "لم تُسجَّل أي مصروفات " + expenseLabel + " بعد."
-      : "لا تتوفر بيانات كافية لإنتاج هذا المؤشر."
-  );
-
-  if (fuelOk && topVehicleFuelEntry) {
-    lines.push(
-      "سجلت السيارة " + topVehicleFuelEntry[0] + " أعلى تكلفة وقود " + fuelLabel + " بقيمة " +
-        formatNumber(topVehicleFuelEntry[1], 2) + " ر.س."
-    );
-  } else {
-    lines.push("لا تتوفر بيانات كافية لإنتاج هذا المؤشر.");
-  }
-
-  if (expensesOk && prevMonthExpenseTotal > 0) {
-    const change = ((monthExpenseTotal - prevMonthExpenseTotal) / prevMonthExpenseTotal) * 100;
-    if (Math.abs(change) < 0.5) {
-      lines.push("استقر الإنفاق " + expenseLabel + " مقارنة بالشهر السابق تقريبًا.");
-    } else {
-      lines.push(
-        (change > 0 ? "ارتفع" : "انخفض") + " الإنفاق بنسبة " + formatNumber(Math.abs(change), 0) +
-          "% مقارنة بالشهر السابق."
-      );
-    }
-  } else {
-    lines.push("لا تتوفر بيانات كافية لإنتاج هذا المؤشر.");
-  }
-
-  if (currentActiveFund && currentActiveFund.opening_amount > 0) {
-    const usagePercent = (Number(currentActiveFund.total_expenses || 0) / Number(currentActiveFund.opening_amount)) * 100;
-    lines.push(
-      "بلغت نسبة استخدام العهدة الحالية (" + currentActiveFund.fund_code + ") " +
-        formatNumber(usagePercent, 0) + "%."
-    );
-  } else {
-    lines.push("لا تتوفر بيانات كافية لإنتاج هذا المؤشر.");
-  }
-
-  dashboardSmartSummaryList.innerHTML = lines
-    .map((line) => {
-      const isEmpty = line.startsWith("لا تتوفر");
-      return (
-        '<li class="smart-summary-item' + (isEmpty ? " is-empty" : "") + '">' +
-        '<span class="smart-summary-bullet" aria-hidden="true"></span>' +
-        '<span class="smart-summary-text">' + escapeHtml(line) + "</span>" +
-        "</li>"
-      );
-    })
-    .join("");
-}
-
-// أيقونة صغيرة موحّدة لعنصر النشاط في لوحة الرئيسية — بصرية فقط، لا تعتمد
-// على أي منطق عمل، مجرد تمييز شكلي بين نوع الكيان المرتبط بالعملية
-const DASHBOARD_ACTIVITY_ICON =
-  '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M13 3 4 14h6l-1 7 9-11h-6z"/></svg>';
-
-function dashboardActivityItemHtml(titleHtml, metaText) {
+function overviewCardHtml(iconSvg, title, rows, navTarget, accent) {
   return (
-    '<div class="activity-item">' +
-    '<span class="activity-item-icon" aria-hidden="true">' + DASHBOARD_ACTIVITY_ICON + "</span>" +
-    '<div class="activity-item-content">' +
-    '<span class="activity-item-title">' + titleHtml + "</span>" +
-    '<span class="activity-item-meta">' + escapeHtml(metaText) + "</span>" +
+    '<div class="overview-card overview-accent-' + (accent || "primary") + '" role="region" aria-label="' + escapeHtml(title) + '">' +
+    '<div class="overview-card-head">' +
+    '<span class="overview-card-icon" aria-hidden="true">' + iconSvg + "</span>" +
+    '<span class="overview-card-title">' + escapeHtml(title) + "</span>" +
     "</div>" +
+    '<div class="overview-card-body">' +
+    rows.map(function (r) {
+      return '<div class="overview-row">' +
+        '<span class="overview-row-label">' + escapeHtml(r.label) + "</span>" +
+        '<span class="overview-row-value">' + escapeHtml(r.value) + "</span>" +
+        "</div>";
+    }).join("") +
+    "</div>" +
+    '<button type="button" class="overview-card-action" data-nav="' + navTarget + '">عرض التفاصيل</button>' +
     "</div>"
   );
 }
 
-// العنصر المرتبط بعملية سجل العمليات — مبني فقط على الحقول الموجودة
-// فعليًا داخل بيانات الصف نفسه (new_data أولاً، وإلا old_data)، من غير أي
-// استعلام إضافي أو بيانات مختلقة؛ لو الحقل غير متوفر يُرجع فارغ
-function dashboardActivityRelatedLabel(row) {
-  const data = row.new_data || row.old_data;
-  if (!data) return "";
-  switch (row.entity_type) {
-    case "vehicles":
-      return data.license_plate ? "السيارة " + data.license_plate : "";
-    case "fuel_transactions":
-      return data.liters ? formatNumber(data.liters, 1) + " لتر" : "";
-    case "petty_cash_funds":
-      return data.fund_code || "";
-    case "expenses":
-      return data.amount ? formatNumber(data.amount, 2) + " ر.س" : "";
-    default:
-      return "";
-  }
-}
+function renderDashboardOverview(d) {
+  var cards = [];
 
-async function loadDashboardActivity() {
-  dashboardActivityList.innerHTML = skeletonActivityItemsHtml(4);
-  dashboardActivityState.hidden = true;
+  // دعم تقني لا يجب أن يرى أي بيانات متعلقة بالسيارات/الوقود/العهدة
+  // النقدية/المصروفات (بيتي كاش) — لا في الرئيسية ولا في أي مكان آخر،
+  // فبنقتصر له على كارت الأصول التقنية فقط
+  if (!d.itOnly) {
+    // 1 — السيارات
+    cards.push(overviewCardHtml(
+      icon("car"),
+      "السيارات",
+      d.vehiclesOk
+        ? [
+            { label: "الإجمالي", value: String(d.vehicles.length) },
+            { label: "مخصصة", value: String(d.assignedCount) },
+            { label: "تحت الصيانة", value: String(d.maintenanceCount) },
+          ]
+        : [{ label: "الحالة", value: "تعذر التحميل" }],
+      "vehicles",
+      "primary"
+    ));
 
-  const isSuperAdmin = !!(currentProfile && currentProfile.role === "super_admin");
+    // 2 — الوقود
+    cards.push(overviewCardHtml(
+      icon("fuel"),
+      "الوقود — " + (d.fuelMonthLabel || "هذا الشهر"),
+      d.fuelOk
+        ? [
+            { label: "اللترات", value: formatNumber(d.monthLiters, 1) },
+            { label: "التكلفة", value: formatNumber(d.monthFuelCost, 2) + " ر.س" },
+            { label: "المعاملات", value: String(d.fuelTxCount) },
+          ]
+        : [{ label: "الحالة", value: "تعذر التحميل" }],
+      "fuel",
+      "fuel"
+    ));
 
-  if (isSuperAdmin) {
-    const { data, error } = await supabaseClient
-      .from("audit_logs")
-      .select("id, action, entity_type, new_data, old_data, created_at, user_id")
-      .order("created_at", { ascending: false })
-      .limit(8);
+    // 3 — العهدة النقدية
+    cards.push(overviewCardHtml(
+      icon("wallet"),
+      "العهدة النقدية",
+      d.fundOk
+        ? [
+            { label: "العهدة", value: d.fundCode },
+            { label: "الرصيد", value: formatNumber(d.fundBalance, 2) + " ر.س" },
+            { label: "نسبة الاستخدام", value: formatNumber(d.fundUsagePercent, 0) + "%" },
+          ]
+        : [{ label: "الحالة", value: "لا توجد عهدة نشطة" }],
+      "petty-cash",
+      "fund"
+    ));
 
-    if (error) {
-      console.error("Error loading dashboard activity:", error);
-      dashboardActivityState.textContent = "حدث خطأ أثناء تحميل آخر العمليات.";
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      dashboardActivityState.textContent = "لا توجد عمليات مسجّلة بعد.";
-      return;
-    }
-
-    const creatorMap = await fetchCreatorNames(data.map((d) => d.user_id));
-    dashboardActivityState.hidden = true;
-    dashboardActivityList.innerHTML = data
-      .map((row) => {
-        const relatedLabel = dashboardActivityRelatedLabel(row);
-        const titleHtml =
-          escapeHtml(AUDIT_ACTION_LABELS[row.action] || row.action) +
-          (relatedLabel ? " — " + escapeHtml(relatedLabel) : "");
-        return dashboardActivityItemHtml(
-          titleHtml,
-          (creatorMap[row.user_id] || "—") + " — " + formatDateTime(row.created_at)
-        );
-      })
-      .join("");
-    return;
-  }
-
-  // Manager: لا يوجد صلاحية على audit_logs، فبنعرض ملخص عام من بيانات هو
-  // أصلاً مصرّح له يشوفها (آخر معاملات وقود ومصروفات)
-  const [fuelRes, expensesRes] = await Promise.all([
-    supabaseClient
-      .from("fuel_transactions")
-      .select("id, amount, created_at")
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(4),
-    supabaseClient
-      .from("expenses")
-      .select("id, amount, created_at")
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(4),
-  ]);
-
-  const items = [
-    ...(fuelRes.data || []).map((r) => ({
-      title: "معاملة وقود بقيمة " + formatNumber(r.amount, 2) + " ر.س",
-      time: r.created_at,
-    })),
-    ...(expensesRes.data || []).map((r) => ({
-      title: "مصروف بقيمة " + formatNumber(r.amount, 2) + " ر.س",
-      time: r.created_at,
-    })),
-  ]
-    .sort((a, b) => new Date(b.time) - new Date(a.time))
-    .slice(0, 8);
-
-  if (!items.length) {
-    dashboardActivityState.textContent = "لا توجد أنشطة حديثة.";
-    return;
+    // 4 — المصروفات
+    cards.push(overviewCardHtml(
+      icon("receipt"),
+      "المصروفات — " + (d.expenseMonthLabel || "هذا الشهر"),
+      d.expensesOk
+        ? [
+            { label: "الإجمالي", value: formatNumber(d.monthExpenseTotal, 2) + " ر.س" },
+            { label: "المعاملات", value: String(d.expenseTxCount) },
+            { label: "أعلى فئة", value: d.topCategoryEntry ? d.topCategoryEntry[0] : "—" },
+          ]
+        : [{ label: "الحالة", value: "تعذر التحميل" }],
+      "expenses",
+      "expense"
+    ));
   }
 
-  dashboardActivityState.hidden = true;
-  dashboardActivityList.innerHTML = items
-    .map((item) => dashboardActivityItemHtml(escapeHtml(item.title), formatDateTime(item.time)))
-    .join("");
+  // 5 — أصول تقنية المعلومات
+  var itTotal = d.itLaptopsCount + d.itEmailCount + d.itSimCount + d.itTabletsCount;
+  cards.push(overviewCardHtml(
+    icon("chartBar"),
+    "الأصول التقنية",
+    d.itAssetsOk
+      ? [
+          { label: "الإجمالي", value: String(itTotal) },
+          { label: "حواسيب", value: String(d.itLaptopsCount) },
+          { label: "بريد", value: String(d.itEmailCount) },
+          { label: "شرائح", value: String(d.itSimCount) },
+          { label: "أجهزة لوحية", value: String(d.itTabletsCount) },
+        ]
+      : [{ label: "الحالة", value: "تعذر التحميل" }],
+    "it-assets",
+    "assets"
+  ));
+
+  dashboardOverviewGrid.innerHTML = cards.join("");
+
+  // ربط أزرار "عرض التفاصيل" بالتنقل
+  dashboardOverviewGrid.querySelectorAll(".overview-card-action").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      navigateTo(btn.getAttribute("data-nav"));
+    });
+  });
 }
 
 // ============================================================================
@@ -6239,8 +6900,10 @@ const reportFuelSummary = document.getElementById("report-fuel-summary");
 const reportFuelTableBody = document.getElementById("report-fuel-table-body");
 const reportFuelState = document.getElementById("report-fuel-state");
 const reportFuelExportButton = document.getElementById("report-fuel-export");
-const reportFuelTrendChart = document.getElementById("report-fuel-trend-chart");
-const reportFuelTrendState = document.getElementById("report-fuel-trend-state");
+const reportFuelTrendLitersChart = document.getElementById("report-fuel-trend-liters-chart");
+const reportFuelTrendLitersState = document.getElementById("report-fuel-trend-liters-state");
+const reportFuelTrendCostChart = document.getElementById("report-fuel-trend-cost-chart");
+const reportFuelTrendCostState = document.getElementById("report-fuel-trend-cost-state");
 const reportFuelTopVehiclesChart = document.getElementById("report-fuel-top-vehicles-chart");
 const reportFuelTopVehiclesState = document.getElementById("report-fuel-top-vehicles-state");
 const reportFuelTopUsersChart = document.getElementById("report-fuel-top-users-chart");
@@ -6267,7 +6930,8 @@ async function loadFuelReport() {
   if (txError) {
     console.error("Error loading fuel report summary:", txError);
     reportFuelSummary.innerHTML = "";
-    setReportState(reportFuelTrendState, "تعذر تحميل بيانات اتجاه الاستهلاك.");
+    setReportState(reportFuelTrendLitersState, "تعذر تحميل بيانات اتجاه الاستهلاك.");
+    setReportState(reportFuelTrendCostState, "تعذر تحميل بيانات اتجاه التكلفة.");
     setReportState(reportFuelTopUsersState, "تعذر تحميل بيانات الاستهلاك حسب المستخدم الفعلي.");
     setReportState(reportFuelByUserState, "تعذر تحميل بيانات الاستهلاك حسب المستخدم الفعلي.");
   } else {
@@ -6279,13 +6943,25 @@ async function loadFuelReport() {
       statCardHtml(icon("wallet"), "إجمالي التكلفة (للفترة)", formatNumber(totalCost, 2) + " ر.س", "") +
       statCardHtml(icon("hash"), "عدد المعاملات (للفترة)", String(rows.length), "");
 
-    const monthly = groupSumByMonth(rows, "transaction_date", "liters");
-    if (monthly.values.length < 2) {
-      setReportState(reportFuelTrendState, "البيانات غير كافية لعرض اتجاه شهري (يلزم شهرين على الأقل).");
+    const monthlyLiters = groupSumByMonth(rows, "transaction_date", "liters");
+    const monthlyCost = groupSumByMonth(rows, "transaction_date", "amount");
+    if (monthlyLiters.values.length < 2) {
+      setReportState(reportFuelTrendLitersState, "البيانات غير كافية لعرض اتجاه شهري (يلزم شهرين على الأقل).");
+      setReportState(reportFuelTrendCostState, "البيانات غير كافية لعرض اتجاه شهري (يلزم شهرين على الأقل).");
     } else {
-      setReportState(reportFuelTrendState, null);
-      drawLineChart(reportFuelTrendChart, monthly.values, monthly.labels, {
-        formatValue: (v) => formatNumber(v, 1) + " لتر",
+      setReportState(reportFuelTrendLitersState, null);
+      setReportState(reportFuelTrendCostState, null);
+      drawLineChart(reportFuelTrendLitersChart, monthlyLiters.values, monthlyLiters.labels, {
+        showDataLabels: true,
+        labelDecimals: 0,
+        labelSuffix: "",
+        color: cssVar("--color-turquoise"),
+      });
+      drawLineChart(reportFuelTrendCostChart, monthlyCost.values, monthlyCost.labels, {
+        showDataLabels: true,
+        labelDecimals: 0,
+        labelSuffix: "",
+        color: cssVar("--color-rose"),
       });
     }
 
@@ -6664,6 +7340,392 @@ reportExpensesExportButton.addEventListener("click", () => {
     reportExpensesRows.map((c) => [c.name, formatNumber(c.total, 2), c.count, formatNumber(c.percentage, 1)])
   );
 });
+
+// ---------------------------------------------------------------------------
+// 10.4a تصدير "تقرير العهدة" بصيغة Excel — نفس قالب MEEM-FIN-F003 المستخدم
+// فعليًا لرفع تقارير عهدة النثرية للشركة الأم (SR. No / Date / Supplier
+// Name / Particulars / Invoice No. / Other Expenses / GRAND TOTAL)، مع شيت
+// إضافي "ملخص الأصناف" يجمع المصروفات حسب الفئة الفعلية المُختارة وقت
+// الإدخال (بمعادلات SUMIF/COUNTIF مربوطة مباشرة بشيت التفاصيل، وليست أرقامًا
+// جاهزة) — بحيث الملف الناتج قابل لإعادة الحساب تلقائيًا لو تغيّرت بياناته
+// ---------------------------------------------------------------------------
+
+const reportExpensesMeemExportButton = document.getElementById("report-expenses-meem-export");
+const reportExpensesRecipientsExportButton = document.getElementById("report-expenses-recipients-export");
+
+async function exportMeemPettyCashExcel() {
+  reportExpensesMeemExportButton.disabled = true;
+  const originalLabel = reportExpensesMeemExportButton.textContent;
+  reportExpensesMeemExportButton.textContent = "جارٍ التجهيز...";
+
+  try {
+    const buildQuery = () => {
+      let q = supabaseClient
+        .from("expenses")
+        .select(
+          "expense_date, amount, description, supplier_name, invoice_number, " +
+            "category:expense_categories ( name, name_ar ), fund:petty_cash_funds ( fund_code )"
+        )
+        .eq("status", "active")
+        .order("expense_date", { ascending: true });
+      if (reportExpensesDateFrom.value) q = q.gte("expense_date", reportExpensesDateFrom.value);
+      if (reportExpensesDateTo.value) q = q.lte("expense_date", reportExpensesDateTo.value);
+      return q;
+    };
+
+    const { data, error } = await fetchAllRowsPaged(buildQuery);
+
+    if (error) {
+      console.error("Error exporting MEEM petty cash report:", error);
+      alert("حدث خطأ أثناء تجهيز التقرير. حاول مرة أخرى.");
+      return;
+    }
+
+    const rows = data || [];
+    if (!rows.length) {
+      alert("لا توجد مصروفات نشطة مطابقة للفترة المحددة لتصديرها.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+
+    // ننشئ شيت "ملخص الأصناف" أولًا حتى يظهر كأول تبويب عند فتح الملف —
+    // ترتيب استدعاء addWorksheet هو ما يحدد ترتيب التبويبات في إكسل، لذا
+    // يُنشأ هنا فارغًا ويُملأ بالبيانات لاحقًا بعد شيت التفاصيل (لأن معادلات
+    // الملخص تحتاج معرفة عدد صفوف التفاصيل أولًا)
+    const summary = workbook.addWorksheet("ملخص الأصناف", { views: [{ rightToLeft: true }] });
+
+    // ---- شيت التفاصيل (نفس قالب MEEM-FIN-F003 حرفيًا) ----
+    const detail = workbook.addWorksheet("MEEM-FIN-F003", { views: [{ rightToLeft: true }] });
+    detail.mergeCells("A1:A3");
+    detail.mergeCells("B1:B3");
+    detail.mergeCells("C1:C3");
+    detail.mergeCells("D1:D3");
+    detail.mergeCells("E1:E3");
+    detail.mergeCells("F1:F3");
+    detail.mergeCells("G1:G3");
+    detail.mergeCells("H1:H3");
+
+    const headerRow = detail.getRow(1);
+    const headerValues = ["SR. No.", "Date", "Supplier Name ", "Particulars", "Invoice No.", "Other Expenses", "GRAND TOTAL", "الفئة"];
+    headerValues.forEach((text, idx) => {
+      const cell = detail.getCell(1, idx + 1);
+      cell.value = text;
+      cell.font = { name: "Calibri", size: 9, bold: true };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+    });
+
+    detail.columns = [
+      { width: 6 },
+      { width: 13 },
+      { width: 42 },
+      { width: 46 },
+      { width: 24 },
+      { width: 15 },
+      { width: 13 },
+      { width: 34 },
+    ];
+
+    let r = 4;
+    rows.forEach((exp, idx) => {
+      const categoryName = exp.category ? exp.category.name_ar || exp.category.name : "غير مصنّف";
+      detail.getCell(r, 1).value = idx + 1;
+      detail.getCell(r, 2).value = exp.expense_date ? new Date(exp.expense_date) : null;
+      detail.getCell(r, 2).numFmt = "yyyy-mm-dd";
+      detail.getCell(r, 3).value = exp.supplier_name || "";
+      detail.getCell(r, 4).value = exp.description || "";
+      detail.getCell(r, 5).value = exp.invoice_number || "";
+      detail.getCell(r, 6).value = Number(exp.amount || 0);
+      detail.getCell(r, 6).numFmt = "#,##0.00";
+      detail.getCell(r, 7).value = { formula: "SUM(F" + r + ":F" + r + ")" };
+      detail.getCell(r, 7).numFmt = "#,##0.00";
+      detail.getCell(r, 8).value = categoryName;
+
+      for (let col = 1; col <= 8; col++) {
+        const cell = detail.getCell(r, col);
+        cell.font = { name: "Calibri", size: 11 };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFB7B7B7" } },
+          bottom: { style: "thin", color: { argb: "FFB7B7B7" } },
+          left: { style: "thin", color: { argb: "FFB7B7B7" } },
+          right: { style: "thin", color: { argb: "FFB7B7B7" } },
+        };
+      }
+      r += 1;
+    });
+
+    const totalRow = r;
+    const firstDataRow = 4;
+    const lastDataRow = totalRow - 1;
+    detail.getCell(totalRow, 6).value = { formula: "SUM(F" + firstDataRow + ":F" + lastDataRow + ")" };
+    detail.getCell(totalRow, 6).numFmt = "#,##0.00";
+    detail.getCell(totalRow, 7).value = { formula: "SUM(F" + totalRow + ":F" + totalRow + ")" };
+    detail.getCell(totalRow, 7).numFmt = "#,##0.00";
+    for (let col = 1; col <= 8; col++) {
+      const cell = detail.getCell(totalRow, col);
+      cell.font = { name: "Calibri", size: 13, bold: true };
+    }
+
+    // ---- ملء بيانات شيت ملخص الأصناف (أُنشئ فارغًا أعلاه كأول تبويب) ----
+    summary.mergeCells("A1:D1");
+    const titleCell = summary.getCell("A1");
+    titleCell.value = "ملخص المصروفات حسب الصنف — عهدة MEEM (نموذج MEEM-FIN-F003)";
+    titleCell.font = { name: "Calibri", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    summary.getRow(1).height = 28;
+
+    summary.mergeCells("A2:D2");
+    const subCell = summary.getCell("A2");
+    const fromLabel = reportExpensesDateFrom.value || "بداية البيانات";
+    const toLabel = reportExpensesDateTo.value || "اليوم";
+    subCell.value = "الفترة المشمولة: " + fromLabel + " إلى " + toLabel;
+    subCell.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF595959" } };
+    subCell.alignment = { horizontal: "center", vertical: "middle" };
+
+    const headers = ["الصنف الرئيسي", "عدد العمليات", "الإجمالي (ر.س)", "النسبة من الإجمالي"];
+    headers.forEach((text, idx) => {
+      const cell = summary.getCell(4, idx + 1);
+      cell.value = text;
+      cell.font = { name: "Calibri", size: 11, bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2F3" } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+    });
+    summary.getRow(4).height = 22;
+
+    // ترتيب الفئات تنازليًا حسب الإجمالي الفعلي (للعرض فقط؛ القيم بالجدول formulas حية)
+    const catTotalsForSort = {};
+    rows.forEach((exp) => {
+      const name = exp.category ? exp.category.name_ar || exp.category.name : "غير مصنّف";
+      catTotalsForSort[name] = (catTotalsForSort[name] || 0) + Number(exp.amount || 0);
+    });
+    const orderedCats = Object.keys(catTotalsForSort).sort((a, b) => catTotalsForSort[b] - catTotalsForSort[a]);
+
+    const startRow = 5;
+    const detailCatRange = "'MEEM-FIN-F003'!$H$" + firstDataRow + ":$H$" + lastDataRow;
+    const detailAmtRange = "'MEEM-FIN-F003'!$F$" + firstDataRow + ":$F$" + lastDataRow;
+    const grandRow = startRow + orderedCats.length;
+
+    orderedCats.forEach((cat, idx) => {
+      const row = startRow + idx;
+      const nameCell = summary.getCell(row, 1);
+      nameCell.value = cat;
+      nameCell.alignment = { horizontal: "right", vertical: "middle" };
+
+      const countCell = summary.getCell(row, 2);
+      countCell.value = { formula: "COUNTIF(" + detailCatRange + ",A" + row + ")" };
+      countCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const totalCell = summary.getCell(row, 3);
+      totalCell.value = { formula: "SUMIF(" + detailCatRange + ",A" + row + "," + detailAmtRange + ")" };
+      totalCell.numFmt = "#,##0.00";
+      totalCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const pctCell = summary.getCell(row, 4);
+      pctCell.value = { formula: "C" + row + "/$C$" + grandRow };
+      pctCell.numFmt = "0.0%";
+      pctCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      for (let col = 1; col <= 4; col++) {
+        summary.getCell(row, col).font = { name: "Calibri", size: 11 };
+        summary.getCell(row, col).border = {
+          top: { style: "thin", color: { argb: "FFB7B7B7" } },
+          bottom: { style: "thin", color: { argb: "FFB7B7B7" } },
+          left: { style: "thin", color: { argb: "FFB7B7B7" } },
+          right: { style: "thin", color: { argb: "FFB7B7B7" } },
+        };
+      }
+    });
+
+    const grandLabelCell = summary.getCell(grandRow, 1);
+    grandLabelCell.value = "الإجمالي الكلي";
+    grandLabelCell.alignment = { horizontal: "right", vertical: "middle" };
+    const grandCountCell = summary.getCell(grandRow, 2);
+    grandCountCell.value = { formula: "SUM(B" + startRow + ":B" + (grandRow - 1) + ")" };
+    const grandTotalCell = summary.getCell(grandRow, 3);
+    grandTotalCell.value = { formula: "SUM(C" + startRow + ":C" + (grandRow - 1) + ")" };
+    grandTotalCell.numFmt = "#,##0.00";
+    const grandPctCell = summary.getCell(grandRow, 4);
+    grandPctCell.value = { formula: "SUM(D" + startRow + ":D" + (grandRow - 1) + ")" };
+    grandPctCell.numFmt = "0.0%";
+    for (let col = 1; col <= 4; col++) {
+      const cell = summary.getCell(grandRow, col);
+      cell.font = { name: "Calibri", size: 11, bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
+      cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    }
+    grandLabelCell.alignment = { horizontal: "right", vertical: "middle" }; // يلغي المحاذاة الوسطى المطبّقة أعلاه لعمود التسمية تحديدًا
+
+    const checkRow = grandRow + 2;
+    summary.mergeCells("A" + checkRow + ":B" + checkRow);
+    const checkLabel = summary.getCell(checkRow, 1);
+    checkLabel.value = "إجمالي شيت التفاصيل (للتحقق):";
+    checkLabel.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF595959" } };
+    checkLabel.alignment = { horizontal: "right", vertical: "middle" };
+    const checkVal = summary.getCell(checkRow, 3);
+    checkVal.value = { formula: "'MEEM-FIN-F003'!G" + totalRow };
+    checkVal.numFmt = "#,##0.00";
+    checkVal.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF595959" } };
+    checkVal.alignment = { horizontal: "center", vertical: "middle" };
+
+    const noteRow = checkRow + 2;
+    summary.mergeCells("A" + noteRow + ":D" + noteRow);
+    const noteCell = summary.getCell(noteRow, 1);
+    noteCell.value =
+      "ملاحظة: التصنيف مبني على الفئة الفعلية المُختارة عند إدخال كل مصروف (عمود \"الفئة\" في شيت " +
+      "التفاصيل MEEM-FIN-F003، العمود H)، وجميع الأرقام أعلاه محسوبة بمعادلات SUMIF/COUNTIF مرتبطة مباشرة بشيت التفاصيل.";
+    noteCell.font = { name: "Calibri", size: 9, italic: true, color: { argb: "FF808080" } };
+    noteCell.alignment = { horizontal: "right", vertical: "middle", wrapText: true };
+    summary.getRow(noteRow).height = 30;
+
+    summary.columns = [{ width: 42 }, { width: 16 }, { width: 18 }, { width: 20 }];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = "MEEM_Petty_Cash_" + today + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("تم إنشاء تقرير العهدة وتنزيله بنجاح.", "success");
+    URL.revokeObjectURL(url);
+  } catch (unexpectedError) {
+    console.error("Unexpected error exporting MEEM petty cash report:", unexpectedError);
+    alert("حدث خطأ أثناء تجهيز التقرير. حاول مرة أخرى.");
+  } finally {
+    reportExpensesMeemExportButton.disabled = false;
+    reportExpensesMeemExportButton.textContent = originalLabel;
+  }
+}
+
+reportExpensesMeemExportButton.addEventListener("click", exportMeemPettyCashExcel);
+
+// ---------------------------------------------------------------------------
+// 10.4a2 تصدير "تقرير المستلمين" — ملف Excel داخلي منفصل تمامًا عن تقرير
+// العهدة (MEEM)، يعرض فقط اسم الموظف الذي استلم المبلغ فعليًا. هذا التقرير
+// لا يُشارك خارجيًا أبدًا، ومقصور على أدمن/مدير النظام فقط (نفس الأزرار
+// التي تُخفى فعليًا عن المدير ودعم تقني)
+// ---------------------------------------------------------------------------
+
+async function exportExpenseRecipientsExcel() {
+  if (!reportExpensesRecipientsExportButton) return;
+  reportExpensesRecipientsExportButton.disabled = true;
+  const originalLabel = reportExpensesRecipientsExportButton.textContent;
+  reportExpensesRecipientsExportButton.textContent = "جارٍ التجهيز...";
+
+  try {
+    const buildQuery = () => {
+      let q = supabaseClient
+        .from("expenses")
+        .select("expense_date, amount, description, recipient_employee_name, category:expense_categories ( name, name_ar )")
+        .eq("status", "active")
+        .order("expense_date", { ascending: true });
+      if (reportExpensesDateFrom.value) q = q.gte("expense_date", reportExpensesDateFrom.value);
+      if (reportExpensesDateTo.value) q = q.lte("expense_date", reportExpensesDateTo.value);
+      return q;
+    };
+
+    const { data, error } = await fetchAllRowsPaged(buildQuery);
+
+    if (error) {
+      console.error("Error exporting expense recipients report:", error);
+      alert("حدث خطأ أثناء تجهيز تقرير المستلمين. حاول مرة أخرى.");
+      return;
+    }
+
+    const rows = (data || []).filter((e) => e.recipient_employee_name);
+    if (!rows.length) {
+      alert("لا توجد مصروفات مسجّل عليها اسم موظف مستلم ضمن الفترة المحددة.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("تقرير المستلمين (داخلي)", { views: [{ rightToLeft: true }] });
+
+    sheet.mergeCells("A1:E1");
+    const titleCell = sheet.getCell("A1");
+    titleCell.value = "تقرير داخلي — الموظفون المستلمون لمبالغ العهدة النقدية (لا يُشارك خارجيًا)";
+    titleCell.font = { name: "Calibri", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF92400E" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 24;
+
+    const headers = ["التاريخ", "المبلغ (ر.س)", "الفئة", "الموظف المستلم", "الوصف (البيان)"];
+    headers.forEach((text, idx) => {
+      const cell = sheet.getCell(3, idx + 1);
+      cell.value = text;
+      cell.font = { name: "Calibri", size: 11, bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDE68A" } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+    });
+
+    let r = 4;
+    rows.forEach((exp) => {
+      const categoryName = exp.category ? exp.category.name_ar || exp.category.name : "غير مصنّف";
+      sheet.getCell(r, 1).value = exp.expense_date ? new Date(exp.expense_date) : null;
+      sheet.getCell(r, 1).numFmt = "yyyy-mm-dd";
+      sheet.getCell(r, 2).value = Number(exp.amount || 0);
+      sheet.getCell(r, 2).numFmt = "#,##0.00";
+      sheet.getCell(r, 3).value = categoryName;
+      sheet.getCell(r, 4).value = exp.recipient_employee_name || "";
+      sheet.getCell(r, 5).value = exp.description || "";
+      for (let col = 1; col <= 5; col++) {
+        const cell = sheet.getCell(r, col);
+        cell.font = { name: "Calibri", size: 11 };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFB7B7B7" } },
+          bottom: { style: "thin", color: { argb: "FFB7B7B7" } },
+          left: { style: "thin", color: { argb: "FFB7B7B7" } },
+          right: { style: "thin", color: { argb: "FFB7B7B7" } },
+        };
+      }
+      r += 1;
+    });
+
+    const totalRow = r;
+    sheet.getCell(totalRow, 1).value = "الإجمالي";
+    sheet.getCell(totalRow, 2).value = { formula: "SUM(B4:B" + (totalRow - 1) + ")" };
+    sheet.getCell(totalRow, 2).numFmt = "#,##0.00";
+    for (let col = 1; col <= 5; col++) {
+      sheet.getCell(totalRow, col).font = { name: "Calibri", size: 11, bold: true };
+      sheet.getCell(totalRow, col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
+    }
+
+    sheet.columns = [{ width: 14 }, { width: 16 }, { width: 34 }, { width: 26 }, { width: 46 }];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = "تقرير-المستلمين-داخلي-" + today + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("تم إنشاء تقرير المستلمين وتنزيله بنجاح.", "success");
+    URL.revokeObjectURL(url);
+  } catch (unexpectedError) {
+    console.error("Unexpected error exporting expense recipients report:", unexpectedError);
+    alert("حدث خطأ أثناء تجهيز تقرير المستلمين. حاول مرة أخرى.");
+  } finally {
+    reportExpensesRecipientsExportButton.disabled = false;
+    reportExpensesRecipientsExportButton.textContent = originalLabel;
+  }
+}
+
+if (reportExpensesRecipientsExportButton) {
+  reportExpensesRecipientsExportButton.addEventListener("click", exportExpenseRecipientsExcel);
+}
 
 // ---------------------------------------------------------------------------
 // 10.4b تقرير أصول تقنية المعلومات — توزيع حسب النوع (رسم دائري) والموقع
@@ -7062,6 +8124,153 @@ function addBackupSheet(workbook, sheetName, headers, rows) {
   rows.forEach((r) => worksheet.addRow(r));
 }
 
+// ---------------------------------------------------------------------------
+// دالة مشتركة: تجيب بيانات الأصول التقنية الخمسة وتحقنها كشيتات في أي
+// Workbook مُمرَّر لها — تُستخدم من كل من "النسخة الاحتياطية الكاملة" (كل
+// الأدوار المخوّلة) و"تصدير أصول تقنية IT" المستقل (خاص بدور دعم تقني، لا
+// يحتوي على أي بيانات سيارات/وقود/عهدة نقدية/مصروفات إطلاقًا)
+// ---------------------------------------------------------------------------
+async function fetchAndAddItAssetsSheets(workbook) {
+  const [laptopsRes, emailsRes, simsRes, tabletsRes, laptopCatalogRes] = await Promise.all([
+    fetchAllRowsPaged(() =>
+      supabaseClient
+        .from("it_laptop_assignments")
+        .select("staff_id, staff_name, serial_number, asset_tag, antivirus_licensed, job_position, staff_location, status")
+        .order("staff_name", { ascending: true })
+    ),
+    fetchAllRowsPaged(() =>
+      supabaseClient
+        .from("it_email_assignments")
+        .select("staff_id, staff_name, email_address, job_position, staff_location, status")
+        .order("staff_name", { ascending: true })
+    ),
+    fetchAllRowsPaged(() =>
+      supabaseClient
+        .from("it_sim_assignments")
+        .select("staff_id, staff_name, mobile_number, job_position, staff_location, status")
+        .order("staff_name", { ascending: true })
+    ),
+    fetchAllRowsPaged(() =>
+      supabaseClient
+        .from("it_tablet_assignments")
+        .select("staff_id, staff_name, serial_number, staff_location, status")
+        .order("staff_name", { ascending: true })
+    ),
+    fetchAllRowsPaged(() =>
+      supabaseClient
+        .from("it_laptop_catalog")
+        .select("serial_number, laptop_type, asset_tag, status")
+        .order("serial_number", { ascending: true })
+    ),
+  ]);
+
+  const results = { laptops: laptopsRes, emails: emailsRes, sims: simsRes, tablets: tabletsRes, laptopCatalog: laptopCatalogRes };
+  var hasError = false;
+  for (var rk in results) { if (results[rk].error) { hasError = true; break; } }
+  if (hasError) {
+    console.error("Error fetching IT assets sheets:", results);
+    return { error: results };
+  }
+
+  addBackupSheet(
+    workbook,
+    "أجهزة الحاسب",
+    ["رقم الموظف", "اسم الموظف", "الرقم التسلسلي", "رقم الأصل", "مكافح الفيروسات", "المسمى الوظيفي", "الموقع", "الحالة"],
+    (laptopsRes.data || []).map((r) => [
+      r.staff_id || "",
+      r.staff_name || "",
+      r.serial_number || "",
+      r.asset_tag || "",
+      r.antivirus_licensed ? "نعم" : "لا",
+      r.job_position || "",
+      r.staff_location || "",
+      r.status === "recovered" ? "مستردّ" : "نشط",
+    ])
+  );
+
+  addBackupSheet(
+    workbook,
+    "حسابات البريد",
+    ["رقم الموظف", "اسم الموظف", "البريد الإلكتروني", "المسمى الوظيفي", "الموقع", "الحالة"],
+    (emailsRes.data || []).map((r) => [
+      r.staff_id || "",
+      r.staff_name || "",
+      r.email_address || "",
+      r.job_position || "",
+      r.staff_location || "",
+      r.status === "recovered" ? "مستردّ" : "نشط",
+    ])
+  );
+
+  addBackupSheet(
+    workbook,
+    "شرائح الاتصال",
+    ["رقم الموظف", "اسم الموظف", "رقم الجوال", "المسمى الوظيفي", "الموقع", "الحالة"],
+    (simsRes.data || []).map((r) => [
+      r.staff_id || "",
+      r.staff_name || "",
+      r.mobile_number || "",
+      r.job_position || "",
+      r.staff_location || "",
+      r.status === "recovered" ? "مستردّ" : "نشط",
+    ])
+  );
+
+  addBackupSheet(
+    workbook,
+    "الأجهزة اللوحية",
+    ["رقم الموظف", "اسم الموظف", "الرقم التسلسلي", "الموقع", "الحالة"],
+    (tabletsRes.data || []).map((r) => [
+      r.staff_id || "",
+      r.staff_name || "",
+      r.serial_number || "",
+      r.staff_location || "",
+      r.status === "recovered" ? "مستردّ" : "نشط",
+    ])
+  );
+
+  addBackupSheet(
+    workbook,
+    "كتالوج الحواسيب",
+    ["الرقم التسلسلي", "النوع", "رقم الأصل", "الحالة"],
+    (laptopCatalogRes.data || []).map((r) => [
+      r.serial_number || "",
+      r.laptop_type || "",
+      r.asset_tag || "",
+      r.status === "excluded" ? "مستبعد" : "نشط",
+    ])
+  );
+
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// تصدير أصول تقنية المعلومات فقط — Excel بـ5 شيتات (بدون أي بيانات
+// سيارات/وقود/عهدة نقدية/مصروفات إطلاقًا). يُستخدم مباشرة من التحميل
+// التلقائي اليومي لدور "دعم تقني"
+// ---------------------------------------------------------------------------
+async function exportItAssetsExcel() {
+  const workbook = new ExcelJS.Workbook();
+  const { error } = await fetchAndAddItAssetsSheets(workbook);
+  if (error) {
+    console.error("Error exporting IT assets report:", error);
+    return false;
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const today = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = "أصول-تقنية-المعلومات-" + today + ".xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
 async function exportFullBackupToExcel() {
   fullBackupExportButton.disabled = true;
   const originalLabel = fullBackupExportButton.textContent;
@@ -7099,18 +8308,11 @@ async function exportFullBackupToExcel() {
       ),
     ]);
 
-    if (
-      vehiclesRes.error ||
-      fuelRes.error ||
-      fundsRes.error ||
-      expensesRes.error
-    ) {
-      console.error("Error exporting full backup:", {
-        vehicles: vehiclesRes.error,
-        fuel: fuelRes.error,
-        funds: fundsRes.error,
-        expenses: expensesRes.error,
-      });
+    const allResults = { vehicles: vehiclesRes, fuel: fuelRes, funds: fundsRes, expenses: expensesRes };
+    var hasError = false;
+    for (var rk in allResults) { if (allResults[rk].error) { hasError = true; break; } }
+    if (hasError) {
+      console.error("Error exporting full backup:", allResults);
       alert("حدث خطأ أثناء تجهيز النسخة الاحتياطية. حاول مرة أخرى.");
       return;
     }
@@ -7173,6 +8375,13 @@ async function exportFullBackupToExcel() {
         e.status === "voided" ? "ملغاة" : "نشطة",
       ])
     );
+
+    // --- الأصول التقنية (IT Assets) — عبر الدالة المشتركة ---
+    const itSheetsResult = await fetchAndAddItAssetsSheets(workbook);
+    if (itSheetsResult.error) {
+      alert("حدث خطأ أثناء تجهيز شيتات الأصول التقنية بالنسخة الاحتياطية. حاول مرة أخرى.");
+      return;
+    }
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -9103,6 +10312,14 @@ async function validateExpensesImportRows(rawRows) {
     const categoryRaw = String(raw["الفئة"] || "").trim();
     const dateRaw = raw["التاريخ"];
     const description = String(raw["الوصف"] || "").trim();
+    const supplierName = String(raw["اسم المورد"] || "").trim();
+    const invoiceNumber = String(raw["رقم الفاتورة"] || "").trim();
+    // عمود داخلي بالكامل — الموظف اللي استلم المبلغ فعليًا، لمعرفة الأدمن
+    // فقط، ولا يظهر أبدًا في أي تقرير خارجي (نفس قاعدة فورم الإضافة اليدوية)
+    const recipientEmployeeName = String(raw["الموظف المستلم للمبلغ (داخلي)"] || "").trim();
+    // كود العهدة اختياري — لو فاضي هيتحدد تلقائيًا على العهدة النشطة وقت
+    // التأكيد؛ مفيد لتسجيل مصروف قديم على عهدة قديمة بعينها بدل الحالية
+    const fundCodeRaw = String(raw["كود العهدة (اختياري)"] || "").trim();
 
     const categoryId = categoryMap[normalizeImportKey(categoryRaw)];
     if (!categoryRaw || !categoryId) {
@@ -9124,64 +10341,110 @@ async function validateExpensesImportRows(rawRows) {
       raw,
       status: "valid",
       reason: "",
+      fundCodeRaw, // يُستخدم في preConfirmCheck لتحديد العهدة المطلوبة لكل صف
       payload: {
         category_id: categoryId,
         amount,
         expense_date: expenseDate,
         description: description || null,
+        supplier_name: supplierName || null,
+        invoice_number: invoiceNumber || null,
+        recipient_employee_name: recipientEmployeeName || null,
         created_by: currentAuthUser ? currentAuthUser.id : null,
         // petty_cash_fund_id بيتحدد في preConfirmCheck تحت وقت التأكيد
-        // الفعلي، حتى نستخدم أحدث صندوق نشط وأحدث رصيد وقت الحفظ فعليًا
+        // الفعلي — إما العهدة المحدّدة صراحةً بعمود "كود العهدة"، وإلا
+        // العهدة النشطة وقت التأكيد
       },
     };
   });
 }
 
+// فحص قبل التأكيد النهائي: بيحدد لكل صف العهدة المطلوبة (المحدّدة صراحةً
+// بكود العهدة، أو العهدة النشطة افتراضيًا)، وبيتأكد إن إجمالي كل عهدة على
+// حدة ميتجاوزش رصيدها الحالي — نفس قاعدة "بدون رصيد سالب" لكن مطبّقة لكل
+// عهدة بمفردها، لأن الملف ممكن يحتوي مصروفات موزّعة على أكتر من عهدة
 async function expensesImportPreConfirmCheck(validRows) {
-  const { data: fund, error: fundError } = await supabaseClient
-    .from("petty_cash_funds")
-    .select("id, fund_code")
-    .eq("status", "active")
-    .order("funded_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (fundError) {
-    console.error("Error checking active fund for expenses import:", fundError);
-    return { ok: false, message: "تعذر التحقق من العهدة النشطة الحالية. يُرجى المحاولة مرة أخرى." };
-  }
-  if (!fund) {
-    return { ok: false, message: "لا توجد عهدة نقدية نشطة لتسجيل مصروف عليها." };
-  }
-
-  const { data: balance, error: balanceError } = await supabaseClient
+  const { data: funds, error: fundsError } = await supabaseClient
     .from("petty_cash_fund_balances")
-    .select("current_balance")
-    .eq("fund_id", fund.id)
-    .single();
+    .select("fund_id, fund_code, status, current_balance");
 
-  if (balanceError) {
-    console.error("Error checking fund balance for expenses import:", balanceError);
-    return { ok: false, message: "تعذر التحقق من رصيد العهدة الحالية. يُرجى المحاولة مرة أخرى." };
+  if (fundsError) {
+    console.error("Error loading funds for expenses import:", fundsError);
+    return { ok: false, message: "تعذر تحميل العهدات. يُرجى المحاولة مرة أخرى." };
   }
 
-  const totalRequested = validRows.reduce((sum, r) => sum + Number(r.payload.amount || 0), 0);
-  const currentBalance = Number(balance.current_balance);
+  const fundsList = funds || [];
+  const fundCodeMap = {};
+  fundsList.forEach((f) => {
+    fundCodeMap[normalizeImportKey(f.fund_code)] = f;
+  });
+  const activeFund = fundsList.find((f) => f.status === "active") || null;
 
-  if (totalRequested > currentBalance) {
-    const diff = totalRequested - currentBalance;
+  // نحدد العهدة الفعلية لكل صف، ونرصد أي صف بكود عهدة غير معروف
+  const unknownFundCodes = new Set();
+  const rowsWithNoActiveFund = [];
+
+  validRows.forEach((r) => {
+    let resolvedFund = null;
+    if (r.fundCodeRaw) {
+      resolvedFund = fundCodeMap[normalizeImportKey(r.fundCodeRaw)] || null;
+      if (!resolvedFund) unknownFundCodes.add(r.fundCodeRaw);
+    } else {
+      resolvedFund = activeFund;
+      if (!resolvedFund) rowsWithNoActiveFund.push(r.rowNumber);
+    }
+    r._resolvedFund = resolvedFund;
+  });
+
+  if (unknownFundCodes.size > 0) {
     return {
       ok: false,
-      message:
-        "إجمالي المصروفات الصالحة في الملف (" + formatNumber(totalRequested, 2) + " ر.س) أكبر من الرصيد المتاح في العهدة الحالية (" +
-        formatNumber(currentBalance, 2) + " ر.س) بمقدار " + formatNumber(diff, 2) +
-        " ر.س. يجب تقليل المبالغ أو حذف بعض الصفوف من الملف قبل التأكيد — لا يسمح النظام برصيد سالب، ولا يُتاح إدخال جزئي.",
+      message: 'كود عهدة غير معروف في الملف: "' + Array.from(unknownFundCodes).join('"، "') + '". تأكد من كتابة كود العهدة بالضبط كما هو مسجّل في النظام، أو اتركه فارغًا ليُستخدم العهدة النشطة تلقائيًا.',
+    };
+  }
+  if (rowsWithNoActiveFund.length > 0) {
+    return {
+      ok: false,
+      message: "لا توجد عهدة نقدية نشطة حاليًا، وبعض الصفوف (رقم " + rowsWithNoActiveFund.join("، ") + ") لم تحدد كود عهدة صراحةً. حدد كود عهدة لهذه الصفوف أو أنشئ عهدة نشطة أولًا.",
     };
   }
 
-  // ربط كل صف صالح بالصندوق النشط الحالي فعليًا وقت التأكيد
+  // نجمّع إجمالي المطلوب لكل عهدة على حدة، ونقارنه برصيدها الحالي
+  const totalsByFund = {};
   validRows.forEach((r) => {
-    r.payload.petty_cash_fund_id = fund.id;
+    const fundId = r._resolvedFund.fund_id;
+    totalsByFund[fundId] = (totalsByFund[fundId] || 0) + Number(r.payload.amount || 0);
+  });
+
+  const insufficientFunds = Object.entries(totalsByFund)
+    .map(([fundId, total]) => {
+      const fund = fundsList.find((f) => f.fund_id === fundId);
+      const currentBalance = Number(fund.current_balance);
+      return total > currentBalance
+        ? { fund_code: fund.fund_code, total, currentBalance, diff: total - currentBalance }
+        : null;
+    })
+    .filter(Boolean);
+
+  if (insufficientFunds.length > 0) {
+    const details = insufficientFunds
+      .map(
+        (f) =>
+          'العهدة "' + f.fund_code + '": المطلوب ' + formatNumber(f.total, 2) + " ر.س، المتاح " +
+          formatNumber(f.currentBalance, 2) + " ر.س (ناقص " + formatNumber(f.diff, 2) + " ر.س)"
+      )
+      .join(" — ");
+    return {
+      ok: false,
+      message:
+        "إجمالي المصروفات المطلوبة يتجاوز الرصيد المتاح في بعض العهدات: " + details +
+        ". يجب تقليل المبالغ أو حذف بعض الصفوف قبل التأكيد — لا يسمح النظام برصيد سالب، ولا يُتاح إدخال جزئي.",
+    };
+  }
+
+  // ربط كل صف صالح بالعهدة المحلولة فعليًا وقت التأكيد
+  validRows.forEach((r) => {
+    r.payload.petty_cash_fund_id = r._resolvedFund.fund_id;
   });
 
   return { ok: true };
@@ -9190,15 +10453,32 @@ async function expensesImportPreConfirmCheck(validRows) {
 IMPORT_CONFIGS.expenses = {
   title: "استيراد المصروفات من Excel",
   entityLabelPlural: "مصروف",
-  templateHeaders: ["المبلغ", "الفئة", "التاريخ", "الوصف"],
+  templateHeaders: [
+    "المبلغ",
+    "الفئة",
+    "التاريخ",
+    "الوصف",
+    "اسم المورد",
+    "رقم الفاتورة",
+    "الموظف المستلم للمبلغ (داخلي)",
+    "كود العهدة (اختياري)",
+  ],
   templateFilename: "قالب-استيراد-المصروفات.xlsx",
   rejectedReportFilename: "صفوف-مرفوضة-المصروفات.csv",
   step1Desc:
-    "حمِّل القالب وأدخل بيانات المصروفات المطلوب إضافتها (المبلغ، الفئة، التاريخ، الوصف). يحتوي عمود \"الفئة\" على قائمة منسدلة بالفئات الموجودة فعليًا في النظام — اختر منها بدلًا من كتابتها يدويًا. وستُربط جميع الصفوف تلقائيًا بالعهدة النشطة الحالية عند التأكيد.",
+    "حمِّل القالب وأدخل بيانات المصروفات المطلوب إضافتها. الأعمدة (المبلغ، الفئة، التاريخ) مطلوبة، والباقي اختياري. " +
+    "يحتوي عمود \"الفئة\" على قائمة منسدلة بالفئات الموجودة فعليًا في النظام — اختر منها بدلًا من كتابتها يدويًا. " +
+    "عمود \"الموظف المستلم للمبلغ (داخلي)\" معلومة داخلية للأدمن فقط ولا تظهر أبدًا في تقرير العهدة (MEEM) المُصدَّر للشركة الأم. " +
+    "عمود \"كود العهدة (اختياري)\" يحدد أي عهدة يُخصم منها هذا الصف بالتحديد (مفيد لمصروف قديم يجب خصمه من عهدة قديمة بعينها) — لو تركته فارغًا هيتم ربط الصف تلقائيًا بالعهدة النشطة الحالية.",
   templateColumnValidations: async () => {
     const categories = await ensureExpenseCategories();
+    const { data: fundsForValidation } = await supabaseClient
+      .from("petty_cash_funds")
+      .select("fund_code")
+      .order("funded_at", { ascending: false });
     return {
       "الفئة": categories.map((c) => c.name_ar || c.name),
+      "كود العهدة (اختياري)": (fundsForValidation || []).map((f) => f.fund_code),
     };
   },
   validate: validateExpensesImportRows,

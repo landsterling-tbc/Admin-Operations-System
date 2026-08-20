@@ -262,26 +262,16 @@
             <!-- عناصر تحتاج الانتباه — تُحقن ديناميكيًا من بيانات حقيقية فقط -->
           </div>
 
-          <div class="dashboard-insights-grid">
-            <div class="table-card dashboard-summary-card">
-              <div class="dashboard-section-header">
-                <span class="dashboard-section-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="m12 3 1.6 4.6L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.4z"/><path d="M19 15.5 19.8 18 22 18.8 19.8 19.6 19 22l-.8-2.4L16 18.8l2.2-.8z"/><path d="M4.5 15.5 5 17l1.5.5L5 18l-.5 1.5L4 18l-1.5-.5L4 17z"/></svg>
-                </span>
-                <h2 class="section-heading">ملخص ذكي</h2>
-              </div>
-              <ul id="dashboard-smart-summary" class="smart-summary-list"></ul>
+          <!-- نظرة عامة شاملة — كروت مختصرة لكل أقسام النظام -->
+          <div class="dashboard-overview-section">
+            <div class="dashboard-section-header">
+              <span class="dashboard-section-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </span>
+              <h2 class="section-heading">نظرة عامة</h2>
             </div>
-
-            <div class="table-card dashboard-activity-card">
-              <div class="dashboard-section-header">
-                <span class="dashboard-section-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                </span>
-                <h2 class="section-heading">آخر العمليات</h2>
-              </div>
-              <div id="dashboard-activity-list" class="activity-list"></div>
-              <div id="dashboard-activity-state" class="table-state" hidden></div>
+            <div id="dashboard-overview-grid" class="dashboard-overview-grid">
+              <!-- تُحقن ديناميكيًا من script.js -->
             </div>
           </div>
         </section>
@@ -530,7 +520,9 @@
                     <th>التاريخ</th>
                     <th>المبلغ</th>
                     <th>الفئة</th>
-                    <th>الوصف</th>
+                    <th>المورد</th>
+                    <th>الوصف (البيان)</th>
+                    <th>رقم الفاتورة</th>
                     <th>العهدة المرتبطة</th>
                     <th>المُدخل</th>
                     <th>الحالة</th>
@@ -953,11 +945,18 @@
 
             <div class="chart-grid">
               <div class="chart-card">
-                <h3 class="chart-card-title">اتجاه استهلاك الوقود الشهري (كل الفترات)</h3>
+                <h3 class="chart-card-title">اتجاه الاستهلاك الشهري — اللترات</h3>
                 <div class="chart-canvas-wrapper">
-                  <canvas id="report-fuel-trend-chart"></canvas>
+                  <canvas id="report-fuel-trend-liters-chart"></canvas>
                 </div>
-                <div id="report-fuel-trend-state" class="table-state" hidden></div>
+                <div id="report-fuel-trend-liters-state" class="table-state" hidden></div>
+              </div>
+              <div class="chart-card">
+                <h3 class="chart-card-title">اتجاه التكلفة الشهرية — ر.س</h3>
+                <div class="chart-canvas-wrapper">
+                  <canvas id="report-fuel-trend-cost-chart"></canvas>
+                </div>
+                <div id="report-fuel-trend-cost-state" class="table-state" hidden></div>
               </div>
               <div class="chart-card">
                 <h3 class="chart-card-title">أعلى السيارات استهلاكًا (اللترات)</h3>
@@ -1055,6 +1054,8 @@
                 <input type="date" id="report-expenses-date-to" class="input-select" aria-label="إلى تاريخ" />
               </div>
               <button type="button" id="report-expenses-export" class="btn-secondary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير CSV</button>
+              <button type="button" id="report-expenses-meem-export" class="btn-primary btn-inline"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تصدير تقرير العهدة (Excel)</button>
+              <button type="button" id="report-expenses-recipients-export" class="btn-secondary btn-inline" hidden><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M5 19h14" /></svg> تقرير المستلمين (داخلي)</button>
             </div>
             <div id="report-expenses-summary" class="summary-cards"></div>
 
@@ -2119,7 +2120,9 @@
                 <th>التاريخ</th>
                 <th>المبلغ</th>
                 <th>الفئة</th>
-                <th>الوصف</th>
+                <th>المورد</th>
+                <th>الوصف (البيان)</th>
+                <th>رقم الفاتورة</th>
                 <th>المُدخل</th>
                 <th>الحالة</th>
               </tr>
@@ -2151,14 +2154,26 @@
 
       <form id="expense-form" novalidate>
         <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field form-field-full">
+              <label for="expense-form-fund">العهدة النقدية *</label>
+              <select id="expense-form-fund" required></select>
+            </div>
+          </div>
+
           <p id="expense-form-fund-info" class="form-info-note"></p>
 
           <div class="form-grid">
             <div class="form-field">
               <label for="expense-form-category">الفئة *</label>
-              <select id="expense-form-category" required>
-                <option value="">اختر الفئة</option>
-              </select>
+              <div class="combo-field" id="expense-category-combo">
+                <input type="text" id="expense-form-category" autocomplete="off" placeholder="ابحث عن الفئة أو اضغط لعرض الكل" required />
+                <ul class="combo-dropdown" id="expense-category-dropdown" role="listbox" hidden></ul>
+              </div>
+            </div>
+            <div class="form-field form-field-full" id="expense-form-new-category-field" hidden>
+              <label for="expense-form-new-category">اسم الفئة الجديدة *</label>
+              <input type="text" id="expense-form-new-category" autocomplete="off" placeholder="اكتب اسم الفئة بدل &quot;أخرى&quot; — هتُضاف تلقائيًا لقائمة الفئات" />
             </div>
             <div class="form-field">
               <label for="expense-form-amount">المبلغ (ر.س) *</label>
@@ -2169,8 +2184,33 @@
               <input type="date" id="expense-form-date" required />
             </div>
             <div class="form-field">
-              <label for="expense-form-description">الوصف</label>
-              <textarea id="expense-form-description" rows="2"></textarea>
+              <label for="expense-form-supplier">اسم المورد</label>
+              <input type="text" id="expense-form-supplier" placeholder="مثال: مكتبة جرير - جدة" />
+            </div>
+            <div class="form-field">
+              <label for="expense-form-invoice">رقم الفاتورة</label>
+              <input type="text" id="expense-form-invoice" placeholder="مثال: 001083 (اتركه فارغًا لو لا يوجد)" />
+            </div>
+          </div>
+
+          <div class="form-internal-section">
+            <p class="form-internal-note">
+              <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15v.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M12 8v4"/></svg>
+              معلومة داخلية للأدمن فقط.
+            </p>
+            <div class="form-grid">
+              <div class="form-field form-field-full">
+                <label for="expense-form-recipient">الموظف المستلم للمبلغ فعليًا (اللي هياخده يصرفه على الشراء)</label>
+                <input type="text" id="expense-form-recipient" list="expense-recipient-options" autocomplete="off" placeholder="اسم الموظف اللي استلم النقدية فعليًا (اختياري)" />
+                <datalist id="expense-recipient-options"></datalist>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field form-field-full">
+              <label for="expense-form-description">الوصف (البيان)</label>
+              <textarea id="expense-form-description" rows="2" placeholder="وصف تفصيلي للمصروف — يظهر في عمود Particulars بتقرير العهدة"></textarea>
             </div>
           </div>
 
