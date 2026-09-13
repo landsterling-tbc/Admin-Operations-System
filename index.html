@@ -1059,6 +1059,14 @@
             </div>
             <div id="report-expenses-summary" class="summary-cards"></div>
 
+            <div class="chart-card">
+              <h3 class="chart-card-title">اتجاه الإنفاق الشهري (كل الفترات)</h3>
+              <div class="chart-canvas-wrapper chart-canvas-wrapper-wide">
+                <canvas id="report-expenses-trend-chart"></canvas>
+              </div>
+              <div id="report-expenses-trend-state" class="table-state" hidden></div>
+            </div>
+
             <div class="chart-grid">
               <div class="chart-card">
                 <h3 class="chart-card-title">توزيع المصروفات حسب الفئة</h3>
@@ -1069,11 +1077,11 @@
                 <div id="report-expenses-category-state" class="table-state" hidden></div>
               </div>
               <div class="chart-card">
-                <h3 class="chart-card-title">اتجاه الإنفاق الشهري (كل الفترات)</h3>
+                <h3 class="chart-card-title">أعلى 8 فئات إنفاقًا</h3>
                 <div class="chart-canvas-wrapper">
-                  <canvas id="report-expenses-trend-chart"></canvas>
+                  <canvas id="report-expenses-top-categories-chart"></canvas>
                 </div>
-                <div id="report-expenses-trend-state" class="table-state" hidden></div>
+                <div id="report-expenses-top-categories-state" class="table-state" hidden></div>
               </div>
             </div>
 
@@ -1085,6 +1093,7 @@
                       <th>الفئة</th>
                       <th>إجمالي المبلغ</th>
                       <th>عدد المصروفات</th>
+                      <th>متوسط المصروف</th>
                       <th>النسبة</th>
                     </tr>
                   </thead>
@@ -1092,6 +1101,24 @@
                 </table>
               </div>
               <div id="report-expenses-state" class="table-state" hidden></div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الشهر</th>
+                      <th>إجمالي المصروفات</th>
+                      <th>عدد المصروفات</th>
+                      <th>متوسط المصروف</th>
+                      <th>مقارنة بالشهر السابق</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-expenses-monthly-table-body"></tbody>
+                </table>
+              </div>
+              <div id="report-expenses-monthly-state" class="table-state" hidden></div>
             </div>
           </div>
 

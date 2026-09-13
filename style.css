@@ -3460,6 +3460,18 @@ textarea:focus-visible,
   height: 150px;
 }
 
+/* رسم واحد بعرض كامل الكارت (زي اتجاه الإنفاق الشهري) - ارتفاع أكبر عشان
+   الأرقام المكتوبة فوق نقاط الخط تبان بوضوح ومتتكدسش على بعضها */
+.chart-canvas-wrapper-wide {
+  height: 300px;
+}
+
+@media (max-width: 640px) {
+  .chart-canvas-wrapper-wide {
+    height: 240px;
+  }
+}
+
 .chart-donut-center-label {
   position: absolute;
   inset: 0;

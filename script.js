@@ -138,6 +138,8 @@ const ICON_PATHS = {
   mail: '<rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" />',
   phone: '<rect x="7.5" y="2" width="9" height="20" rx="2" /><path d="M11 18.2h2" />',
   tablet: '<rect x="4.5" y="2.5" width="15" height="19" rx="2" /><path d="M11.2 18.5h1.6" />',
+  calendar: '<rect x="3.5" y="4.5" width="17" height="16" rx="2" /><path d="M3.5 9.5h17M8 3v3M16 3v3" />',
+  trendingUp: '<path d="m3 17 6-6 4 4 8-8" /><path d="M15 6h6v6" />',
 };
 
 // يبني سترينج <svg> جاهز للحقن المباشر داخل أي HTML string حالي (بدل
@@ -5561,6 +5563,33 @@ function groupSumByMonth(rows, dateField, valueField) {
 }
 
 // ---------------------------------------------------------------------------
+// نفس فكرة groupSumByMonth لكن بترجّع كمان عدد الصفوف لكل شهر (مش المجموع
+// بس) - مستخدمة في جدول التفصيل الشهري لتقرير المصروفات (عدد + متوسط)
+// ---------------------------------------------------------------------------
+function groupStatsByMonth(rows, dateField, valueField) {
+  const stats = {};
+  rows.forEach((r) => {
+    const raw = r[dateField];
+    if (!raw) return;
+    const key = String(raw).slice(0, 7); // "YYYY-MM"
+    if (!stats[key]) stats[key] = { total: 0, count: 0 };
+    stats[key].total += Number(r[valueField] || 0);
+    stats[key].count += 1;
+  });
+  const keys = Object.keys(stats).sort();
+  return keys.map((k) => {
+    const [y, m] = k.split("-");
+    return {
+      key: k,
+      label: ENGLISH_MONTHS_SHORT[Number(m) - 1] + " " + y.slice(2),
+      total: stats[k].total,
+      count: stats[k].count,
+      average: stats[k].count ? stats[k].total / stats[k].count : 0,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // جلب كل الصفوف المطابقة لاستعلام مهما كان عددها، بدل الاكتفاء بأول 1000
 // صف (الحد الافتراضي لـ PostgREST). لذا يجب تمرير دالة تبني استعلامًا جديدًا في كل
 // مرة (بدون .range()) لأن نفس الـ query object لا يمكن إعادة استخدامه.
@@ -5890,6 +5919,35 @@ function drawDonutChart(canvas, segments, options) {
   const chartPalette = getChartPalette();
   const colors = segments.map((seg, i) => seg.color || chartPalette[i % chartPalette.length]);
 
+  // تسميات النسبة % مكتوبة داخل كل قطاع مباشرة (بدل الاعتماد على الليجند/
+  // الـ tooltip بس) - بتتخفى تلقائيًا للقطاعات الصغيرة جدًا (أقل من 4%)
+  // عشان النص ميتزنقش فوق بعضه
+  const donutDataLabelsPlugin = opts.showDataLabels
+    ? {
+        id: "donutDataLabels",
+        afterDatasetsDraw: function (chart) {
+          const ctx2 = chart.ctx;
+          const meta = chart.getDatasetMeta(0);
+          meta.data.forEach(function (arc, idx) {
+            const value = chart.data.datasets[0].data[idx];
+            const pct = total ? (value / total) * 100 : 0;
+            if (pct < 4) return;
+            const angle = (arc.startAngle + arc.endAngle) / 2;
+            const radius = (arc.innerRadius + arc.outerRadius) / 2;
+            const x = arc.x + Math.cos(angle) * radius;
+            const y = arc.y + Math.sin(angle) * radius;
+            ctx2.save();
+            ctx2.font = "700 11px " + cssVar("--font-body");
+            ctx2.fillStyle = "#fff";
+            ctx2.textAlign = "center";
+            ctx2.textBaseline = "middle";
+            ctx2.fillText(formatNumber(pct, 0) + "%", x, y);
+            ctx2.restore();
+          });
+        },
+      }
+    : null;
+
   new Chart(canvas, {
     type: "doughnut",
     data: {
@@ -5919,6 +5977,7 @@ function drawDonutChart(canvas, segments, options) {
         },
       },
     },
+    plugins: donutDataLabelsPlugin ? [donutDataLabelsPlugin] : [],
   });
   injectChartDownloadBtn(canvas);
 }
@@ -7237,6 +7296,10 @@ const reportExpensesCategoryLegend = document.getElementById("report-expenses-ca
 const reportExpensesCategoryState = document.getElementById("report-expenses-category-state");
 const reportExpensesTrendChart = document.getElementById("report-expenses-trend-chart");
 const reportExpensesTrendState = document.getElementById("report-expenses-trend-state");
+const reportExpensesTopCategoriesChart = document.getElementById("report-expenses-top-categories-chart");
+const reportExpensesTopCategoriesState = document.getElementById("report-expenses-top-categories-state");
+const reportExpensesMonthlyTableBody = document.getElementById("report-expenses-monthly-table-body");
+const reportExpensesMonthlyState = document.getElementById("report-expenses-monthly-state");
 
 async function loadExpensesReport() {
   renderTableSkeleton(reportExpensesTableBody, 5, 4);
@@ -7270,7 +7333,10 @@ async function loadExpensesReport() {
     reportExpensesRows = [];
     setReportState(reportExpensesState, "لا توجد مصروفات مطابقة للفلتر المحدد.");
     setReportState(reportExpensesCategoryState, "لا توجد مصروفات لعرض توزيعها.");
+    setReportState(reportExpensesTopCategoriesState, "لا توجد مصروفات لعرضها.");
     setReportState(reportExpensesTrendState, "لا توجد مصروفات لعرض اتجاهها.");
+    setReportState(reportExpensesMonthlyState, "لا توجد مصروفات لعرضها.");
+    reportExpensesMonthlyTableBody.innerHTML = "";
     return;
   }
 
@@ -7288,6 +7354,7 @@ async function loadExpensesReport() {
     name,
     total: stats.total,
     count: stats.count,
+    average: stats.count ? stats.total / stats.count : 0,
     percentage: totalSpending ? (stats.total / totalSpending) * 100 : 0,
   }));
 
@@ -7296,27 +7363,77 @@ async function loadExpensesReport() {
   drawDonutChart(
     reportExpensesCategoryChart,
     reportExpensesRows.map((c, i) => ({ label: c.name, value: c.total, color: expensesChartPalette[i % expensesChartPalette.length] })),
-    { formatValue: (v) => formatNumber(v, 2) + " ر.س" }
+    { formatValue: (v) => formatNumber(v, 2) + " ر.س", showDataLabels: true }
   );
   renderChartLegend(reportExpensesCategoryLegend, reportExpensesRows.map((c, i) => ({
     label: c.name,
     color: expensesChartPalette[i % expensesChartPalette.length],
   })));
 
-  const monthlyExpenses = groupSumByMonth(rows, "expense_date", "amount");
-  if (monthlyExpenses.values.length < 2) {
+  // أعلى 8 فئات إنفاقًا كرسم أعمدة أفقي (أوضح للمقارنة السريعة من الدائري
+  // لو الفئات كتير) - أي فئات زيادة بتتجمع في "باقي الفئات"
+  setReportState(reportExpensesTopCategoriesState, null);
+  const topN = reportExpensesRows.slice(0, 8);
+  const restTotal = reportExpensesRows.slice(8).reduce((sum, c) => sum + c.total, 0);
+  const topCategoriesLabels = topN.map((c) => c.name).concat(restTotal > 0 ? ["باقي الفئات"] : []);
+  const topCategoriesValues = topN.map((c) => c.total).concat(restTotal > 0 ? [restTotal] : []);
+  drawBarChart(reportExpensesTopCategoriesChart, topCategoriesValues, topCategoriesLabels, {
+    horizontal: true,
+    formatValue: (v) => formatNumber(v, 2) + " ر.س",
+  });
+
+  // اتجاه الإنفاق الشهري - رسم خطي بالأرقام مكتوبة فوق كل نقطة مباشرة
+  // (بدل الاعتماد على الـ tooltip بس) + جدول تفصيلي تحته لكل شهر
+  const monthlyStats = groupStatsByMonth(rows, "expense_date", "amount");
+  if (monthlyStats.length < 2) {
     setReportState(reportExpensesTrendState, "البيانات غير كافية لعرض اتجاه شهري (يلزم شهرين على الأقل).");
   } else {
     setReportState(reportExpensesTrendState, null);
-    drawBarChart(reportExpensesTrendChart, monthlyExpenses.values, monthlyExpenses.labels, {
-      formatValue: (v) => formatNumber(v, 2) + " ر.س",
-    });
+    drawLineChart(
+      reportExpensesTrendChart,
+      monthlyStats.map((m) => m.total),
+      monthlyStats.map((m) => m.label),
+      {
+        formatValue: (v) => formatNumber(v, 2) + " ر.س",
+        showDataLabels: true,
+        labelDecimals: 0,
+      }
+    );
   }
+
+  setReportState(reportExpensesMonthlyState, null);
+  reportExpensesMonthlyTableBody.innerHTML = monthlyStats
+    .slice()
+    .reverse()
+    .map((m, idx) => {
+      const prev = monthlyStats[monthlyStats.length - 1 - idx - 1];
+      let changeHtml = "<span class=\"text-muted\">—</span>";
+      if (prev && prev.total > 0) {
+        const change = ((m.total - prev.total) / prev.total) * 100;
+        const up = change >= 0;
+        changeHtml =
+          "<span class=\"" + (up ? "trend-up" : "trend-down") + "\">" +
+          (up ? "▲ " : "▼ ") + formatNumber(Math.abs(change), 1) + "%</span>";
+      }
+      return (
+        "<tr><td>" + escapeHtml(m.label) + "</td>" +
+        "<td>" + formatNumber(m.total, 2) + " ر.س</td>" +
+        "<td>" + m.count + "</td>" +
+        "<td>" + formatNumber(m.average, 2) + " ر.س</td>" +
+        "<td>" + changeHtml + "</td></tr>"
+      );
+    })
+    .join("");
+
+  const busiestMonth = monthlyStats.reduce((max, m) => (m.total > (max ? max.total : -1) ? m : max), null);
+  const avgMonthlySpending = monthlyStats.length ? totalSpending / monthlyStats.length : 0;
 
   reportExpensesSummary.innerHTML =
     statCardHtml(icon("receipt"), "إجمالي الإنفاق", formatNumber(totalSpending, 2) + " ر.س", "") +
     statCardHtml(icon("hash"), "عدد المصروفات", String(rows.length), "") +
-    statCardHtml(icon("tag"), "أعلى فئة إنفاقًا", reportExpensesRows[0] ? reportExpensesRows[0].name : "—", "");
+    statCardHtml(icon("tag"), "أعلى فئة إنفاقًا", reportExpensesRows[0] ? reportExpensesRows[0].name : "—", "") +
+    statCardHtml(icon("calendar"), "متوسط الإنفاق الشهري", formatNumber(avgMonthlySpending, 2) + " ر.س", "") +
+    statCardHtml(icon("trendingUp"), "أعلى شهر إنفاقًا", busiestMonth ? busiestMonth.label + " (" + formatNumber(busiestMonth.total, 0) + " ر.س)" : "—", "");
 
   setReportState(reportExpensesState, null);
   reportExpensesTableBody.innerHTML = reportExpensesRows
@@ -7325,6 +7442,7 @@ async function loadExpensesReport() {
         "<tr><td>" + escapeHtml(c.name) + "</td>" +
         "<td>" + formatNumber(c.total, 2) + " ر.س</td>" +
         "<td>" + c.count + "</td>" +
+        "<td>" + formatNumber(c.average, 2) + " ر.س</td>" +
         "<td>" + formatNumber(c.percentage, 1) + "%</td></tr>"
     )
     .join("");
