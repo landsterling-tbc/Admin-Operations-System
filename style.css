@@ -1342,6 +1342,18 @@ textarea:focus-visible,
   overflow: hidden;
 }
 
+/* عنوان اختياري فوق أي .table-card (زي عناوين كروت الرسوم .chart-card-title
+   بالظبط) - يُستخدم لما يكون فيه أكتر من جدول في نفس الصفحة/التقرير
+   ومحتاجين نوضح لكل جدول اسمه */
+.table-card-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin: 0;
+  padding: var(--space-4) var(--space-5) 0;
+  color: var(--color-text);
+}
+
 .table-scroll {
   overflow-x: auto;
   overflow-y: auto;
@@ -3469,6 +3481,18 @@ textarea:focus-visible,
 @media (max-width: 640px) {
   .chart-canvas-wrapper-wide {
     height: 240px;
+  }
+}
+
+/* رسم أعمدة أفقي بأسماء فئات كاملة (بدون اختصار، ملفوفة على سطرين) -
+   محتاج ارتفاع أكبر من الرسوم العادية عشان كل عمود يبقى له مساحة كافية */
+.chart-canvas-wrapper-tall {
+  height: 320px;
+}
+
+@media (max-width: 640px) {
+  .chart-canvas-wrapper-tall {
+    height: 280px;
   }
 }
 

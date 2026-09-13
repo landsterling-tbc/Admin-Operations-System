@@ -5752,10 +5752,30 @@ function drawBarChart(canvas, values, labels, options) {
       padding: horizontal ? 8 : 4,
       callback: function (value) {
         const label = this.getLabelForValue(value);
+        if (!label) return label;
+        // opts.fullLabels: اسم الفئة كامل من غير اختصار - بيتلف على أكتر من
+        // سطر (Chart.js بيقبل مصفوفة أسطر كـ tick label) بدل ما يترص أفقيًا
+        // ويتقطع، مفيد للأسماء الطويلة زي فئات المصروفات
+        if (opts.fullLabels) {
+          const words = label.split(" ");
+          const lines = [];
+          let current = "";
+          words.forEach((word) => {
+            const candidate = current ? current + " " + word : word;
+            if (candidate.length > 26 && current) {
+              lines.push(current);
+              current = word;
+            } else {
+              current = candidate;
+            }
+          });
+          if (current) lines.push(current);
+          return lines;
+        }
         // للأسماء (رسوم أفقية) بنسمح بطول أكبر قبل الاختصار، وللتسميات
         // القصيرة مثل الشهور (رسوم رأسية) لا يوجد داعي للاختصار أصلًا
         const maxLen = horizontal ? 22 : 14;
-        return label && label.length > maxLen ? label.slice(0, maxLen - 1) + "…" : label;
+        return label.length > maxLen ? label.slice(0, maxLen - 1) + "…" : label;
       },
     },
   };
@@ -7379,6 +7399,7 @@ async function loadExpensesReport() {
   const topCategoriesValues = topN.map((c) => c.total).concat(restTotal > 0 ? [restTotal] : []);
   drawBarChart(reportExpensesTopCategoriesChart, topCategoriesValues, topCategoriesLabels, {
     horizontal: true,
+    fullLabels: true,
     formatValue: (v) => formatNumber(v, 2) + " ر.س",
   });
 
