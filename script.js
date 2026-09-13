@@ -3856,6 +3856,20 @@ const closeFundModal = document.getElementById("close-fund-modal");
 const closeFundConfirmButton = document.getElementById("close-fund-confirm");
 const closeFundError = document.getElementById("close-fund-error");
 
+// عناصر Modal تعديل بيانات العهدة
+const editFundModal = document.getElementById("edit-fund-modal");
+const editFundForm = document.getElementById("edit-fund-form");
+const editFundCodeInput = document.getElementById("edit-fund-code");
+const editFundAmountInput = document.getElementById("edit-fund-amount");
+const editFundDateInput = document.getElementById("edit-fund-date");
+const editFundError = document.getElementById("edit-fund-error");
+const editFundSubmitButton = document.getElementById("edit-fund-submit");
+
+// عناصر Modal حذف العهدة نهائيًا
+const deleteFundModal = document.getElementById("delete-fund-modal");
+const deleteFundConfirmButton = document.getElementById("delete-fund-confirm");
+const deleteFundError = document.getElementById("delete-fund-error");
+
 // عناصر Modal تعزيز الرصيد
 const topupFundModal = document.getElementById("topup-fund-modal");
 const topupFundForm = document.getElementById("topup-fund-form");
@@ -3949,12 +3963,16 @@ function renderCurrentFundCard(fund) {
   const actionsHtml =
     isSuperAdmin
       ? '<div class="fund-card-actions">' +
+        '<button type="button" id="edit-fund-button" class="btn-secondary">تعديل بيانات العهدة</button>' +
         '<button type="button" id="topup-fund-button" class="btn-secondary">تعزيز الرصيد</button>' +
         (isExhaustedByBalance
           ? '<button type="button" id="close-fund-button" class="btn-danger">إغلاق العهدة كمستنفدة</button>'
           : "") +
         (canCancel
           ? '<button type="button" id="cancel-fund-button" class="btn-danger">إلغاء العهدة</button>'
+          : "") +
+        (canCancel
+          ? '<button type="button" id="delete-fund-button" class="btn-danger">حذف العهدة نهائيًا</button>'
           : "") +
         "</div>"
       : "";
@@ -3988,6 +4006,27 @@ function renderCurrentFundCard(fund) {
     "</div></div>";
 
   if (isSuperAdmin) {
+    const editBtn = document.getElementById("edit-fund-button");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        editFundError.hidden = true;
+        editFundError.textContent = "";
+        editFundCodeInput.value = fund.fund_code || "";
+        editFundAmountInput.value = fund.opening_amount || "";
+        editFundDateInput.value = fund.funded_at ? String(fund.funded_at).slice(0, 10) : "";
+        editFundModal.hidden = false;
+      });
+    }
+
+    const deleteBtn = document.getElementById("delete-fund-button");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        deleteFundError.hidden = true;
+        deleteFundError.textContent = "";
+        deleteFundModal.hidden = false;
+      });
+    }
+
     const topupBtn = document.getElementById("topup-fund-button");
     if (topupBtn) {
       topupBtn.addEventListener("click", () => {
@@ -4173,6 +4212,122 @@ fundForm.addEventListener("submit", async (event) => {
   } finally {
     fundFormSubmitButton.disabled = false;
     fundFormSubmitButton.textContent = "حفظ";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 6.3b تعديل بيانات العهدة الحالية (كود العهدة / المبلغ الافتتاحي / تاريخ
+//      التمويل) — Admin/Super Admin فقط (RLS: petty_cash_funds_update)
+// ---------------------------------------------------------------------------
+
+editFundForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  editFundError.hidden = true;
+  editFundError.textContent = "";
+
+  if (!currentActiveFund) return;
+
+  const newFundCode = editFundCodeInput.value.trim();
+  const newAmount = Number(editFundAmountInput.value);
+  const newFundedAt = editFundDateInput.value;
+
+  if (!newFundCode) {
+    editFundError.textContent = "كود العهدة مطلوب.";
+    editFundError.hidden = false;
+    return;
+  }
+  if (!newFundedAt) {
+    editFundError.textContent = "تاريخ التمويل مطلوب.";
+    editFundError.hidden = false;
+    return;
+  }
+  if (!editFundAmountInput.value || Number.isNaN(newAmount) || newAmount <= 0) {
+    editFundError.textContent = "المبلغ الافتتاحي يجب أن يكون رقمًا أكبر من صفر.";
+    editFundError.hidden = false;
+    return;
+  }
+
+  editFundSubmitButton.disabled = true;
+  editFundSubmitButton.textContent = "جارٍ الحفظ...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("petty_cash_funds")
+      .update({
+        fund_code: newFundCode,
+        opening_amount: newAmount,
+        funded_at: newFundedAt,
+      })
+      .eq("id", currentActiveFund.id);
+
+    if (error) {
+      console.error("Error editing fund:", error);
+      editFundError.textContent =
+        error.code === "23505"
+          ? "كود العهدة هذا مستخدم بالفعل لعهدة أخرى. يُرجى اختيار كود مختلف."
+          : error.code === "42501" ||
+            (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك)."
+          : "حدث خطأ أثناء الحفظ: " + error.message;
+      editFundError.hidden = false;
+      return;
+    }
+
+    editFundModal.hidden = true;
+    loadCurrentFund();
+    loadFundingHistory();
+  } catch (unexpectedError) {
+    console.error("Unexpected error editing fund:", unexpectedError);
+    editFundError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    editFundError.hidden = false;
+  } finally {
+    editFundSubmitButton.disabled = false;
+    editFundSubmitButton.textContent = "حفظ التعديلات";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 6.3c حذف العهدة نهائيًا — Super Admin فقط، ومتاح فقط إذا لا توجد مصروفات
+//      مسجّلة عليها (قيد المفتاح الأجنبي expenses.petty_cash_fund_id يمنع
+//      الحذف تلقائيًا في حالة وجود مصروفات مرتبطة، حتى لو حصل خطأ هنا)
+// ---------------------------------------------------------------------------
+
+deleteFundConfirmButton.addEventListener("click", async () => {
+  if (!currentActiveFund) return;
+
+  deleteFundError.hidden = true;
+  deleteFundConfirmButton.disabled = true;
+  deleteFundConfirmButton.textContent = "جارٍ الحذف...";
+
+  try {
+    const { error } = await supabaseClient
+      .from("petty_cash_funds")
+      .delete()
+      .eq("id", currentActiveFund.id);
+
+    if (error) {
+      console.error("Error deleting fund:", error);
+      deleteFundError.textContent =
+        error.code === "23503"
+          ? "لا يمكن حذف هذه العهدة لأنه توجد مصروفات مسجّلة عليها. يجب حذف أو نقل هذه المصروفات أولًا."
+          : error.code === "42501" ||
+            (error.message && error.message.toLowerCase().includes("row-level security"))
+          ? "غير مسموح لك بتنفيذ هذا الإجراء (صلاحياتك الحالية لا تسمح بذلك). تأكد من تنفيذ ملف الترحيل الخاص بصلاحية الحذف في قاعدة البيانات."
+          : "حدث خطأ أثناء الحذف: " + error.message;
+      deleteFundError.hidden = false;
+      return;
+    }
+
+    deleteFundModal.hidden = true;
+    loadCurrentFund();
+    loadFundingHistory();
+  } catch (unexpectedError) {
+    console.error("Unexpected error deleting fund:", unexpectedError);
+    deleteFundError.textContent = "تعذر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+    deleteFundError.hidden = false;
+  } finally {
+    deleteFundConfirmButton.disabled = false;
+    deleteFundConfirmButton.textContent = "تأكيد الحذف نهائيًا";
   }
 });
 

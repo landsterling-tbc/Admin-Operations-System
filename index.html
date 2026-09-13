@@ -2040,6 +2040,72 @@
   </div>
 
   <!-- ==========================================================
+       Modal: تعديل بيانات العهدة الحالية — يظهر لـ Admin/Super Admin فقط
+       ========================================================== -->
+  <div id="edit-fund-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-fund-title">
+      <div class="modal-header">
+        <h2 id="edit-fund-title" class="modal-title">تعديل بيانات العهدة</h2>
+        <button type="button" class="modal-close" data-close-modal="edit-fund-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <form id="edit-fund-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="edit-fund-code">كود العهدة *</label>
+              <input type="text" id="edit-fund-code" required />
+            </div>
+            <div class="form-field">
+              <label for="edit-fund-amount">المبلغ الافتتاحي (ر.س) *</label>
+              <input type="number" id="edit-fund-amount" min="0.01" step="0.01" required />
+            </div>
+            <div class="form-field">
+              <label for="edit-fund-date">تاريخ التمويل *</label>
+              <input type="date" id="edit-fund-date" required />
+            </div>
+          </div>
+
+          <div id="edit-fund-error" class="error-message" role="alert" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" id="edit-fund-submit" class="btn-primary">حفظ التعديلات</button>
+          <button type="button" class="btn-secondary" data-close-modal="edit-fund-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Modal: تأكيد حذف العهدة نهائيًا — يظهر لـ Super Admin فقط، ومتاح
+       فقط إذا لم تُسجَّل أي مصروفات على هذه العهدة
+       ========================================================== -->
+  <div id="delete-fund-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-fund-title">
+      <div class="modal-header">
+        <h2 id="delete-fund-title" class="modal-title">تأكيد حذف العهدة نهائيًا</h2>
+        <button type="button" class="modal-close" data-close-modal="delete-fund-modal" aria-label="إغلاق">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="void-message">
+          هل أنت متأكد من حذف هذه العهدة نهائيًا من النظام؟ هذا الإجراء لا
+          يمكن التراجع عنه، ولن يكون متاحًا إلا إذا لم تُسجَّل عليها أي
+          مصروفات على الإطلاق. إذا كنت تريد الاحتفاظ بسجل العهدة، استخدم
+          «إلغاء العهدة» بدلًا من الحذف.
+        </p>
+        <div id="delete-fund-error" class="error-message" role="alert" hidden></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="delete-fund-confirm" class="btn-danger">تأكيد الحذف نهائيًا</button>
+        <button type="button" class="btn-secondary" data-close-modal="delete-fund-modal">تراجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
        Modal: تعزيز رصيد العهدة الحالية — يظهر لـ Admin/Super Admin فقط
        ========================================================== -->
   <div id="topup-fund-modal" class="modal-overlay" hidden>
