@@ -5935,6 +5935,35 @@ function drawBarChart(canvas, values, labels, options) {
     },
   };
 
+  // opts.showDataLabels: بيكتب قيمة كل عمود بجانبه (أو فوقه) مباشرة على
+  // الرسم نفسه، بدل الاعتماد على الـ tooltip بس عند مرور الماوس
+  const barDataLabelsPlugin = opts.showDataLabels
+    ? {
+        id: "barDataLabels",
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          const meta = chart.getDatasetMeta(0);
+          ctx.save();
+          ctx.font = "600 11px " + (cssVar("--font-body") || "sans-serif");
+          ctx.fillStyle = cssVar("--color-text");
+          ctx.textBaseline = "middle";
+          meta.data.forEach((bar, i) => {
+            const value = values[i];
+            if (value === undefined || value === null) return;
+            const text = formatValue(value);
+            if (horizontal) {
+              ctx.textAlign = "start";
+              ctx.fillText(text, bar.x + 6, bar.y);
+            } else {
+              ctx.textAlign = "center";
+              ctx.fillText(text, bar.x, bar.y - 8);
+            }
+          });
+          ctx.restore();
+        },
+      }
+    : null;
+
   new Chart(canvas, {
     type: "bar",
     data: {
@@ -5954,6 +5983,7 @@ function drawBarChart(canvas, values, labels, options) {
       indexAxis: horizontal ? "y" : "x",
       responsive: true,
       maintainAspectRatio: false,
+      layout: horizontal && opts.showDataLabels ? { padding: { left: 4, right: 60 } } : undefined,
       animation: { duration: 650, easing: "easeOutQuart" },
       scales: horizontal ? { x: valueAxis, y: labelAxis } : { x: labelAxis, y: valueAxis },
       plugins: {
@@ -5968,6 +5998,7 @@ function drawBarChart(canvas, values, labels, options) {
         },
       },
     },
+    plugins: barDataLabelsPlugin ? [barDataLabelsPlugin] : [],
   });
   injectChartDownloadBtn(canvas);
 }
@@ -6719,10 +6750,10 @@ function renderDashboardAttention({
       actionLabel: "الذهاب إلى العهدة النقدية",
       action: () => navigateTo("petty-cash"),
     });
-  } else if (currentActiveFund.status === "exhausted") {
+  } else if (currentActiveFund.status === "exhausted" || Number(currentActiveFund.current_balance) <= 0) {
     items.push({
       type: "warning",
-      text: "العهدة الحالية (" + currentActiveFund.fund_code + ") مستنفدة بالكامل.",
+      text: "العهدة الحالية (" + currentActiveFund.fund_code + ") نفدت بالكامل (الرصيد المتبقي 0.00 ر.س).",
       actionLabel: "عرض العهدة الحالية",
       action: () => navigateTo("petty-cash"),
     });
@@ -7555,6 +7586,7 @@ async function loadExpensesReport() {
   drawBarChart(reportExpensesTopCategoriesChart, topCategoriesValues, topCategoriesLabels, {
     horizontal: true,
     fullLabels: true,
+    showDataLabels: true,
     formatValue: (v) => formatNumber(v, 2) + " ر.س",
   });
 

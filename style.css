@@ -3496,6 +3496,30 @@ textarea:focus-visible,
   }
 }
 
+/* رسم "أعلى 8 فئات إنفاقًا" بعد ما بقى بعرض كامل الكارت في صف مستقل -
+   محتاج ارتفاع أكبر من .chart-canvas-wrapper-tall عشان الأعمدة (لحد 9
+   فئات) متتكدسش على بعضها ويبان الرقم المكتوب فوق كل عمود بوضوح */
+.chart-canvas-wrapper-top-categories {
+  height: 420px;
+}
+
+@media (max-width: 640px) {
+  .chart-canvas-wrapper-top-categories {
+    height: 360px;
+  }
+}
+
+/* مسافة فاصلة بين كروت الرسوم والجداول المتتالية جوه أي تقرير - من غير
+   كده بيبانوا ملزّقين في بعض لما مفيش .chart-grid بينهم */
+.report-panel > .chart-card + .chart-card,
+.report-panel > .chart-card + .table-card,
+.report-panel > .table-card + .table-card,
+.report-panel > .table-card + .chart-card,
+.report-panel > .chart-grid + .table-card,
+.report-panel > .summary-cards + .chart-card {
+  margin-block-start: var(--space-5);
+}
+
 .chart-donut-center-label {
   position: absolute;
   inset: 0;
